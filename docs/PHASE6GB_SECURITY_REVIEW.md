@@ -1,3 +1,5 @@
+> **Current supersession (2026-10-27):** Phase 6G-B exists in verified fork main `3d32b763ff777347f77eae7a8a7936d85dc2d770`. Earlier Draft/unmerged and dependency-review wording below is historical. Current evidence, qualified historical final review dispositions and unfinished Phase 6G-C work are recorded in [initial repository audit](INITIAL_REPOSITORY_AUDIT.md). No fresh fork CI or production approval is claimed.
+
 # Phase 6G-B implementation and security report
 
 Repository: `hassan-anari/Base`. One Draft PR: [#37](https://github.com/hassan-anari/Base/pull/37). No merge or public-mainnet activation.

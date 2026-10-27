@@ -2,7 +2,7 @@
 
 **Self-hosted, API-first digital-asset custody and financial platform** for cryptocurrency exchanges, payment gateways, payment facilitators, merchants, and institutional operators.
 
-**Status (2026-10-11):** Phase 6F-D was merged in PR #34 at main commit 4488016a668283868633eb1a7fa2f64187a93b56. Phase 6G is next. Existing EVM, TRON, Solana and TON integrations have genuine isolated-development acceptance, **not production/mainnet authorization**. TON stays at its currently accepted isolated scope until explicitly reprioritized. No customer funds or production withdrawal activation is authorized by these documents.
+**Status (2026-10-27):** Live `zeroexlive/Custody` main is `3d32b763ff777347f77eae7a8a7936d85dc2d770`, the historical Phase 6G-B squash merge (#37). Phase 6G-C is the next unfinished milestone; its initial lifecycle safety work is on an unmerged development branch. See [initial repository audit](docs/INITIAL_REPOSITORY_AUDIT.md) for verified evidence and GitHub API access limitations. Existing EVM, TRON, Solana and TON integrations have genuine isolated-development acceptance, **not production/mainnet authorization**. TON stays at its currently accepted isolated scope until explicitly reprioritized. No customer funds or production withdrawal activation is authorized by these documents.
 
 This is more than an MPC signing service. The target system combines a single authoritative double-entry ledger, a transaction/custody engine, independent MPC signers, human authorization, treasury operations, exchange settlement APIs, merchant payments, risk controls, and operator/developer interfaces. External exchange matching engines and order books remain separate systems.
 

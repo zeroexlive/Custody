@@ -243,3 +243,12 @@ versions, source/feature review, resolver failure and required assessment. New
 final-SHA Fast/full CI must pass; the PR report records its exact SHA and results
 after commit. Previous a7c92c8 fourteen-job pass remains supporting history.
 PR #37 stays Draft/unmerged; no activation or Phase 6G-C work.
+
+
+## 2026-10-27 — fork continuation, initial audit and unmerged lifecycle safety work
+
+Verified zeroexlive/Custody live main as `3d32b763ff777347f77eae7a8a7936d85dc2d770`, the Phase 6G-B (#37) squash merge, with no subsequent commits. Historical MPC-2 export records final premerge head `a92d00ca8c4228cc81154f303039ce3668e93a33`, R1/R2 fixed, Tokio/scc remediated and atomic-polyfill accepted as development-only P2 debt. Historical review/CI URLs are not freshly verified because the proxy blocks api.github.com. Earlier reports above retain their original evidence and are not current-state declarations.
+
+Adopted owner directive v2.0: conditional automatic development merge after all gates, optional withdrawal-only manual blacklist, no external AML/KYT or deposit screening. Created codex/phase-6gc-key-lifecycle from fetched main. Initial code correction blocks the keyset command from retiring active/imported/referenced keys without a drain protocol, serializes mutation commands, preserves retired timestamp on retries and rejects reopening retired metadata. This is not completion of 6G-C or system-wide lifecycle enforcement. No migration, ledger mutation, crypto dependency change or production enablement.
+
+See INITIAL_REPOSITORY_AUDIT.md for validation and remaining acceptance. No fork PR number, CI pass, review approval vote or merge is claimed. Full final-SHA cryptographic gates and independent review remain mandatory before phase merge; next phase remains blocked until 6G-C completes.

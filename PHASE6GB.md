@@ -1,3 +1,5 @@
+> **Current supersession (2026-10-27):** Phase 6G-B exists in verified fork main `3d32b763ff777347f77eae7a8a7936d85dc2d770`. Earlier Draft/unmerged and dependency-review wording below is historical. Current evidence, qualified historical final review dispositions and unfinished Phase 6G-C work are recorded in [initial repository audit](docs/INITIAL_REPOSITORY_AUDIT.md). No fresh fork CI or production approval is claimed.
+
 # Phase 6G-B — genuine EVM/TRON child custody, draft development implementation
 
 Base: `24eed19e6e280083793c69c3901f5f746dd0a2fe` (merged PR #36).

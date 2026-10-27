@@ -26,7 +26,7 @@ Build a self-hosted enterprise custody + **financial core**, not merely an MPC w
 
 ## Scope and sequence
 
-Phase 6F-D is accepted as **development** after PR #34; next Phase 6G key lifecycle/provisioning/Hot-Warm-Cold foundations. Keep original Phase 7A/7B/7C, 8A/8B/8C/8D and 9. TON public network, arbitrary shards and real USDT work are **deferred**; preserve existing TON code and open audit blocker, do not activate or widen it unless owner explicitly changes scope. Bitcoin, bridging, swaps, exchange matching engine and trading order book are out of current scope.
+Phase 6G-B is merged as **development** at `3d32b763ff777347f77eae7a8a7936d85dc2d770`. Next is final Phase 6G-C (Solana provisioning, key lifecycle/rotation/recovery and Hot/Warm/Cold foundations). Current work is not phase completion; consult docs/INITIAL_REPOSITORY_AUDIT.md. Keep original Phase 7A/7B/7C, 8A/8B/8C/8D and 9. TON public network, arbitrary shards and real USDT work are **deferred**; preserve existing TON code and open audit blocker, do not activate or widen it unless owner explicitly changes scope. Bitcoin, bridging, swaps, exchange matching engine and trading order book are out of current scope.
 
 A proposed feature is not an implemented feature. A merged implementation is not production-approved. Label every status accordingly.
 
@@ -38,7 +38,11 @@ A proposed feature is not an implemented feature. A merged implementation is not
 4. Run targeted Fast CI; for MPC/chain/financial-impacting changes run the required final-SHA cryptographic gate. Do not weaken expensive checks to gain speed.
 5. Update docs/PROJECT_STATUS.md, docs/DEVELOPMENT_HISTORY.md and affected requirements/decisions **in the same PR** when facts change. Never mark production-readiness from development tests.
 6. Supply changed files, commit SHA, CI links, migrations, residual P0/P1/P2 risks, and proof of no production flag relaxation.
-7. Stop for independent review. Never auto-merge, approve yourself, or enable customer-fund flows without explicit authorization.
+7. Obtain genuine independent review for cryptographic, authorization and sensitive financial changes. The owner’s adopted Master Development Directive v2.0 authorizes development merges only after acceptance, exact-final-SHA CI, required reviews and repository rules all pass, with no blocking P0/P1. Never bypass protections or fabricate approvals. Complete and merge the current phase before advancing. Production/customer-fund activation remains separately authorized.
+
+## Latest owner-approved Phase 7B scope
+
+Optional, default-disabled, administrator-managed manual withdrawal address blacklist only. Audit changes, recheck before execution and at independent signer authorization, fail closed for unavailable enabled policy, and preserve reservations/history. No deposit screening, deposit holds, external AML/KYT services or automatic address feeds. Preserve unrelated financial/finality/security controls. This is a planned feature, not existing enforcement.
 
 ## API-first design guard
 

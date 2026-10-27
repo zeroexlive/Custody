@@ -22,6 +22,7 @@ class Command(BaseCommand):
         parser.add_argument("--threshold", type=int, default=2)
         parser.add_argument("--parties", type=int, default=3)
 
+    @transaction.atomic
     def handle(self, *args, **options):
         action = options["action"]
         if action == "create":
@@ -42,7 +43,12 @@ class Command(BaseCommand):
             return
         if not options["keyset_id"]:
             raise CommandError("--keyset-id is required")
-        keyset = MpcKeyset.objects.get(keyset_id=options["keyset_id"])
+        queryset = MpcKeyset.objects.all()
+        if action != "inspect":
+            queryset = queryset.select_for_update()
+        keyset = queryset.get(keyset_id=options["keyset_id"])
+        if keyset.status == "RETIRED" and action in {"import-dkg", "activate"}:
+            raise CommandError("retired keysets cannot be reactivated or import new DKG evidence")
         if action == "inspect":
             self.stdout.write(
                 f"{keyset.keyset_id} {keyset.algorithm} "
@@ -95,6 +101,31 @@ class Command(BaseCommand):
                 keyset.full_clean()
                 keyset.save()
         else:
+            if keyset.status == "RETIRED":
+                return
+            # No authenticated drain/rotation protocol exists yet. A zero observed
+            # balance cannot prove safety (late deposits and uncertain broadcasts).
+            # Only unused, never-imported metadata may be retired by this command.
+            if (
+                keyset.status != "CREATING"
+                or keyset.active_for_new_wallets
+                or keyset.public_key
+                or keyset.dkg_execution_id
+                or keyset.dkg_result_fingerprint
+                or keyset.participant_identities
+                or keyset.dkg_public_evidence
+                or keyset.network_bindings
+                or any(
+                    relation.related_model._base_manager.filter(
+                        **{relation.field.name: keyset}
+                    ).exists()
+                    for relation in MpcKeyset._meta.related_objects
+                )
+            ):
+                raise CommandError(
+                    "retirement requires a verified drain/rotation protocol; "
+                    "only unused, never-imported keyset metadata can be retired"
+                )
             keyset.status = "RETIRED"
             keyset.active_for_new_wallets = False
             keyset.retired_at = timezone.now()

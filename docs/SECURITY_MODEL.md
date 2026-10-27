@@ -1,3 +1,5 @@
+> **Current supersession (2026-10-27):** Phase 6G-B is merged at verified fork main `3d32b763`. Earlier R1/R2-review-required and scc/Tokio-open descriptions below retain historical snapshots; current source facts and qualified final historical review dispositions are in [INITIAL_REPOSITORY_AUDIT.md](INITIAL_REPOSITORY_AUDIT.md). Phase 6G-C remains incomplete and no new production authorization is claimed.
+
 # Security, financial trust and production acceptance
 
 ## Distinct decision layers
@@ -153,3 +155,8 @@ across restart. Unverified old signer HD stores fail startup for offline audit.
 These are machine-authentication corrections, not Phase 7 policy/RBAC or lifecycle
 completion. R1/R2 require independent re-review and fresh final-head gates; prior
 normal-path CI is insufficient. scc/RUSTSEC-2026-0205 remains P1 OPEN.
+
+
+## Continuation security scope — 2026-10-27
+
+The current fork/main and historical corrected findings are qualified in INITIAL_REPOSITORY_AUDIT.md. Tokio/scc remediation is present in the lockfile; atomic-polyfill remains development-only P2 maintenance debt per the exported final review, with production assessment outstanding. The local initial retirement correction is command-level fail-closed safety, not independently authorized rotation, compromise handling, an SQL-level lifecycle invariant or signer-state revocation. DB administrators, direct model writes and signer administrators remain trusted. The optional manual blacklist restricts only outgoing withdrawal destinations; it must never screen/hold incoming deposits. Disabling it must preserve unrelated authorization, finality and ledger protections. No external AML/KYT service is permitted.

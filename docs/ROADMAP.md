@@ -1,6 +1,6 @@
 # Approved nine-phase roadmap and product work packages
 
-**Version anchor:** 2026-10-11; last development merge Phase 6F-D PR #34. Status is a *development acceptance*, not chain production approval.
+**Current anchor (2026-10-27):** `zeroexlive/Custody` main `3d32b763ff777347f77eae7a8a7936d85dc2d770` contains Phase 6G-B. A and B are IMPLEMENTED (DEV); C is IN PROGRESS on an unmerged branch, with complete acceptance still outstanding. Phase 7A/B/C, 8A/B/C/D and 9 are PLANNED. TON public scope remains DEFERRED; explicit non-goals remain OUT OF SCOPE. See INITIAL_REPOSITORY_AUDIT.md. GitHub PR/CI/protection verification is BLOCKED by API network access; no phase merge is claimed.
 
 ## Phases already delivered in development
 
@@ -29,7 +29,7 @@
 Chain-specific **genuine** distributed address provisioning/derivation, keyset scopes and account bindings, Hot/Warm/Cold foundations, signer node/key lifecycle, new root and child lifecycle, auditable rotation, resharing/recovery and tested failure behavior. Explicitly evaluate performance and key security per algorithm, do not infer FROST and ECDSA can use identical HD derivation. Add schema and tenancy extension points, but do not implement all merchant/trade product APIs early.
 
 Authorized delivery is exactly three major PRs: **6G-A PR #36 merged** for root
-registration/reservations; **6G-B** for complete genuine EVM/TRON HD issuance and
+registration/reservations; **6G-B (#37 merged at the current anchor)** for genuine EVM/TRON HD issuance and
 child signing; **6G-C final** for Solana scalable provisioning, lifecycle,
 rotation/recovery and Hot/Warm/Cold foundations. Do not split B into additional
 PRs or add roadmap phases. Phase 7/8 exclusions remain.
@@ -40,9 +40,9 @@ Gate: no private-key reconstruction, measurable high-volume provisioning, durabl
 
 RBAC/MFA, multi-person transaction and policy approvals, immutable approval records, policy precedence and USD value freshness; request/approver separation and account/tenant scoping. Implement API/backend then UI in Phase 9. Human quorum distinct from MPC quorum.
 
-### Phase 7B — Risk/compliance
+### Phase 7B — Risk controls and optional withdrawal blacklist
 
-AML/KYT, sanctions provider abstraction, freeze/holds, transaction limits, merchant/customer risk cases, case management and approval to release. No unsupported claims about legal compliance.
+Optional default-disabled, manually administered withdrawal-destination restrictions, network-aware canonicalization, audited configuration/entry changes and request/execution/independent-signer enforcement. Enabled policy lookup failures fail closed for new signing; disabling preserves entries, audits and reservations. Incoming deposits, sender handling, indexing, confirmation and crediting remain unaffected. No external AML/KYT providers, address feeds or automatic scoring. Preserve unrelated account freezes, limits, financial holds and security controls. This module is not regulatory compliance certification; it remains unimplemented.
 
 ### Phase 7C — Signer-side authorization and security evaluation
 

@@ -12,8 +12,8 @@
 
 Acceptance: thousands of non-colliding provisioned addresses in performance tests; independent signer shares never reconstructed; keys reconfigured only via auditable authorized operations; wallet-to-asset/network binding immutable; loss/restart drills pass without leaking assets.
 
-Phase 6G delivery uses exactly three implementation PRs: A (#36 merged), B (this
-branch: complete genuine EVM/TRON child custody), C (final: Solana provisioning,
+Phase 6G delivery uses exactly three implementation PRs: A (#36 merged), B (#37
+merged at `3d32b763ff777347f77eae7a8a7936d85dc2d770`: genuine EVM/TRON child custody), C (final: Solana provisioning,
 lifecycle, rotation/recovery and Hot/Warm/Cold foundations). B requires original
 three-store HD evidence, immutable non-hardened reservation identity, independently
 verified child public keys/addresses, genuine 2-of-3 child signatures, finalized
@@ -69,9 +69,15 @@ Acceptance: concurrent orders cannot overspend; retries are idempotent and confl
 
 Acceptance: separate terminal payment vs notification state; under/overpayments and late payments have deterministic reversible financial actions; refund cannot exceed verified refundable amount.
 
-## 7. Risk and compliance — binding framework, Phase 7B
+## 7. Risk controls and optional withdrawal blacklist — binding target, Phase 7B
 
-Risk/KYT/AML/sanctions provider plug-ins and internal configurable holds/freeze at account, wallet, asset, tenant, network and global levels. Case ownership, evidence, appeal/release authority, time limits and audit. KYC/KYB and Travel Rule adapt to operator jurisdiction; no hardcoded jurisdictional legal claims. Missing required screening must fail closed (or route to controlled human review under policy), not silently allow.
+Administrator-managed manual withdrawal-address restrictions, optional and disabled by default. Persist network-aware normalized/display addresses, reasons/notes, active state, actors and immutable change history. Enforce tenant/administrator scope; reject duplicate effective active restrictions. Provide real authorized dashboard/API management and audited enable/disable operations, with step-up authentication where available.
+
+When enabled, check withdrawal request, final execution and independent signer authorization. Recheck already-approved withdrawals and bind the policy version to signing to prevent policy races. Unavailable enabled policy fails closed for affected new signing; disabling preserves records, audits and financial decisions. Do not claim retroactive reversal of signed/broadcast transactions.
+
+**Deposits are excluded:** no sender screening, rejected/delayed deposit, blacklist hold, indexer/finality change or blacklist restriction on deposit credit. No external AML/KYT service, sanctions/address feed, paid subscription or automatic scoring. Preserve unrelated account freezes, withdrawal limits, authorized holds and financial controls.
+
+Acceptance includes permissions/tenant isolation, default-disabled and enabled behavior, CRUD/history/restart, network normalization, duplicates, concurrency, pre-sign revalidation, signer-side enforcement, service failure and exact reservation handling. Mandatory deposit tests cover enabled, disabled and blacklisted-sender cases, all with normal verified crediting. Existing ops.Blocklist metadata/UI does not satisfy this target.
 
 ## 8. Reconciliation/reporting/operations — binding, Phase 8D/9
 
@@ -89,7 +95,7 @@ Staking/earn, off-exchange collateral, OTC-specific suite, cross-chain liquidity
 
 ## Status disclaimer
 
-As of main 4488016a, much of this register is **not implemented**. In particular tenant isolation, high-scale HD provisioning, approval quorum, trade settlement, merchant/invoice and policy-signing ticket platform are future work. A status must not be promoted without code and passing scope-relevant evidence.
+As of verified main `3d32b763ff777347f77eae7a8a7936d85dc2d770`, Phase 6G-B is implemented in development; Phase 6G-C and the later product capabilities remain **not complete**. The historical review notes below retain their original dates and are superseded by the current audit where applicable. In particular tenant isolation, high-scale HD provisioning, approval quorum, trade settlement, merchant/invoice and policy-signing ticket platform are future work. A status must not be promoted without code and passing scope-relevant evidence.
 
 Phase 6G-B child requests must retain the original custody machine authorization
 across the coordinator hop. Every signer verifies a once-persisted signature under

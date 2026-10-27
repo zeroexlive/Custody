@@ -48,3 +48,12 @@ wallet rows, with no balance reconstruction. Namespace remains a trusted deploym
 boundary; existing global customer ledger principals are preserved. Account claims
 commit before external work and can recover only their original reservation.
 Independent production review and Phase 7 policy authority remain separate.
+
+
+## 2026-10-27 owner directive v2.0 — superseding workflow and risk scope
+
+- **D-011:** The owner explicitly adopted the supplied Custody Master Development Directive v2.0. Conditional autonomous development merges replace the prior manual-merge-only workflow. All required acceptance, exact-final-SHA CI, independent reviews, migration assessment and repository rules remain mandatory; no admin bypass. A phase must be merged and validated before the next starts. Production activation and real-fund operation remain separately controlled.
+- **D-012:** Phase 7B is an optional default-disabled, manually managed withdrawal-only address blacklist. No deposit screening/blacklist holds, external AML/KYT integrations or address feeds. Preserve unrelated freezes/holds/limits and financial correctness. Enforce before signing/execution and at independent signer authority with policy-version/race controls. This supersedes external AML plugin requirements, not existing financial-security controls.
+- **Proposed implementation direction (not a new owner-selected architecture; review pending):** Phase 6G-C uses existing standard Solana seeded System-account and separately attributed classic SPL-account primitives under genuine FROST authority as its provisioning candidate. This is not Ed25519 HD or a new cryptographic protocol. Public allocation requires complete genuine validator/attribution/economic acceptance; the candidate is not implemented yet. FROST refresh/repair needs authenticated immutable epochs and rollback protection. Unsupported CGGMP core-share resharing remains explicit; fresh-root migration must not be mislabeled resharing.
+
+Historical final review dispositions are attributed in INITIAL_REPOSITORY_AUDIT.md; live GitHub verification is still blocked. No external cryptographic audit or production approval is implied.

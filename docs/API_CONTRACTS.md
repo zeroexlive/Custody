@@ -98,3 +98,8 @@ unsigned report under separate SIGNER_HD_ROOT_RECEIPT_V1/SIGNER_CHILD_RECEIPT_V1
 domains. All three independently pinned signer identities must verify at Django;
 coordinator-supplied certificates and unsigned historical reports are rejected.
 Original child/signing grant formats and canonical child references are unchanged.
+
+
+## Phase 7B withdrawal blacklist target — not implemented
+
+Provide tenant/administrator-authorized operations to read/update module configuration; list/create/update/activate/deactivate network-specific manual address restrictions; and read immutable audit history. Default enforcement is false. Use step-up authentication where available. Exact routes/schemas will be versioned and tested during Phase 7B, not claimed as existing endpoints here. Enabled policy is authoritatively revalidated at withdrawal request/execution/independent signer authorization with policy version binding. Disabled policy preserves entries/history/reservations. No deposit screening or external AML endpoint/provider is in scope. Existing /ops/blocklist CRUD is legacy metadata and does not satisfy these enforcement/authorization contracts.

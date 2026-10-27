@@ -1,3 +1,15 @@
+# Current continuation checkpoint — 2026-10-27
+
+Repository: `zeroexlive/Custody`. Live main verified as `3d32b763ff777347f77eae7a8a7936d85dc2d770` by Git fetch/ls-remote; this is the Phase 6G-B squash merge (#37), not an unmerged B branch. No post-checkpoint main commits. **Phase 6G-C: IN PROGRESS locally; not merged or complete.** Phase 7–9 remain planned. Current source/audit evidence and unavailable PR/Actions/protection metadata are recorded in [INITIAL_REPOSITORY_AUDIT.md](INITIAL_REPOSITORY_AUDIT.md).
+
+The first local correction restricts the keyset command to retiring only unused, never-imported metadata and prevents retired-key reactivation. It is not a complete drain/rotation/recovery protocol, a database-wide lifecycle guarantee or production permission. No migrations or balances change.
+
+Current lockfile has Tokio 1.53.3 and no scc/sdd. The exported final review reports R1/R2 fixed and atomic-polyfill accepted as development-only P2 debt; GitHub review/CI metadata is not freshly verified. TON audit/public-network exclusions remain. New Phase 7B target is an optional withdrawal-only manual blacklist, with deposits unaffected and no external AML integration.
+
+## Historical snapshots below
+
+Earlier Draft/unmerged, scc/Tokio-open and atomic-polyfill-blocked wording records the state at those historical checkpoints. It is superseded by the qualified current evidence above; historical CI is not current fork CI.
+
 # Project status — verified snapshot
 
 **Repository:** hassan-anari/Base. **Verified baseline:** `24eed19e6e280083793c69c3901f5f746dd0a2fe`.

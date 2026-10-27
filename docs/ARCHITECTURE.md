@@ -1,3 +1,5 @@
+> **Current supersession (2026-10-27):** Phase 6G-B is merged at verified fork main `3d32b763`. Earlier R1/R2-review-required and scc/Tokio-open descriptions below retain historical snapshots; current source facts and qualified final historical review dispositions are in [INITIAL_REPOSITORY_AUDIT.md](INITIAL_REPOSITORY_AUDIT.md). Phase 6G-C remains incomplete and no new production authorization is claimed.
+
 # Target architecture and boundaries
 
 **Status:** target/reference architecture; only a subset is implemented in main. See PROJECT_STATUS.md for actual implementation.
@@ -7,7 +9,7 @@
 External clients: Exchange Matching Engine / Order Book (independent), Payment Gateways / Merchants, Institutional Treasury, Admin/Operator, Auditors.
   -> Versioned Gateway/API / Tenant Authentication / RBAC / Idempotency / Quotas / Outbox
   -> Financial domain: immutable double-entry Ledger + Reservation + Trade Settlement + Fees
-  -> Business domain: Merchant Invoice / Refund / Settlement; Risk/KYT; Policy and Human Approvals; Treasury
+  -> Business domain: Merchant Invoice / Refund / Settlement; Internal Risk / Optional Withdrawal Blacklist; Policy and Human Approvals; Treasury
   -> Custody orchestrator: Address Provisioning, Indexing, Sweep, Gas, Withdrawal/Broadcast, Reconciliation
   -> Independent MPC authorization boundary / Coordinator / genuine 2-of-3 signer services (mTLS, isolated shares)
   -> independently reviewed EVM, TRON, Solana and currently limited isolated TON network adapters.
@@ -101,3 +103,8 @@ across restart. Unverified old signer HD stores fail startup for offline audit.
 These are machine-authentication corrections, not Phase 7 policy/RBAC or lifecycle
 completion. R1/R2 require independent re-review and fresh final-head gates; prior
 normal-path CI is insufficient. scc/RUSTSEC-2026-0205 remains P1 OPEN.
+
+
+## Continuation boundaries — 2026-10-27
+
+Phase 6G-B is implemented on verified main 3d32b763; 6G-C remains incomplete. Immutable FROST epochs, authenticated generation commits/old-share fencing and independent Warm/Cold workflows are required before claiming lifecycle completion. If the standard seeded-account candidate is selected, SOL/SPL source/rent/authority bindings and genuine spendability acceptance are also required. Phase 7B adds only a default-disabled manual withdrawal blacklist with authoritative versioned checks at request/execution/signer boundaries. It must not become a deposit-processing dependency. No external AML/KYT integration is part of the approved target.

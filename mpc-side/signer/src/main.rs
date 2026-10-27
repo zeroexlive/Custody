@@ -113,11 +113,21 @@ async fn main() {
             peers,
         )
         .expect("CGGMP signing recovery failed");
+        let provisioning = wallet_mpc_signer::solana_provisioning::Service::open(
+            storage_directory.clone(),
+            party_id.clone(),
+            dkg.clone(),
+            wallet_mpc_transport::CustodyRequestVerifier::new(&tls)
+                .expect("custody request trust unavailable"),
+            wallet_mpc_transport::ReceiptIdentity::new(&tls, &party_id).ok(),
+        )
+        .expect("Solana provisioning recovery failed");
         let signing = wallet_mpc_signer::sign::SigningService::open(
             dkg.clone(),
             executions,
             storage_directory,
             party_id.clone(),
+            provisioning.clone(),
         )
         .expect("signing recovery failed");
         let app = app
@@ -127,6 +137,7 @@ async fn main() {
             .merge(wallet_mpc_signer::cggmp_aux::router(auxiliary))
             .merge(wallet_mpc_signer::cggmp_sign::router(cggmp_signing))
             .merge(wallet_mpc_signer::hd::router(hd));
+        let app = app.merge(wallet_mpc_signer::solana_provisioning::router(provisioning));
         let server = tls
             .server(&party_id)
             .expect("signer TLS identity/configuration invalid");

@@ -6,7 +6,15 @@
 
 # Approved nine-phase roadmap and product work packages
 
-**Current anchor (2026-10-27):** `zeroexlive/Custody` main `3d32b763ff777347f77eae7a8a7936d85dc2d770` contains Phase 6G-B. A and B are IMPLEMENTED (DEV); C is IN PROGRESS on an unmerged branch, with complete acceptance still outstanding. Phase 7A/B/C, 8A/B/C/D and 9 are PLANNED. TON public scope remains DEFERRED; explicit non-goals remain OUT OF SCOPE. See INITIAL_REPOSITORY_AUDIT.md. Draft PR #1 exists and GitHub API connectivity is restored. Fork Actions now executes; full run 40470890805 fails on RUSTSEC-2026-0387 in crypto-bigint 0.5.5. The compatible-fix investigation is in PHASE6GC_DEPENDENCY_GATE.md; merge remains BLOCKED on that security gate and unfinished phase acceptance. Branch summary reports main unprotected and rulesets empty; required gates remain mandatory. No phase merge is claimed.
+Unmerged 6G-C now includes signer-local authenticated initial FROST root dedication
+and monotonic owner/mint/index/retry approvals, with exact receipt recovery and
+legacy-signing fencing. Five genuine positive/negative/restart/concurrency cases
+and a separately rerun approvals case pass. See [bounded evidence and remaining
+scope](PHASE6GC_SOLANA_SEEDED.md). Customer issuance, tenant identity, seeded
+spending grants, chain validation, epochs/rollback protection and class isolation
+remain incomplete; no subsequent roadmap phase or production activation begins.
+
+**Current anchor (2026-10-27):** `zeroexlive/Custody` main `3d32b763ff777347f77eae7a8a7936d85dc2d770` contains Phase 6G-B. A and B are IMPLEMENTED (DEV); C is IN PROGRESS on an unmerged branch, with complete acceptance still outstanding. Phase 7A/B/C, 8A/B/C/D and 9 are PLANNED. TON public scope remains DEFERRED; explicit non-goals remain OUT OF SCOPE. See INITIAL_REPOSITORY_AUDIT.md. Draft PR #1 exists and GitHub API connectivity is restored. Fork Actions executes; the original RUSTSEC-2026-0387 failure was remediated by the explicitly authorized owned backend port at checkpoint ea4bb4ed, with exact-head Fast and all14 full-gate jobs passed. Later signer changes require fresh gates. Merge remains blocked on unfinished whole-phase acceptance; see PHASE6GC_DEPENDENCY_GATE.md. Branch summary reports main unprotected and rulesets empty; required gates remain mandatory. No phase merge is claimed.
 
 ## Phases already delivered in development
 

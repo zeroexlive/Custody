@@ -120,6 +120,13 @@ Corrections require new exact-final-SHA Fast/full gates and independent re-revie
 
 ### Phase 6G-C primitive evidence is not issued-wallet acceptance
 
+Signer-local authenticated root dedication and monotonic owner/mint/index/retry
+records now supplement the primitives. They preserve original DKG and per-party
+receipts, fence legacy signing, and recover partial writes. Deployment-level machine
+authorization does not establish customer/tenant authorization. Custody integration,
+all-party pinned receipt verification, actual mint/account initialization and seeded
+signing permission remain requirements before issuance.
+
 The seeded Solana message/address and genuine all-pair spending building blocks
 are implemented on the unmerged branch; see [scope](PHASE6GC_SOLANA_SEEDED.md).
 Persistent authenticated issuance, tenant/owner identity, signer-origin root/epoch/

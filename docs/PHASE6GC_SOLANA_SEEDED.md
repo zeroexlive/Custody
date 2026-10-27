@@ -1,6 +1,6 @@
 # Phase 6G-C — seeded Solana primitive boundary
 
-Status: **implemented primitives / incomplete custody integration**. No issued
+Status: **implemented primitives and signer-local approvals / incomplete custody integration**. No issued
 customer wallet, new signing permission, production flag, ledger behavior or phase
 completion is implied. The separately reviewed dependency checkpoint `ea4bb4ed`
 passed all 14 full-gate jobs; subsequent seeded changes need their own final gates.
@@ -63,11 +63,64 @@ whose `expected_source` is the FROST base. This does not implement signer-side
 seeded enrollment/authorization or financial source binding. It is evidence of
 primitive spendability, not complete end-to-end custody acceptance.
 
+## Signer-local authenticated enrollment and claims
+
+Two new internal signer routes accept only the coordinator's mTLS transport plus
+an original detached P-256 custody-machine authorization. Separate domain-separated
+canonical statements prevent a root proof from becoming a claim proof. These
+routes are not exposed through Django or the coordinator's custody API:
+
+- `POST /internal/v1/solana/seeded/enroll`: immutable original FROST DKG request,
+  group key and complete public package, authenticated deployment ownership scope,
+  `SOL` genesis, `HOT/DEPOSIT`, `solana_seeded_v1`, initial generation zero.
+- `POST /internal/v1/solana/seeded/approve`: original root, reservation UUID,
+  existing global ledger owner reference, retry identity, monotonic index and
+  native/classic-token identity (mint and decimals for tokens).
+
+Each party reopens its own encrypted original DKG and compares the complete public
+evidence before signing a durable receipt with its separately held identity key.
+A root dedication and first legacy nonce reservation share one lock: historical
+use prevents dedication; dedication prevents the generic root-signing API. Startup
+imports historical prepared/consumed/completed records conservatively, preserving
+legacy signatures and rejecting a conflicting dedication. It does not infer that
+a historical root was unused. Newly enrolled roots have **no spending API yet**.
+
+An authoritative immutable index commits before owner/reservation/retry aliases.
+Exact retries repair incomplete aliases and return the original randomized
+receipt. Allocation checks all committed indices, including global reservation
+UUID conflicts across roots when aliases are missing. Owner/mint and retry slots
+remain root-scoped; indices are shared across native and all token mints, never
+recycled or chosen out of order. Startup checks contiguous allocation and exact
+alias consistency, verifies own signatures, rejects corrupted/orphaned records,
+and retains actual `tmp-UUID` atomic-write leftovers as uncommitted evidence.
+
+Five genuine process cases passed in **11.31s**: credential/domain/identity
+negatives, exact retries, concurrent requests/index competition, partial enrollment,
+missing aliases, interrupted temporaries, two-root reservation collisions, historical
+signing, dedication/nonce race and three corruption/restart cases. A separate review
+agent identified two recovery defects, then independently reran the strengthened
+approvals case (**1 passed in 3.63s**) after both fixes. No remaining concrete P0/P1
+was identified in this bounded change. Fresh full regressions are required because
+signer startup and legacy signing paths changed.
+
+**Trust and limits:** custody is the trusted deployment-level machine authority;
+the root genesis is its signed pin, not a signer-side RPC/light-client attestation.
+`owner_ref` does not establish an external tenant/customer principal. A token claim
+does not prove an existing valid mint/account or on-chain initialization. Receipts
+do not grant spending or create a financial wallet. Current identity keys must be
+retained: transparent TLS identity-key replacement is unsupported pending archival
+rotation. Allocation scans committed records and has not passed the required 1000
+complete-wallet benchmark. These records do not prevent coherent store or approved
+binary rollback; an independent generation witness and protected deployment policy
+remain mandatory. One configured process exclusively owns each signer store;
+privileged filesystem/configuration access remains trusted. No database migration,
+UserWallet attachment, balance posting or production flag change is introduced.
+
 ## Still required before customer issuance
 
-Implement immutable genuine root/keyset/generation, ownership and genesis evidence;
-three separately pinned signer-origin approvals; durable monotonic index/owner/mint
-claims; original authenticated provisioning/signing intent across the coordinator;
+Connect the new signer-local records to authoritative custody root/owner/network
+registration and durable issuance, verify all three independently pinned receipts,
+and implement generation continuity and authenticated signing intent across the coordinator;
 mandatory signer-side decoding before nonce work; fee/rent policy and actual account
 validation; source-vs-authority settlement and operator-cost attribution; ledger,
 indexer/sweep/withdrawal integration; partial/restart/unauthorized/network/mint/replay

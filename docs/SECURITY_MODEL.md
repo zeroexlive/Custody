@@ -19,6 +19,19 @@
 
 # Security, financial trust and production acceptance
 
+New unmerged Solana signer-local enrollment/claim records require coordinator
+mTLS plus original, domain-separated custody-machine P-256 proofs, and verify
+each party's original encrypted FROST DKG before signing a public receipt. A shared
+role lock prevents both legacy nonce use and dedication of the same root; immutable
+index-first records fence partial/restarted owner/index/retry/reservation reuse.
+Independent review found two partial-write recovery issues; both now have passing
+regressions and no remaining concrete P0/P1 in the bounded diff. This does not add
+customer issuance or seeded signing grants. Deployment scope is not tenant identity;
+the signed genesis is not signer-side chain attestation. Coherent snapshot/binary
+rollback, archival receipt identity-key rotation, population scalability and real
+Hot/Warm/Cold isolation remain unaccepted. Preserve identity keys and private
+stores, and require final-head full regression evidence before phase acceptance.
+
 ## Distinct decision layers
 
 1. **Business policy / Human Approval** — whether operation is allowed; tenant, risk, destination, amount/USD value, wallet class and named human approvers. Example future configurable policy: withdrawal > USD 500 requires three *different authorized humans*; this is neither fixed nor implemented today.

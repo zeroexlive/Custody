@@ -105,7 +105,7 @@ Original child/signing grant formats and canonical child references are unchange
 Provide tenant/administrator-authorized operations to read/update module configuration; list/create/update/activate/deactivate network-specific manual address restrictions; and read immutable audit history. Default enforcement is false. Use step-up authentication where available. Exact routes/schemas will be versioned and tested during Phase 7B, not claimed as existing endpoints here. Enabled policy is authoritatively revalidated at withdrawal request/execution/independent signer authorization with policy version binding. Disabled policy preserves entries/history/reservations. No deposit screening or external AML endpoint/provider is in scope. Existing /ops/blocklist CRUD is legacy metadata and does not satisfy these enforcement/authorization contracts.
 
 
-## Seeded Solana primitives — no new HTTP contract
+## Seeded Solana primitives and internal approvals
 
 The branch's public wire library and acceptance helper do not add an issuance or
 signing endpoint. Genuine primitive tests use the existing trusted root-signing
@@ -113,3 +113,12 @@ contract with `expected_source` equal to the base authority; this is not the fut
 seeded financial-source contract. Account ownership, original root/genesis/epoch
 and exact-message grants must be designed and enforced before exposing that API.
 See [implemented/pending boundaries](PHASE6GC_SOLANA_SEEDED.md).
+
+The subsequent signer-only `/internal/v1/solana/seeded/enroll` and `/approve`
+POST routes require coordinator mTLS plus domain-separated original custody P-256
+proofs. They return per-party signed immutable root/claim receipts; the same retry
+returns the original receipt. They do not expose an external issuance API or grant
+seeded signing. Historical/dedicated roles, operator scope, genesis, original DKG,
+owner/mint/index/reservation/retry are pinned. See the linked scope for failure,
+partial-write and rollback/identity-key limitations. No Django/coordinator route,
+database wallet or financial journal is added by these internal contracts.

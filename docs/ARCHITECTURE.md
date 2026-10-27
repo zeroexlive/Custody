@@ -112,11 +112,20 @@ Phase 6G-B is implemented on verified main 3d32b763; 6G-C remains incomplete. Im
 
 ## Seeded Solana primitive boundary — 2026-10-27
 
+Subsequent signer-local enrollment/claim records reopen each original encrypted
+FROST DKG and authenticate domain-separated custody statements. A shared role
+lock serializes dedication against legacy nonce reservation; dedicated roots
+cannot use the legacy signing API. Index-first immutable files recover partial
+aliases and protect global reservation UUIDs across roots. These are operator-
+scoped records, still unconnected to tenant identity, custody issuance or seeded
+spending. Genesis is the original custody pin, not signer-side chain attestation;
+epochs, an independent rollback witness and identity-key rollover remain pending.
+
 Standard seeded System/native and classic SPL account primitives now have exact
 SDK/Rust wire checks and genuine all-pair FROST spendability acceptance, described
 in [PHASE6GC_SOLANA_SEEDED.md](PHASE6GC_SOLANA_SEEDED.md). They do not yet issue
 accounts or enter product signing/ledger flows. A seeded financial source differs
 from the original FROST authority/fee payer; settlement must bind and verify each
-separately. Durable ownership/index/mint claims, original signer-origin enrollment,
-genesis/generation grants and ledger integration remain required. There is no
+separately. Custody integration of signer-local ownership/index/mint claims and
+enrollment, generation grants and ledger integration remain required. There is no
 Ed25519 child-private-key derivation or new local signing fallback.

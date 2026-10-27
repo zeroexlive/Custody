@@ -176,6 +176,38 @@ impl Local {
 }
 
 impl DkgService {
+    /// Reopen this party's encrypted original and compare all public DKG
+    /// evidence. No private package leaves the DKG service for provisioning.
+    pub async fn original_public(
+        &self,
+        request: &DkgRequest,
+        group: &str,
+        package: &[u8],
+    ) -> Result<()> {
+        ensure!(request.is_frost(), "invalid original FROST request");
+        let local = self.local.lock().await;
+        let report = local.report(request)?;
+        ensure!(
+            report.status == "COMPLETED"
+                && report.durable
+                && report.group_public_key.as_deref() == Some(group)
+                && report.public_key_package.as_deref() == Some(package)
+                && local
+                    .store
+                    .config
+                    .supported_algorithms
+                    .iter()
+                    .any(|a| a == ALGORITHM),
+            "provisioning evidence differs from original completed DKG"
+        );
+        let key = local.loaded_key(request)?.0;
+        let public = wallet_mpc_protocol::sign::public_package(package, group)?;
+        ensure!(
+            public.verifying_shares().get(key.identifier()) == Some(key.verifying_share()),
+            "original public verification share mismatch"
+        );
+        Ok(())
+    }
     pub async fn signing_key(
         &self,
         execution: &wallet_mpc_protocol::sign::SigningExecution,

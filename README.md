@@ -22,7 +22,7 @@ This is more than an MPC signing service. The target system combines a single au
 
 ## Existing implementation evidence
 
-- [Unmerged Phase 6G-C seeded Solana primitives](docs/PHASE6GC_SOLANA_SEEDED.md) — bounded wire/spendability evidence; issuance and lifecycle remain incomplete.
+- [Unmerged Phase 6G-C seeded Solana work](docs/PHASE6GC_SOLANA_SEEDED.md) — wire/spendability primitives and signer-local authenticated root/claim records; customer issuance and lifecycle remain incomplete.
 - [Authoritative ledger](LEDGER.md), [chain adapters](CHAIN_ADAPTERS.md), [token custody](TOKEN_CUSTODY.md), [native transaction lifecycle](NATIVE_TX_LIFECYCLE.md).
 - [Self-hosted MPC](SELF_HOSTED_MPC.md) and the [Rust-side protocol docs](mpc-side/).
 - [EVM](PHASE6E.md), [TRON](PHASE6F-A.md), [Solana](PHASE6F-B.md), [TON](PHASE6F-C.md), and [integrated four-chain acceptance](PHASE6F-D.md).

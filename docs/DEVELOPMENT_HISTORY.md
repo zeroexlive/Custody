@@ -1,3 +1,24 @@
+## 2026-10-27 — authenticated signer-local seeded root/claim records (unmerged)
+
+Original custody P-256 proofs now authorize immutable initial HOT/DEPOSIT FROST
+root dedication and owner/mint/index/retry claims on each signer. Each party
+reopens its encrypted original DKG and signs its own durable public receipt.
+Historical use fences dedication; dedication fences the legacy arbitrary-message
+API under one lock. Immutable index-first writes retain partial claims across
+restart and protect aliases, including global reservation UUIDs across roots.
+Independent review found interrupted-temp handling and a cross-root partial-alias
+collision; both were corrected with genuine process regressions. Five new cases
+passed in 11.31s; the reviewer independently reran the strengthened approvals case
+(1 passed, 3.63s), finding no remaining concrete P0/P1 in this bounded diff.
+No customer issuance, tenant identity, seeded spend authorization, chain attestation,
+epoch/antirollback, identity-key rotation or complete-phase acceptance is claimed.
+The new full crypto inventory is 225. See [boundaries](PHASE6GC_SOLANA_SEEDED.md).
+
+Previous exact head `a1b6ae99` passed Fast40531484471 and selected Solana40531473864;
+downloaded public evidence confirms all three selected scenarios executed with
+zero skips and seven finalized primitive transactions. This was a selected gate,
+not all-chain acceptance or validation of the new signer-local records.
+
 ## 2026-10-27 — independently verified seeded Solana wire/spend primitives
 
 The unmerged 6G-C branch adds Rust-side exact standard message/address checking,

@@ -58,6 +58,25 @@ CAPS = {
 }
 
 
+def test_phase6gc_seeded_authenticated_immutable_store_approvals(tmp_path):
+    from seeded_enrollment import run_approvals
+
+    run_approvals(tmp_path)
+
+
+def test_phase6gc_seeded_historical_signing_and_enrollment_race(tmp_path):
+    from seeded_enrollment import run_historical_and_race
+
+    run_historical_and_race(tmp_path)
+
+
+@pytest.mark.parametrize("fault", ["role", "index", "alias"])
+def test_phase6gc_seeded_corrupt_original_store_rejected(tmp_path, fault):
+    from seeded_enrollment import run_corruption
+
+    run_corruption(tmp_path, fault)
+
+
 def import_root(binding):
     keyset = MpcKeyset.objects.create(
         keyset_id=binding["keyset_id"],

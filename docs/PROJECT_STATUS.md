@@ -27,11 +27,26 @@ seven-transaction all-pair FROST/Agave regression. Actual repository acceptance
 passed in 150.23s, including destination effects, fees/rent and repeated existing
 ATA creation with zero added rent. These remain unconnected to product issuance,
 signer-side seeded grants, ownership/tenant enforcement and the financial ledger.
-See [implemented/pending scope](PHASE6GC_SOLANA_SEEDED.md). The crypto inventory is
-now 220 scenarios; subsequent changes need fresh final-head gates.
+See [implemented/pending scope](PHASE6GC_SOLANA_SEEDED.md). The crypto inventory
+at that checkpoint was 220 scenarios. Exact `a1b6ae99` Fast and selected Solana
+[40531473864](https://github.com/zeroexlive/Custody/actions/runs/40531473864) passed;
+the downloaded Solana manifest has three selected/called and zero skips. Other
+suites were unselected, so this is not a new full all-chain gate.
 
-Remaining 6G-C scope: authenticated immutable Solana root/owner/network/index/mint
-claims; actual issued-wallet/scanner/sweep/withdrawal integration and benchmark;
+Subsequent signer-local work implements original custody-authorized FROST root
+dedication and immutable monotonic owner/asset/index/retry approvals with separately
+signed per-party receipts. Dedication fences the legacy arbitrary-message API;
+historical roots cannot be dedicated. Five genuine process cases passed in 11.31s,
+including concurrent/damaged/partial-store and two-root reservation-conflict cases.
+Independent review found two recovery defects, both fixed; its strengthened case
+rerun passed in 3.63s with no remaining concrete P0/P1 in this bounded diff. These
+are deployment-scoped records, not tenant authentication, on-chain initialization,
+issued customer accounts, seeded spending grants, epoch/rollback protection or
+class isolation. Identity-key rollover and scalability remain unaccepted. The
+complete crypto inventory is now 225 scenarios; new full-head CI remains required.
+
+Remaining 6G-C scope: custody integration of the new signer-local Solana records,
+tenant ownership and independently pinned all-party evidence; actual issued-wallet/scanner/sweep/withdrawal integration and benchmark;
 immutable epochs, authorized refresh/repair and rollback protection; controlled
 rotation/drain/late-deposit rescue, backup and compromise procedures; enforceable
 Hot/Warm/Cold boundaries; complete genuine negative/restart/concurrency acceptance,

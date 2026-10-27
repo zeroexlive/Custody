@@ -108,3 +108,15 @@ normal-path CI is insufficient. scc/RUSTSEC-2026-0205 remains P1 OPEN.
 ## Continuation boundaries — 2026-10-27
 
 Phase 6G-B is implemented on verified main 3d32b763; 6G-C remains incomplete. Immutable FROST epochs, authenticated generation commits/old-share fencing and independent Warm/Cold workflows are required before claiming lifecycle completion. If the standard seeded-account candidate is selected, SOL/SPL source/rent/authority bindings and genuine spendability acceptance are also required. Phase 7B adds only a default-disabled manual withdrawal blacklist with authoritative versioned checks at request/execution/signer boundaries. It must not become a deposit-processing dependency. No external AML/KYT integration is part of the approved target.
+
+
+## Seeded Solana primitive boundary — 2026-10-27
+
+Standard seeded System/native and classic SPL account primitives now have exact
+SDK/Rust wire checks and genuine all-pair FROST spendability acceptance, described
+in [PHASE6GC_SOLANA_SEEDED.md](PHASE6GC_SOLANA_SEEDED.md). They do not yet issue
+accounts or enter product signing/ledger flows. A seeded financial source differs
+from the original FROST authority/fee payer; settlement must bind and verify each
+separately. Durable ownership/index/mint claims, original signer-origin enrollment,
+genesis/generation grants and ledger integration remain required. There is no
+Ed25519 child-private-key derivation or new local signing fallback.

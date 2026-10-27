@@ -1,3 +1,31 @@
+## 2026-10-27 — independently verified seeded Solana wire/spend primitives
+
+The unmerged 6G-C branch adds Rust-side exact standard message/address checking,
+one regression case covering 15 independent SDK fixtures plus coordinated
+substitution/malformed negatives, and a reproducible genuine Solana regression.
+Actual repository acceptance passed **one case in 150.23s** (four existing
+warnings): seven finalized transactions, all three FROST pairs for native and SPL
+transfers, atomic seeded SPL creation, independently verified original signed
+bytes, both transfer legs, base fees, initialized token identity and ATA rent.
+The final pair repeats idempotent creation of an existing ATA with zero added rent.
+Public evidence is generated inline; no private stores/PKI are uploaded.
+Separate source review found no P0/P1 within this unconnected primitive scope.
+This does not implement customer issuance, independent seeded grants, tenant/epoch
+proofs or ledger integration. See [scope](PHASE6GC_SOLANA_SEEDED.md). The complete
+crypto inventory now contains 220 scenarios; new final-head CI is still required.
+
+## 2026-10-27 — dependency migration regression gate passed (unmerged)
+
+At `ea4bb4edfd646b34a58e00170a734e57674b1825`,
+[Fast 40521504904](https://github.com/zeroexlive/Custody/actions/runs/40521504904)
+and [full 40521510401](https://github.com/zeroexlive/Custody/actions/runs/40521510401)
+passed; full has all 14 jobs successful. All seven public scenario manifests show
+219 selected/called scenarios and zero skips. Fixed-original-main encrypted-store
+acceptance passed in 518.46s. A separate review agent independently verified
+remote run/manifest artifacts as well as source/provenance and compatibility.
+This accepts the bounded version remediation in Draft PR #1; main is unchanged
+and whole Phase 6G-C remains incomplete. Later commits need new final-head gates.
+
 ## 2026-10-27 — owner-authorized RustCrypto backend remediation (unmerged)
 
 The owner explicitly approved the maintained-backend integration investigation

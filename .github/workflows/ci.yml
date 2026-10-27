@@ -266,7 +266,7 @@ jobs:
             curl --fail --location --silent --show-error https://github.com/tronprotocol/java-tron/releases/download/GreatVoyage-v4.8.2.3/FullNode.jar -o "$PHASE6F_TRON_JAR"
           fi
           echo "faef7f4d89b9f154632bbab2db1712c25f02ee37b356013e098558ea994accec  $PHASE6F_TRON_JAR" | sha256sum --check
-      - run: cargo build --locked --manifest-path mpc-side/Cargo.toml --bin wallet-mpc-coordinator --bin wallet-mpc-signer --example frost_round1_fixture --example frost_signing_package --example cggmp_round1_fixture --example cggmp_aux_message_fixture
+      - run: cargo build --locked --manifest-path mpc-side/Cargo.toml --bin wallet-mpc-coordinator --bin wallet-mpc-signer --example frost_round1_fixture --example frost_signing_package --example cggmp_round1_fixture --example cggmp_aux_message_fixture --example seeded_message_check
       - name: Verify complete crypto inventory without executing fixtures
         run: |
           mkdir -p work

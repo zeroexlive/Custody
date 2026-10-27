@@ -116,3 +116,14 @@ Coordinator-only root dedication must fail without mutation; historical signing
 survives attack/restart, and an authorized fresh root remains dedicated without
 root fallback. Old unverified evidence is preserved/quarantined, never backfilled.
 Corrections require new exact-final-SHA Fast/full gates and independent re-review.
+
+
+### Phase 6G-C primitive evidence is not issued-wallet acceptance
+
+The seeded Solana message/address and genuine all-pair spending building blocks
+are implemented on the unmerged branch; see [scope](PHASE6GC_SOLANA_SEEDED.md).
+Persistent authenticated issuance, tenant/owner identity, signer-origin root/epoch/
+network evidence, financial-source/fee-authority accounting, restart/concurrency
+and actual 1,000-account issuance benchmark remain required. One Rust test with
+15 public SDK fixtures or seven disposable chain transactions cannot substitute
+for those acceptance criteria.

@@ -1,3 +1,10 @@
+> **Dependency checkpoint disposition (2026-10-27):** crypto-bigint 0.5.5 is
+> removed in the independently reviewed unmerged branch; exact checkpoint
+> `ea4bb4ed` passed Fast and all 14 full-gate jobs. The earlier OPEN advisory banner
+> below records the pre-remediation state. Main still carries the old graph until
+> Phase 6G-C is completed and merged. This does not authorize production or transfer
+> CI acceptance to subsequent commits. See [evidence](PHASE6GC_DEPENDENCY_GATE.md).
+
 > **Authorized dependency remediation (2026-10-27):** The owner explicitly approved
 > the RustCrypto backend migration with independent review. An owned integration
 > patch now removes crypto-bigint 0.5.5 from the branch graph; original public

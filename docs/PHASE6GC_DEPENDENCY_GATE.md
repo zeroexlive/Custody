@@ -1,7 +1,10 @@
 # Phase 6G-C — RUSTSEC-2026-0387 security gate
 
-Status (2026-10-27): **owner-authorized migration IN PROGRESS / merge blocked**. This finding is not an exploitation
-claim, a scanner exception, or permission to activate real-fund signing.
+Status (2026-10-27): **bounded remediation VERIFIED in unmerged development
+checkpoint `ea4bb4edfd646b34a58e00170a734e57674b1825`**. Main `3d32b763` still
+contains the older affected graph. Phase 6G-C is incomplete and no phase merge or
+real-fund authorization follows. Subsequent source changes need their own final
+SHA gates. This is not an exploitation claim or scanner exception.
 
 ## Executed CI evidence
 
@@ -219,3 +222,28 @@ required before closing this gate. Executed follow-up checks are recorded below.
 
 Exact final-SHA GitHub Fast/full results must replace pending gate claims with
 actual links/results; no local result above is a GitHub gate pass.
+
+
+## Exact-head regression disposition
+
+Checkpoint `ea4bb4edfd646b34a58e00170a734e57674b1825` passed
+[Fast CI 40521504904](https://github.com/zeroexlive/Custody/actions/runs/40521504904)
+(all four Fast jobs) and
+[full CI 40521510401](https://github.com/zeroexlive/Custody/actions/runs/40521510401)
+(**14/14 jobs successful, zero skipped jobs**). The seven remote public manifests
+were downloaded and independently checked for exact workflow/head SHA, identical
+selected/called sets and zero skipped scenarios: EVM 45, TRON 5, Solana 2, TON 3,
+network 162, auxiliary-persistence 1, integrated 1 — **219 total executions**.
+The separate original-main encrypted-store migration step passed in **518.46s**.
+
+A genuinely separate review agent independently verified the remote GitHub run/job
+state and all seven remote public ZIP artifacts, plus the earlier source/provenance
+and local compatibility checks. No unresolved P0/P1 was found in this bounded
+migration. The technical version-remediation/regression gate is satisfied at this
+checkpoint; the older failed CI remains historical evidence. This is neither a
+whole-phase review nor an external constant-time/production assessment.
+
+Draft PR #1 remains unmerged and main remains `3d32b763`. Scalable issued Solana
+accounts, authenticated epochs/lifecycle/recovery, wallet classes, complete
+financial/on-chain acceptance and final whole-phase review still require work.
+No later commit inherits an exact-SHA CI pass from this checkpoint.

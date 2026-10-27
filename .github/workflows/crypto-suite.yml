@@ -124,7 +124,7 @@ jobs:
         env:
           PYTHONPATH: backend-side:mpc-side/integration
         run: python -m ton.localnet work/ton-bootstrap --container phase6fc-localton
-      - run: cargo build --locked --manifest-path mpc-side/Cargo.toml --bin wallet-mpc-coordinator --bin wallet-mpc-signer --example frost_round1_fixture --example frost_signing_package --example cggmp_round1_fixture --example cggmp_aux_message_fixture
+      - run: cargo build --locked --manifest-path mpc-side/Cargo.toml --bin wallet-mpc-coordinator --bin wallet-mpc-signer --example frost_round1_fixture --example frost_signing_package --example cggmp_round1_fixture --example cggmp_aux_message_fixture --example seeded_message_check
       - name: Check out the fixed pre-migration development baseline
         if: inputs.suite == 'network'
         uses: actions/checkout@v4
@@ -161,6 +161,7 @@ jobs:
             work/crypto/fixtures/**/child-issuance-benchmark.json
             work/crypto/fixtures/**/child-issuance-initial-stage.json
             work/crypto/fixtures/**/solana-evidence.json
+            work/crypto/fixtures/**/solana-seeded-primitive-evidence.json
             work/ton-review/mpc-tvm-evidence.json
             work/ton-review/validator-network-evidence.json
             work/ton-review/django-validator-evidence.json

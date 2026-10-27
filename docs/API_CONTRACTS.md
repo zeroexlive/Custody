@@ -103,3 +103,13 @@ Original child/signing grant formats and canonical child references are unchange
 ## Phase 7B withdrawal blacklist target — not implemented
 
 Provide tenant/administrator-authorized operations to read/update module configuration; list/create/update/activate/deactivate network-specific manual address restrictions; and read immutable audit history. Default enforcement is false. Use step-up authentication where available. Exact routes/schemas will be versioned and tested during Phase 7B, not claimed as existing endpoints here. Enabled policy is authoritatively revalidated at withdrawal request/execution/independent signer authorization with policy version binding. Disabled policy preserves entries/history/reservations. No deposit screening or external AML endpoint/provider is in scope. Existing /ops/blocklist CRUD is legacy metadata and does not satisfy these enforcement/authorization contracts.
+
+
+## Seeded Solana primitives — no new HTTP contract
+
+The branch's public wire library and acceptance helper do not add an issuance or
+signing endpoint. Genuine primitive tests use the existing trusted root-signing
+contract with `expected_source` equal to the base authority; this is not the future
+seeded financial-source contract. Account ownership, original root/genesis/epoch
+and exact-message grants must be designed and enforced before exposing that API.
+See [implemented/pending boundaries](PHASE6GC_SOLANA_SEEDED.md).

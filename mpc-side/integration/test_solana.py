@@ -760,3 +760,9 @@ def test_genuine_nonce_loss_and_expiration_preserve_owned_execution(tmp_path):
             validator.close()
         net.close()
         (tmp_path / "solana-evidence.json").write_text(json.dumps(evidence, indent=2))
+
+
+def test_phase6gc_seeded_wire_primitive_spendability(tmp_path):
+    from seeded_acceptance import run_seeded_spendability
+
+    run_seeded_spendability(tmp_path / "seeded-primitive")

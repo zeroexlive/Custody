@@ -2363,6 +2363,7 @@ dependencies = [
  "bs58",
  "cggmp24",
  "cggmp24-keygen",
+ "curve25519-dalek",
  "everscale-types",
  "frost-ed25519",
  "k256",

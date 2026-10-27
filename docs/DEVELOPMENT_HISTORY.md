@@ -1,3 +1,23 @@
+## 2026-10-27 — three-store seeded agreement and independent receipt checks (unmerged)
+
+Custody-mTLS coordinator routes relay original detached provisioning proofs,
+verify original completed DKG context and collect all three ordered matching
+signer receipts. Only complete agreements are pinned; partial commits recover
+their exact original signatures after restart. Complete public retries work with
+all signers offline, without granting a new operation. Custody's pinned receipt
+verifier adds separate Solana root/claim domains and rejects coordinator-key
+forgeries, domain substitutions, reordered/partial/duplicate statements. Six
+genuine store/agreement cases passed in14.27s; 38 existing EVM/TRON backend
+issuance/provisioning cases passed in17.38s. Independent source review found no
+concrete P0/P1 in this bounded layer. Inventory226; fresh-head CI remains required.
+There is no Django wallet issuance, new financial journal, tenant login or seeded
+spend permission. Epoch/rollback/class and full-phase gates remain open.
+
+Checkpoint94a0216 Fast40573881921 passed all four jobs; local56 distinct
+Solana/FROST cases passed, including2 actual PostgreSQL custody/recovery cases
+in365.32s after starting the restored database container. Its full40573875580 is
+separate from subsequent coordinator work; do not transfer a checkpoint gate.
+
 ## 2026-10-27 — authenticated signer-local seeded root/claim records (unmerged)
 
 Original custody P-256 proofs now authorize immutable initial HOT/DEPOSIT FROST

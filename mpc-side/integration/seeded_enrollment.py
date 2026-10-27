@@ -5,12 +5,16 @@ import json
 import uuid
 from concurrent.futures import ThreadPoolExecutor
 from contextlib import contextmanager
+from pathlib import Path
 
 import pytest
 from cryptography import x509
 from cryptography.hazmat.primitives import hashes
 from cryptography.hazmat.primitives.asymmetric import ec
+from custody.mpc_binding import MpcBindingError
+from custody.mpc_receipts import verify_receipts
 from custody.mpc_request_auth import _authorize_message, _canonical
+from django.test import override_settings
 from environment import ROLES, Processes
 from solders.pubkey import Pubkey
 from test_dkg import PARTIES, dkg_request, encrypted_files, execute, request
@@ -314,3 +318,100 @@ def run_corruption(root_path, fault):
         path.write_bytes(original_bytes)
         net.start(party)
         assert call(net, party, "approve", approval(net, "claim", original))[0] == 200
+
+
+def run_coordinator_agreement(root_path):
+    with services(root_path / "services") as net:
+        root, dkg = fresh_root(net)
+        base = f"/v1/keysets/{root['dkg']['keyset_id']}/solana-seeded-"
+        pins = {p: str(net.root / p / "identity" / "tls.crt") for p in PARTIES}
+
+        def rpc(suffix, payload):
+            return request(net, "coordinator", "custody", base + suffix, payload)
+
+        def checked(kind, evidence, expected):
+            assert evidence["statement"] == expected
+            for party, report in zip(PARTIES, evidence["participant_agreement"], strict=True):
+                verify(net, kind, report, expected, party)
+            with override_settings(MPC_HD_SIGNER_CERTIFICATES=pins):
+                verify_receipts("solana_" + kind, expected, evidence["participant_agreement"])
+
+        original_shares = encrypted_files(net, root["dkg"])
+        root_proof = approval(net, "root", root)
+        original_claim = claim(root)
+        claim_proof = approval(net, "claim", original_claim)
+        for role in ROLES[:4]:
+            assert request(net, "coordinator", role, base + "root", root_proof)[0] == 403
+        assert rpc("claims", claim_proof)[0] == 409
+        assert rpc("root", approval(net, "root", root, "coordinator"))[0] == 409
+        # Third signer offline: two receipts cannot become completed evidence.
+        net.stop(PARTIES[2])
+        assert rpc("root", root_proof)[0] == 409
+        state = Path(net.configs["coordinator"]["MPC_COORDINATOR_STATE"]).with_suffix(
+            ".solana-seeded"
+        )
+        assert not state.exists() or not list(state.glob("*.root"))
+        first_roles = {
+            p: (store(net, p) / f"{root['dkg']['keyset_id']}.role").read_bytes()
+            for p in PARTIES[:2]
+        }
+        net.stop("coordinator")
+        net.start("coordinator")
+        net.start(PARTIES[2])
+        code, root_evidence = rpc("root", root_proof)
+        assert code == 200
+        checked("root", root_evidence, root)
+        assert len(list(state.glob("*.root"))) == 1
+        for p, raw in first_roles.items():
+            assert (store(net, p) / f"{root['dkg']['keyset_id']}.role").read_bytes() == raw
+        # A partial claim survives coordinator+signer restart and returns the
+        # original signatures; custody independently verifies all three pins.
+        net.stop(PARTIES[2])
+        assert rpc("claims", claim_proof)[0] == 409
+        assert not list(state.glob("*.claim"))
+        first_claims = {p: next(store(net, p).glob("*.index")).read_bytes() for p in PARTIES[:2]}
+        for p in PARTIES[:2]:
+            net.stop(p)
+            net.start(p)
+        net.stop("coordinator")
+        net.start("coordinator")
+        net.start(PARTIES[2])
+        code, claim_evidence = rpc("claims", claim_proof)
+        assert code == 200
+        checked("claim", claim_evidence, original_claim)
+        for p, raw in first_claims.items():
+            assert next(store(net, p).glob("*.index")).read_bytes() == raw
+        # Completed public retries need no online signer quorum and retain exact
+        # original evidence. They cannot substitute a new root/claim identity.
+        for p in PARTIES:
+            net.stop(p)
+        net.stop("coordinator")
+        net.start("coordinator")
+        assert rpc("root", root_proof) == (200, root_evidence)
+        assert rpc("claims", claim_proof) == (200, claim_evidence)
+        changed = original_claim | {"owner_ref": "different-owner"}
+        assert rpc("claims", approval(net, "claim", changed))[0] == 409
+        assert rpc("root", approval(net, "root", root | {"ownership_scope": "different"}))[0] == 409
+        assert encrypted_files(net, root["dkg"]) == original_shares
+        # Neither response shape nor a coordinator-key forgery constitutes a
+        # signer receipt. Use fixed archival pins, never response-provided keys.
+        from cryptography.hazmat.primitives import serialization
+
+        key = serialization.load_pem_private_key(
+            (net.root / "coordinator" / "identity" / "tls.key").read_bytes(), None
+        )
+        reports = claim_evidence["participant_agreement"]
+        hostile = []
+        for report in reports:
+            message = b"Wallet-MPC/SIGNER_SOLANA_CLAIM_V1\0" + _canonical(
+                {"statement": original_claim, "party_id": report["party_id"], "durable": True}
+            )
+            hostile.append(
+                report | {"signer_signature": key.sign(message, ec.ECDSA(hashes.SHA256())).hex()}
+            )
+        with override_settings(MPC_HD_SIGNER_CERTIFICATES=pins):
+            for bad in (hostile, reports[:2], list(reversed(reports)), [reports[0]] * 3):
+                with pytest.raises(MpcBindingError, match="unverifiable independent"):
+                    verify_receipts("solana_claim", original_claim, bad)
+            with pytest.raises(MpcBindingError, match="unverifiable independent"):
+                verify_receipts("solana_root", original_claim, reports)

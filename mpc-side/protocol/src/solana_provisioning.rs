@@ -28,6 +28,7 @@ pub struct Root {
     pub purpose: String,
     pub wallet_class: String,
     pub derivation_version: String,
+    /// Original DKG marker only, never a current-epoch or anti-rollback proof.
     pub generation: u64,
 }
 impl Root {
@@ -181,4 +182,32 @@ pub struct Report<T> {
     pub party_id: String,
     pub durable: bool,
     pub signer_signature: String,
+}
+
+/// Transport agreement only. Custody must independently verify every detached
+/// signature against operator-pinned archival signer keys before accepting it.
+#[derive(Clone, Debug, Serialize, Deserialize, PartialEq, Eq)]
+#[serde(deny_unknown_fields)]
+pub struct Evidence<T> {
+    pub statement: T,
+    pub participant_agreement: Vec<Report<T>>,
+}
+impl<T: PartialEq> Evidence<T> {
+    pub fn validate(&self) -> Result<()> {
+        ensure!(
+            self.participant_agreement.len() == 3,
+            "incomplete seeded agreement"
+        );
+        for (report, party) in self.participant_agreement.iter().zip(PARTIES) {
+            ensure!(
+                report.statement == self.statement
+                    && report.party_id == party
+                    && report.durable
+                    && decode_hex(&report.signer_signature)
+                        .is_some_and(|s| (8..=80).contains(&s.len())),
+                "inconsistent original seeded receipt"
+            );
+        }
+        Ok(())
+    }
 }

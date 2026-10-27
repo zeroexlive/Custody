@@ -127,6 +127,13 @@ authorization does not establish customer/tenant authorization. Custody integrat
 all-party pinned receipt verification, actual mint/account initialization and seeded
 signing permission remain requirements before issuance.
 
+Coordinator all-party receipt collection and independent custody verification are
+now implemented as bounded building blocks. Complete evidence requires three
+ordered matching receipts; partial/restarted requests retain the same identity.
+Customer wallet issuance must still bind real tenant/ledger ownership and consume
+this evidence only after independent pinned-signature verification. A cached
+agreement or successful retry does not grant new spending permission.
+
 The seeded Solana message/address and genuine all-pair spending building blocks
 are implemented on the unmerged branch; see [scope](PHASE6GC_SOLANA_SEEDED.md).
 Persistent authenticated issuance, tenant/owner identity, signer-origin root/epoch/

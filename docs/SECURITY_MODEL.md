@@ -32,6 +32,16 @@ rollback, archival receipt identity-key rotation, population scalability and rea
 Hot/Warm/Cold isolation remain unaccepted. Preserve identity keys and private
 stores, and require final-head full regression evidence before phase acceptance.
 
+Subsequent coordinator aggregation requires original completed DKG context and
+three matching ordered mTLS signer responses before pinning complete evidence.
+Custody independently verifies detached Solana-domain signatures with archival
+HOT signer pins; coordinator-controlled trust keys are never accepted. Partial
+HTTP failures can leave committed signer records and require the original retry;
+cached complete agreements are public evidence reads, never fresh signing grants.
+No Django wallet issuance or financial authority is added by these routes. The
+new layer has passing genuine partial/restart and forgery tests and separate
+source review; old checkpoint gates do not validate new source automatically.
+
 ## Distinct decision layers
 
 1. **Business policy / Human Approval** — whether operation is allowed; tenant, risk, destination, amount/USD value, wallet class and named human approvers. Example future configurable policy: withdrawal > USD 500 requires three *different authorized humans*; this is neither fixed nor implemented today.

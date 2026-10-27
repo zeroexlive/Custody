@@ -70,6 +70,12 @@ def test_phase6gc_seeded_historical_signing_and_enrollment_race(tmp_path):
     run_historical_and_race(tmp_path)
 
 
+def test_phase6gc_seeded_three_store_coordinator_agreement(tmp_path):
+    from seeded_enrollment import run_coordinator_agreement
+
+    run_coordinator_agreement(tmp_path)
+
+
 @pytest.mark.parametrize("fault", ["role", "index", "alias"])
 def test_phase6gc_seeded_corrupt_original_store_rejected(tmp_path, fault):
     from seeded_enrollment import run_corruption

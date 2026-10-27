@@ -62,6 +62,7 @@ mod cggmp_sign;
 mod dkg;
 mod hd;
 mod sign;
+mod solana_provisioning;
 
 #[derive(Clone, Debug, Serialize, Deserialize, PartialEq, Eq)]
 pub struct DkgSession {
@@ -601,7 +602,8 @@ pub fn network_app(
     let signing_app = sign::router(store.clone(), signers.clone());
     let auxiliary_app = cggmp_aux::router(store.clone(), signers.clone());
     let hd_app = hd::router(store.clone(), signers.clone());
-    base_app(store).merge(hd_app).merge(dkg_app).merge(signing_app).merge(auxiliary_app).route("/v1/health/quorum", get(move || {
+    let seeded_app = solana_provisioning::router(store.clone(), signers.clone());
+    base_app(store).merge(seeded_app).merge(hd_app).merge(dkg_app).merge(signing_app).merge(auxiliary_app).route("/v1/health/quorum", get(move || {
         let signers = signers.clone();
         async move {
             match signers.capabilities().await {

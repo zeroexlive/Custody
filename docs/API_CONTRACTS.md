@@ -120,5 +120,15 @@ proofs. They return per-party signed immutable root/claim receipts; the same ret
 returns the original receipt. They do not expose an external issuance API or grant
 seeded signing. Historical/dedicated roles, operator scope, genesis, original DKG,
 owner/mint/index/reservation/retry are pinned. See the linked scope for failure,
-partial-write and rollback/identity-key limitations. No Django/coordinator route,
-database wallet or financial journal is added by these internal contracts.
+partial-write and rollback/identity-key limitations. No Django wallet or financial
+journal is added by these internal contracts.
+
+Custody-machine-only coordinator POST routes now collect these same original
+proofs at `/v1/keysets/{id}/solana-seeded-root` and `/solana-seeded-claims`.
+They return an immutable `statement` plus all three ordered `participant_agreement`
+receipts only after complete agreement. HTTP409 may follow partial signer commits:
+retain and retry the original identity. Completed public evidence can be returned
+after restart with all signers offline; it is not a new signing grant. Custody must
+verify separate `solana_root`/`solana_claim` receipt domains against its three
+archival HOT signer certificate pins before any future issuance consumption.
+Coordinator-provided keys, signatures, labels or two-store agreement are insufficient.

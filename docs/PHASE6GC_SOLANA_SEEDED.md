@@ -68,13 +68,13 @@ primitive spendability, not complete end-to-end custody acceptance.
 Two new internal signer routes accept only the coordinator's mTLS transport plus
 an original detached P-256 custody-machine authorization. Separate domain-separated
 canonical statements prevent a root proof from becoming a claim proof. These
-routes are not exposed through Django or the coordinator's custody API:
+routes remain internal to signer services:
 
 - `POST /internal/v1/solana/seeded/enroll`: immutable original FROST DKG request,
   group key and complete public package, authenticated deployment ownership scope,
   `SOL` genesis, `HOT/DEPOSIT`, `solana_seeded_v1`, initial generation zero.
 - `POST /internal/v1/solana/seeded/approve`: original root, reservation UUID,
-  existing global ledger owner reference, retry identity, monotonic index and
+  operator-supplied ledger owner reference, retry identity, monotonic index and
   native/classic-token identity (mint and decimals for tokens).
 
 Each party reopens its own encrypted original DKG and compares the complete public
@@ -105,7 +105,8 @@ signer startup and legacy signing paths changed.
 
 **Trust and limits:** custody is the trusted deployment-level machine authority;
 the root genesis is its signed pin, not a signer-side RPC/light-client attestation.
-`owner_ref` does not establish an external tenant/customer principal. A token claim
+`owner_ref` is not yet resolved to a custody DB principal and does not establish
+an external tenant/customer principal. A token claim
 does not prove an existing valid mint/account or on-chain initialization. Receipts
 do not grant spending or create a financial wallet. Current identity keys must be
 retained: transparent TLS identity-key replacement is unsupported pending archival
@@ -115,6 +116,41 @@ binary rollback; an independent generation witness and protected deployment poli
 remain mandatory. One configured process exclusively owns each signer store;
 privileged filesystem/configuration access remains trusted. No database migration,
 UserWallet attachment, balance posting or production flag change is introduced.
+
+## Three-store coordinator agreement and custody receipt verification
+
+The coordinator now also exposes custody-machine-only mTLS POST routes
+`/v1/keysets/{id}/solana-seeded-root` and `/v1/keysets/{id}/solana-seeded-claims`.
+They relay the original detached custody proof, preserve the exact original DKG
+and namespace, collect all three independently authenticated signer responses,
+and persist one immutable complete agreement. The response contains `statement`
+and ordered `participant_agreement` (signer-a/b/c); every receipt includes the
+same statement, party ID, durable flag and detached signature. Two receipts cannot
+create completed evidence. Partial responses stay in the original signer stores.
+An HTTP409 does not prove that no signer committed: retain the original request,
+reservation/index and retry identity. Recovery completes that exact request.
+
+Completed agreements can be returned after coordinator restart with all signers
+offline. These are public evidence reads under custody mTLS, not new transitions;
+they do not renew a signing grant or require fresh detached proof validation at
+every signer. New writes require the original proof at each signer. Conflicting
+root/claim identity cannot replace the original cached agreement.
+
+Custody's receipt verifier adds separate `solana_root` and `solana_claim` domains,
+using the existing operator-configured `MPC_HD_SIGNER_CERTIFICATES` archival HOT
+signer pins. It requires three distinct P-256 identity keys in the fixed party
+order. No coordinator-supplied trust key is accepted. This verification is mandatory
+before a future issuance service may consume the agreement; the new routes alone
+do not establish its financial/customer identity or create a wallet.
+
+A genuine partial-enrollment/partial-claim/restart/offline-retry case verifies both
+all-party receipt collection and independent custody verification, including a
+coordinator-key forgery, wrong domain and missing/duplicate/reordered receipts.
+All six store/agreement cases passed in **14.27s**; **38** existing backend
+EVM/TRON issuance/provisioning tests passed in **17.38s** after the receipt-domain
+extension. Separate source review found no concrete P0/P1 in this bounded layer.
+It is subsequent to checkpoint94a0216 and needs its own final-head CI. Whole-phase
+acceptance remains open; crypto inventory is now226.
 
 ## Still required before customer issuance
 

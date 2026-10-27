@@ -45,7 +45,17 @@ issued customer accounts, seeded spending grants, epoch/rollback protection or
 class isolation. Identity-key rollover and scalability remain unaccepted. The
 complete crypto inventory is now 225 scenarios; new full-head CI remains required.
 
-Remaining 6G-C scope: custody integration of the new signer-local Solana records,
+Subsequent coordinator routes collect the original proof and all three ordered
+signer receipts, persist only complete evidence, and recover exact partial commits
+or completed public retries with signers offline. The custody verifier now checks
+separate Solana domains against its configured independent archival HOT signer
+pins; coordinator-key forgeries and partial/reordered/duplicate receipts fail.
+All six record/agreement cases passed in 14.27s, and 38 existing backend EVM/TRON
+issuance/provisioning cases passed in 17.38s. Independent source review found no
+concrete P0/P1 in this bounded layer. This is subsequent to94a0216; inventory226
+and fresh final-head CI are required. No issued wallet or spending grant is added.
+
+Remaining 6G-C scope: authoritative custody integration of the new Solana records,
 tenant ownership and independently pinned all-party evidence; actual issued-wallet/scanner/sweep/withdrawal integration and benchmark;
 immutable epochs, authorized refresh/repair and rollback protection; controlled
 rotation/drain/late-deposit rescue, backup and compromise procedures; enforceable

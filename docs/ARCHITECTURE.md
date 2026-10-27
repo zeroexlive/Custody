@@ -121,6 +121,13 @@ scoped records, still unconnected to tenant identity, custody issuance or seeded
 spending. Genesis is the original custody pin, not signer-side chain attestation;
 epochs, an independent rollback witness and identity-key rollover remain pending.
 
+Custody-mTLS coordinator routes now collect and pin all three original receipts;
+partial commits remain recoverable and completed public evidence can be reread
+offline. Custody verifies distinct Solana domains with independently configured
+archival HOT signer pins; transport/coordinator metadata cannot replace these
+checks. This adds no Django financial wallet, tenant authorization or spending
+grant. HTTP409 cannot establish that a partial operation never committed.
+
 Standard seeded System/native and classic SPL account primitives now have exact
 SDK/Rust wire checks and genuine all-pair FROST spendability acceptance, described
 in [PHASE6GC_SOLANA_SEEDED.md](PHASE6GC_SOLANA_SEEDED.md). They do not yet issue

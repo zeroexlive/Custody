@@ -185,12 +185,13 @@ material. A failing compatibility step fails the existing mandatory network job.
 A genuinely separate review agent independently inspected the reconstructed
 adapter, direct verifier port and selected dependency versions and found no
 concrete P0/P1 in that bounded source diff. This is not an external cryptographic
-audit or final phase acceptance. Full workspace tests, the unsuppressed live audit,
-the combined historical-store acceptance, exact-head CI and independent review of
-the final patch/test/workflow diff remain required before closing this gate.
+audit or final phase acceptance. The original pre-acceptance requirements remain
+visible above;
+exact-head CI and independent review of the final patch/test/workflow diff remain
+required before closing this gate. Executed follow-up checks are recorded below.
 
 
-### Executed migration checks (before final GitHub head)
+### Executed migration checks (before final GitHub full gate)
 
 - Full Rust workspace: **35 passed**, no ignored/failed tests, including genuine
   CGGMP all-pair signing (the protocol group completed in 119.04s).
@@ -201,12 +202,20 @@ the final patch/test/workflow diff remain required before closing this gate.
   remediation; the unchanged atomic-polyfill RUSTSEC-2023-0089 unmaintained
   warning remains visible. This is no scanner exception or production clearance.
 - All-target inverse dependency tree selects only crypto-bigint 0.7.10.
-- The stronger combined portable upgrade exercise is still pending completion
-  at this checkpoint. A Python tuple/list mismatch in its initial exact consumed
+- The stronger combined portable upgrade exercise **passed in 361.556s** with
+  fresh genuine legacy FROST and two CGGMP DKG/auxiliary ceremonies. A Python
+  tuple/list mismatch in its initial exact consumed
   record assertion was corrected to an explicit signer list; no product source
   change or cryptographic assertion relaxation was used. The final harness also
   submits the valid original FROST package for replay rejection and checks original
-  owner/index/role files and coordinator reconciliation identity.
+  owner/index/role files and coordinator reconciliation identity. All three final
+  assertion groups were rerun on fresh copies of the preserved original stores
+  and **passed**, including same-execution coordinator reconciliation with no
+  signature and repeated execute/reconcile rejection. Original source stores
+  passed a complete final hash recheck.
+- The same three committed public compatibility tests also **passed against the
+  unchanged old backend**, independently checking historical fixture provenance.
+- Explicit owned-adapter Clippy with `-D warnings` and rustfmt: **passed**.
 
 Exact final-SHA GitHub Fast/full results must replace pending gate claims with
 actual links/results; no local result above is a GitHub gate pass.

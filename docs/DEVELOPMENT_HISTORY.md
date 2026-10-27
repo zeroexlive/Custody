@@ -1,3 +1,17 @@
+## 2026-10-27 — owner-authorized RustCrypto backend remediation (unmerged)
+
+The owner explicitly approved the maintained-backend integration investigation
+and migration with independent review after the incompatible resolver result.
+The owned generic-ec-curves adapter ports only the selected secp256k1 integration
+to k256/elliptic-curve 0.14 and patched crypto-bigint 0.7.10; original CGGMP,
+HD/key-share and separate FROST protocols remain unchanged. Public golden vectors
+match the original backend exactly; bounded real-process old-store FROST, root
+and original-child all-pair signing have passed. The full network gate gains a
+reproducible fixed-main historical-store acceptance step. See
+[dependency report](PHASE6GC_DEPENDENCY_GATE.md) and vendor provenance/delta for
+scope, exact evidence and pending final-head checks. This is unfinished Phase
+6G-C on Draft PR #1, not a phase merge, external audit or production approval.
+
 # Verified development history and evidence
 
 **Source policy:** timeline below is extracted from merged pull requests / main history, not an assertion that every historical attempted PR merged. The repository had 34 PRs as of 2026-10-11; several earlier attempts were closed **without merge** (e.g. PRs #4–7, #9–13, #15–24). Do not include unmerged proposals in delivered capability counts.

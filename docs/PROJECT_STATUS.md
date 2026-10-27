@@ -1,3 +1,11 @@
+> **Authorized dependency remediation (2026-10-27):** The owner explicitly approved
+> the RustCrypto backend migration with independent review. An owned integration
+> patch now removes crypto-bigint 0.5.5 from the branch graph; original public
+> encoding/HD vectors and real old-store FROST/root/child signing have passed
+> bounded local compatibility checks. Full final-head gates and phase work remain
+> incomplete; no merge or production activation is claimed. See
+> [current dependency evidence](PHASE6GC_DEPENDENCY_GATE.md).
+
 # Current continuation checkpoint — 2026-10-27
 
 Repository: `zeroexlive/Custody`. Live main verified as `3d32b763ff777347f77eae7a8a7936d85dc2d770` by Git fetch/ls-remote; this is the Phase 6G-B squash merge (#37), not an unmerged B branch. No post-checkpoint main commits. **Phase 6G-C: IN PROGRESS locally; not merged or complete.** Phase 7–9 remain planned. Current source/audit evidence and dependency security gate are recorded in [INITIAL_REPOSITORY_AUDIT.md](INITIAL_REPOSITORY_AUDIT.md).

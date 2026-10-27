@@ -1,0 +1,202 @@
+//! Adapter for curves implemented on top of [`elliptic_curve`] package
+//!
+//! This module provide generic wrappers that can port any curve implemented on top of
+//! [`elliptic_curve`] package to `generic-ec`.
+
+use core::fmt;
+use core::hash::{self, Hash};
+use core::marker::PhantomData;
+use core::ops::Mul;
+
+use elliptic_curve::group::cofactor::CofactorGroup;
+use elliptic_curve::ops::Reduce;
+use elliptic_curve::sec1::{FromSec1Point, ModulusSize, ToSec1Point};
+use elliptic_curve::{CurveArithmetic, FieldBytesSize, ScalarValue};
+use generic_ec_core::{
+    CompressedEncoding, Curve, IntegerEncoding, NoInvalidPoints, UncompressedEncoding,
+};
+use hash2curve::ExpandMsgXmd;
+use subtle::{ConditionallySelectable, ConstantTimeEq};
+use zeroize::{DefaultIsZeroes, Zeroize};
+
+#[cfg(any(feature = "secp256k1", feature = "secp256r1", feature = "stark"))]
+use sha2::Sha256;
+
+pub use self::{curve_name::CurveName, point::RustCryptoPoint, scalar::RustCryptoScalar};
+
+mod affine_coords;
+mod curve_name;
+mod hash_to_curve;
+mod point;
+mod scalar;
+mod wire_bytes;
+pub use wire_bytes::WireBytes;
+
+/// Curve ported from [`elliptic_curve`] crate
+pub struct RustCryptoCurve<C, X> {
+    _ph: PhantomData<fn() -> (C, X)>,
+}
+
+impl<C, X> RustCryptoCurve<C, X>
+where
+    C: CurveArithmetic,
+{
+    /// Constructs a point on the curve
+    pub fn point(point: C::ProjectivePoint) -> RustCryptoPoint<C> {
+        RustCryptoPoint(point)
+    }
+}
+
+impl<C, X> RustCryptoCurve<C, X>
+where
+    C: CurveArithmetic,
+{
+    /// Constructs a scalar
+    pub fn scalar(scalar: C::Scalar) -> RustCryptoScalar<C> {
+        RustCryptoScalar(scalar)
+    }
+}
+
+/// secp256k1 curve
+///
+/// Based on [k256] crate
+#[cfg(feature = "secp256k1")]
+pub type Secp256k1 = RustCryptoCurve<k256::Secp256k1, ExpandMsgXmd<Sha256>>;
+/// secp256r1 curve
+///
+/// Based on [p256] crate
+#[cfg(feature = "secp256r1")]
+pub type Secp256r1 = RustCryptoCurve<p256::NistP256, ExpandMsgXmd<Sha256>>;
+
+/// Stark curve
+///
+/// Based on [stark_curve] crate
+#[cfg(feature = "stark")]
+pub type Stark = RustCryptoCurve<stark_curve::StarkCurve, ExpandMsgXmd<Sha256>>;
+
+impl<C, X> Curve for RustCryptoCurve<C, X>
+where
+    C: CurveName + CurveArithmetic,
+    C::ProjectivePoint: From<C::AffinePoint>
+        + CofactorGroup
+        + Copy
+        + Eq
+        + Default
+        + ConstantTimeEq
+        + ConditionallySelectable
+        + Zeroize
+        + Unpin,
+    C::AffinePoint: From<C::ProjectivePoint> + ToSec1Point<C> + FromSec1Point<C>,
+    for<'a> &'a C::ProjectivePoint: Mul<&'a C::Scalar, Output = C::ProjectivePoint>,
+    C::Scalar:
+        Reduce<C::Uint> + Eq + ConstantTimeEq + ConditionallySelectable + DefaultIsZeroes + Unpin,
+    RustCryptoScalar<C>: scalar::BytesModOrder,
+    for<'a> ScalarValue<C>: From<&'a C::Scalar>,
+    FieldBytesSize<C>: ModulusSize,
+    X: 'static,
+{
+    const CURVE_NAME: &'static str = C::CURVE_NAME;
+
+    type Point = RustCryptoPoint<C>;
+    type Scalar = RustCryptoScalar<C>;
+
+    type CompressedPointArray = <Self::Point as CompressedEncoding>::Bytes;
+    type UncompressedPointArray = <Self::Point as UncompressedEncoding>::Bytes;
+
+    type ScalarArray = <Self::Scalar as IntegerEncoding>::Bytes;
+
+    type CoordinateArray = WireBytes<elliptic_curve::FieldBytes<C>>;
+}
+
+impl<C: CurveName, X> fmt::Debug for RustCryptoCurve<C, X> {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        f.debug_struct("RustCryptoCurve")
+            .field("curve", &C::CURVE_NAME)
+            .finish()
+    }
+}
+
+impl<C, X> Clone for RustCryptoCurve<C, X> {
+    fn clone(&self) -> Self {
+        *self
+    }
+}
+
+impl<C, X> Copy for RustCryptoCurve<C, X> {}
+
+impl<C, X> PartialEq for RustCryptoCurve<C, X> {
+    fn eq(&self, _other: &Self) -> bool {
+        true
+    }
+}
+
+impl<C, X> Eq for RustCryptoCurve<C, X> {}
+
+impl<C, X> PartialOrd for RustCryptoCurve<C, X> {
+    fn partial_cmp(&self, other: &Self) -> Option<core::cmp::Ordering> {
+        Some(self.cmp(other))
+    }
+}
+
+impl<C, X> Ord for RustCryptoCurve<C, X> {
+    fn cmp(&self, _other: &Self) -> core::cmp::Ordering {
+        core::cmp::Ordering::Equal
+    }
+}
+
+impl<C, X> Hash for RustCryptoCurve<C, X>
+where
+    C: CurveName,
+{
+    fn hash<H: hash::Hasher>(&self, state: &mut H) {
+        state.write(C::CURVE_NAME.as_bytes())
+    }
+}
+
+impl<C, X> Default for RustCryptoCurve<C, X> {
+    fn default() -> Self {
+        Self { _ph: PhantomData }
+    }
+}
+
+/// Safe because:
+/// - RustCrypto curves are always on curve:
+///   generic-ec-curves/src/rust_crypto/point.rs:60
+/// - k256 is prime order and so is always torsion-free:
+///   <https://github.com/RustCrypto/elliptic-curves/blob/f06ae5b93f83c571ed7ef7031b99e24759b90f9e/k256/src/arithmetic/hash2curve.rs#L259-L273>
+#[cfg(feature = "secp256k1")]
+unsafe impl NoInvalidPoints for Secp256k1 {}
+/// Safe because:
+/// - RustCrypto curves are always on curve:
+///   generic-ec-curves/src/rust_crypto/point.rs:60
+/// - p256 is prime order and so is always torsion-free. This check isn't even
+///   implemented in code.
+#[cfg(feature = "secp256r1")]
+unsafe impl NoInvalidPoints for Secp256r1 {}
+/// Safe because:
+/// - RustCrypto curves are always on curve:
+///   generic-ec-curves/src/rust_crypto/point.rs:60
+/// - stark is prime order and so is always torsion-free:
+///   <https://github.com/RustCrypto/elliptic-curves/blob/7a71e403e49fbe92d6b2ae8fe3eabbfdef124975/primeorder/src/projective.rs#L172-L174>
+#[cfg(feature = "stark")]
+unsafe impl NoInvalidPoints for Stark {}
+
+#[cfg(test)]
+mod tests {
+    use generic_ec_core::{
+        coords::{HasAffineX, HasAffineXAndParity, HasAffineXY},
+        Curve,
+    };
+
+    use super::Secp256k1;
+
+    /// Asserts that `E` implements `Curve`
+    fn _impls_curve<E: Curve>() {}
+    fn _exposes_affine_coords<E: HasAffineX + HasAffineXAndParity + HasAffineXY>() {}
+
+    fn _curves_impl_trait() {
+        _impls_curve::<Secp256k1>();
+
+        _exposes_affine_coords::<Secp256k1>();
+    }
+}

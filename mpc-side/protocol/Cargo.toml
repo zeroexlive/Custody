@@ -14,7 +14,7 @@ cggmp24-keygen.workspace = true
 frost-ed25519.workspace = true
 anyhow.workspace = true
 bs58 = "=0.5.1"
-k256 = { version = "=0.13.4", features = ["ecdsa"] }
+k256 = { version = "=0.14.0", features = ["ecdsa"] }
 sha3 = "=0.10.8"
 
 # TON cells are local to synchronous verification; upstream Rc cells never cross

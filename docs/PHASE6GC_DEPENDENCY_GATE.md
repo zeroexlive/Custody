@@ -1,6 +1,6 @@
 # Phase 6G-C — RUSTSEC-2026-0387 security gate
 
-Status (2026-10-27): **OPEN / merge blocked**. This finding is not an exploitation
+Status (2026-10-27): **owner-authorized migration IN PROGRESS / merge blocked**. This finding is not an exploitation
 claim, a scanner exception, or permission to activate real-fund signing.
 
 ## Executed CI evidence
@@ -53,7 +53,7 @@ PR #1358. Source reachability alone is neither compiler-level timing analysis no
 proof of exploitability/absence. Keep this as a P1 security gate pending proper
 assessment/remediation; do not hide it behind the older development P2 warning.
 
-## Compatibility investigation and concrete resolver result
+## Pre-migration compatibility investigation and concrete resolver result
 
 Read-only crates.io index checks establish:
 
@@ -90,7 +90,7 @@ advisory-date rollback, dependency relabeling or alternate scanner gate was adde
 A separate source reviewer independently confirmed the registry/constraint
 finding and its impact qualifications. This is not an external cryptographic audit.
 
-## Concrete remediation choices requiring a security decision
+## Remediation decision and explicit owner authorization
 
 1. Obtain an official maintained compatible backport or CGGMP/backend release,
    pin the reviewed release/commit with normal integrity verification, and rerun
@@ -105,8 +105,11 @@ finding and its impact qualifications. This is not an external cryptographic aud
 The second choice is a security-critical dependency/backend change, rather than
 a compatible lockfile refresh. The adopted Prompt.md section 29 requires owner
 input when "A security-critical architectural change requires explicit approval."
-This document makes the proposed scope reviewable; no such migration is approved
-or implemented merely by preparing this report.
+After reading this concrete proposal, the owner explicitly answered
+"تأیید بررسی و مهاجرت با بازبینی مستقل" (approve investigation and migration with
+independent review). That authorization covers the bounded maintained-backend
+integration described in choice 2. It does not authorize algorithm changes,
+scanner exceptions, gate bypasses, phase completion or production activation.
 
 Before adopting any migration, require independent review plus serialization
 compatibility of existing core/aux shares, extended public material, HD child
@@ -122,3 +125,88 @@ In the meantime, continue only independent source work and public/disposable
 validation. The standard Solana wire helpers are not connected to issuance,
 production signing, deposit credit or broadcasts, and do not close this gate.
 No phase merge or next-phase work is authorized while the mandatory gate fails.
+
+
+## Authorized implementation and compatibility evidence
+
+The branch now includes an explicit owned integration port at
+`mpc-side/vendor/generic-ec-curves`, version `0.2.4+custody.rustcrypto014`,
+selected with `[patch.crates-io]`; it is not a disguised registry release.
+`CUSTODY_PATCH.md` identifies the upstream commit, verified original crate checksum,
+licenses, maintained dependency versions, unsupported-feature boundaries and
+maintenance/removal conditions. `UPSTREAM_DELTA.patch` records the exact manifest
+and retained-source delta. Upstream arithmetic and protocol implementations remain
+authoritative. No local secret-arithmetic implementation or scanner suppression
+is introduced.
+
+The lockfile selects k256 0.14.0 / elliptic-curve 0.14.3 / crypto-bigint 0.7.10.
+The old 0.13 / 0.5.5 instances are removed, including from all-target resolution.
+CGGMP24, keygen, generic-ec/core, key-share, HD, FROST and Postcard remain pinned to
+their original versions. The mechanical port adapts ScalarValue/SEC1 API names,
+borrowed reductions and hybrid-array byte storage. Original curve names and
+serialized byte slices are preserved. Direct ecdsa integration continues rejecting
+high-S; it never silently normalizes untrusted input into an accepted signature.
+
+Executed public compatibility evidence: the original-backend generator was
+recreated after the environment restart, and matched the previously persisted
+original fingerprint exactly:
+`c1ba561d0384ecbc1b7cc97ed17b99cfa521bd79cd63cf38b9bb15017da3d8a9`.
+The migrated generator produced the identical complete JSON and fingerprint.
+Committed regression fixtures contain public known inputs/results only, including
+arbitrary-length scalar reduction, scalar/point serialization, compressed and
+uncompressed points, identity/malformed decoding, original HD children and chain
+codes, scalar-order/endian boundaries, coordinate round trips, and an original
+recoverable low-S signature plus high-S/invalid/wrong-digest rejection.
+
+A disposable real-process upgrade exercise has passed against preserved binaries
+from the unchanged pre-migration Rust implementation:
+
+- FROST original encrypted shares, original completed signature recovery, pending
+  nonce rejection after restart, and new signatures with all three signer pairs;
+- CGGMP original encrypted core/auxiliary shares, exact completed result recovery,
+  prepared-execution fencing and all three root signing pairs;
+- original signer-signed HD root/child receipts recovered byte-for-byte, then
+  genuine child signing with all three pairs, independently verified/recovered
+  with libsecp256k1, rejecting verification against the root key;
+- encrypted original core/aux/share files, HD identities, completed records and
+  already-completed nonce tombstones remained unchanged. Pending statuses are
+  allowed only to transition to the existing reconciliation-required state.
+
+`mpc-side/integration/backend_compatibility.py` makes this acceptance reproducible,
+with private fixtures in a fresh local-only directory and candidate services
+operating on separate copies of original stores. Its stronger combined run also
+checks a CGGMP consumed execution created before upgrade. The mandatory full
+network CI job builds fixed original main `3d32b763...` with its own original
+lockfile, then runs the current candidate against those historical stores.
+Only the allowlisted public summary (binary hashes, case names, duration/status)
+may be uploaded; never upload signer stores, PKI, shares, wrapping keys or nonce
+material. A failing compatibility step fails the existing mandatory network job.
+
+A genuinely separate review agent independently inspected the reconstructed
+adapter, direct verifier port and selected dependency versions and found no
+concrete P0/P1 in that bounded source diff. This is not an external cryptographic
+audit or final phase acceptance. Full workspace tests, the unsuppressed live audit,
+the combined historical-store acceptance, exact-head CI and independent review of
+the final patch/test/workflow diff remain required before closing this gate.
+
+
+### Executed migration checks (before final GitHub head)
+
+- Full Rust workspace: **35 passed**, no ignored/failed tests, including genuine
+  CGGMP all-pair signing (the protocol group completed in 119.04s).
+- All-target workspace Clippy with `-D warnings`: **passed**; Cargo formatting
+  and changed Python Ruff checks passed.
+- Unsuppressed `cargo audit 0.22.0`, live RustSec database (1,380 advisories),
+  current 263-package lockfile: **exit 0**. RUSTSEC-2026-0387 is absent after
+  remediation; the unchanged atomic-polyfill RUSTSEC-2023-0089 unmaintained
+  warning remains visible. This is no scanner exception or production clearance.
+- All-target inverse dependency tree selects only crypto-bigint 0.7.10.
+- The stronger combined portable upgrade exercise is still pending completion
+  at this checkpoint. A Python tuple/list mismatch in its initial exact consumed
+  record assertion was corrected to an explicit signer list; no product source
+  change or cryptographic assertion relaxation was used. The final harness also
+  submits the valid original FROST package for replay rejection and checks original
+  owner/index/role files and coordinator reconciliation identity.
+
+Exact final-SHA GitHub Fast/full results must replace pending gate claims with
+actual links/results; no local result above is a GitHub gate pass.

@@ -1,3 +1,11 @@
+> **Authorized dependency remediation (2026-10-27):** The owner explicitly approved
+> the RustCrypto backend migration with independent review. An owned integration
+> patch now removes crypto-bigint 0.5.5 from the branch graph; original public
+> encoding/HD vectors and real old-store FROST/root/child signing have passed
+> bounded local compatibility checks. Full final-head gates and phase work remain
+> incomplete; no merge or production activation is claimed. See
+> [current dependency evidence](PHASE6GC_DEPENDENCY_GATE.md).
+
 > **New OPEN security gate (2026-10-27):** Actual fork CI flags crypto-bigint 0.5.5 / RUSTSEC-2026-0387 (secret-dependent timing). There is no compatible patched release in the selected CGGMP dependency graph. Exact exploitability is not established and the scanner is not waived. See [dependency investigation](PHASE6GC_DEPENDENCY_GATE.md). No phase merge or production approval follows from the older closed findings below.
 
 > **Current supersession (2026-10-27):** Phase 6G-B is merged at verified fork main `3d32b763`. Earlier R1/R2-review-required and scc/Tokio-open descriptions below retain historical snapshots; current source facts and qualified final historical review dispositions are in [INITIAL_REPOSITORY_AUDIT.md](INITIAL_REPOSITORY_AUDIT.md). Phase 6G-C remains incomplete and no new production authorization is claimed.

@@ -1,3 +1,18 @@
+## 2026-10-27 — authorized maintained RustCrypto integration remediation
+
+After the incompatible RUSTSEC-2026-0387 resolver investigation, the owner
+explicitly approved investigation/migration with independent review. Maintain a
+small, explicitly owned generic-ec-curves 0.2.4 integration port to maintained
+RustCrypto 0.14 / patched crypto-bigint 0.7, preserving original CGGMP, HD and FROST
+protocols, original serialized identities/stores and nonce/replay controls. Record
+upstream integrity/licensing and the complete local patch delta. Unsupported
+adapter curves fail closed. Replace the patch with a compatible maintained
+upstream release when available; do not suppress scanners or rewrite local
+constant-time arithmetic. Require genuine original-store compatibility,
+independent review and exact-head full gates before acceptance. See
+[scope and evidence](PHASE6GC_DEPENDENCY_GATE.md). No production/phase merge is
+implied by dependency remediation.
+
 # Architecture and product decisions (ADRs in compact form)
 
 **Authority:** owner-approved choices, backed by explicit user discussions and implementation evidence. The entries below are durable decisions; newly suggested extras remain proposals until approved. Each material change should append a dated supersession, not quietly rewrite history.

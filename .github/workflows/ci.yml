@@ -143,6 +143,8 @@ jobs:
         with: {workspaces: mpc-side}
       - run: cargo fmt --all -- --check
       - run: cargo clippy --locked --workspace --all-targets -- -D warnings
+      - run: rustfmt --check --edition 2021 vendor/generic-ec-curves/src/lib.rs
+      - run: cargo clippy --locked -p generic-ec-curves --all-targets -- -D warnings
       - run: cargo test --locked --workspace -- --skip cggmp_real_two_of_three_all_signer_pairs
 
   rust-crypto:

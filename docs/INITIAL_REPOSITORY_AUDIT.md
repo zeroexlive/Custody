@@ -1,3 +1,10 @@
+> **Continuation update (2026-10-27):** Following the resolver investigation,
+> the owner explicitly approved maintained RustCrypto integration migration with
+> independent review. The branch now carries an explicit owned adapter and
+> historical-store compatibility gate; the earlier no-patch/decision-pending
+> checkpoint below is historical. See [current dependency report](PHASE6GC_DEPENDENCY_GATE.md)
+> for implemented scope, executed local evidence and still-required final gates.
+
 # CUSTODY — INITIAL REPOSITORY AUDIT
 
 Date: 2026-10-27. Status: **IN PROGRESS; Actions executing; new dependency security gate OPEN**.

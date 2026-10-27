@@ -137,3 +137,35 @@ def test_retirement_waits_for_concurrent_keyset_import():
             future.result(timeout=10)
     row.refresh_from_db()
     assert row.status == "CREATING" and row.public_key == "11" * 32
+
+
+@pytest.fixture
+def keyset_admin_client(client, django_user_model):
+    operator = django_user_model.objects.create_superuser(
+        username="lifecycle-admin", email="operator@example.invalid", password="test-only"
+    )
+    client.force_login(operator)
+    return client
+
+
+def test_admin_can_inspect_but_cannot_edit_keyset_lifecycle(keyset_admin_client):
+    row = keyset(status="ACTIVE")
+    path = f"/admin/custody/mpckeyset/{row.pk}/change/"
+    assert keyset_admin_client.get(path).status_code == 200
+    response = keyset_admin_client.post(path, {"status": "RETIRED", "_save": "Save"})
+    assert response.status_code == 403
+    row.refresh_from_db()
+    assert row.status == "ACTIVE" and row.retired_at is None
+
+
+@pytest.mark.parametrize("operation", ["add", "delete"])
+def test_admin_cannot_create_or_delete_keyset_metadata(keyset_admin_client, operation):
+    row = keyset()
+    path = (
+        "/admin/custody/mpckeyset/add/"
+        if operation == "add"
+        else f"/admin/custody/mpckeyset/{row.pk}/delete/"
+    )
+    response = keyset_admin_client.post(path, {"post": "yes"})
+    assert response.status_code == 403
+    assert list(MpcKeyset.objects.values_list("pk", flat=True)) == [row.pk]

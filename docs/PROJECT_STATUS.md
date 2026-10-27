@@ -1,10 +1,12 @@
 # Current continuation checkpoint — 2026-10-27
 
-Repository: `zeroexlive/Custody`. Live main verified as `3d32b763ff777347f77eae7a8a7936d85dc2d770` by Git fetch/ls-remote; this is the Phase 6G-B squash merge (#37), not an unmerged B branch. No post-checkpoint main commits. **Phase 6G-C: IN PROGRESS locally; not merged or complete.** Phase 7–9 remain planned. Current source/audit evidence and unavailable PR/Actions/protection metadata are recorded in [INITIAL_REPOSITORY_AUDIT.md](INITIAL_REPOSITORY_AUDIT.md).
+Repository: `zeroexlive/Custody`. Live main verified as `3d32b763ff777347f77eae7a8a7936d85dc2d770` by Git fetch/ls-remote; this is the Phase 6G-B squash merge (#37), not an unmerged B branch. No post-checkpoint main commits. **Phase 6G-C: IN PROGRESS locally; not merged or complete.** Phase 7–9 remain planned. Current source/audit evidence and fork Actions activation/permission blocker are recorded in [INITIAL_REPOSITORY_AUDIT.md](INITIAL_REPOSITORY_AUDIT.md).
 
-The first local correction restricts the keyset command to retiring only unused, never-imported metadata and prevents retired-key reactivation. It is not a complete drain/rotation/recovery protocol, a database-wide lifecycle guarantee or production permission. No migrations or balances change.
+Draft PR [#1](https://github.com/zeroexlive/Custody/pull/1) tracks this unfinished phase. Internet/API access is restored; Actions workflows/runs are empty, dispatch is 404, and Actions settings read/enable are integration-permission 403. main reports no branch protection or rulesets. The owner must activate/allow Actions and adequate integration permissions; required phase gates are retained regardless of unprotected main.
 
-Current lockfile has Tokio 1.53.3 and no scc/sdd. The exported final review reports R1/R2 fixed and atomic-polyfill accepted as development-only P2 debt; GitHub review/CI metadata is not freshly verified. TON audit/public-network exclusions remain. New Phase 7B target is an optional withdrawal-only manual blacklist, with deposits unaffected and no external AML integration.
+The first local correction restricts the keyset command to retiring only unused, never-imported metadata and prevents retired-key reactivation. The continuation also makes the Django keyset admin view-only, denying add/edit/delete even to superusers. These are not a complete drain/rotation/recovery protocol, a database-wide lifecycle guarantee or production permission. No migrations or balances change.
+
+Current lockfile has Tokio 1.53.3 and no scc/sdd. The exported final review reports R1/R2 fixed and atomic-polyfill accepted as development-only P2 debt; Upstream PR #37 merge, the exact-head final technical COMMENT reviews and all 14 successful full-gate jobs are now verified directly through GitHub API. These historical upstream results are not current fork PR checks. TON audit/public-network exclusions remain. New Phase 7B target is an optional withdrawal-only manual blacklist, with deposits unaffected and no external AML integration.
 
 ## Historical snapshots below
 

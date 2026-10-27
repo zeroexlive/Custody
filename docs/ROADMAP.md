@@ -1,6 +1,6 @@
 # Approved nine-phase roadmap and product work packages
 
-**Current anchor (2026-10-27):** `zeroexlive/Custody` main `3d32b763ff777347f77eae7a8a7936d85dc2d770` contains Phase 6G-B. A and B are IMPLEMENTED (DEV); C is IN PROGRESS on an unmerged branch, with complete acceptance still outstanding. Phase 7A/B/C, 8A/B/C/D and 9 are PLANNED. TON public scope remains DEFERRED; explicit non-goals remain OUT OF SCOPE. See INITIAL_REPOSITORY_AUDIT.md. GitHub PR/CI/protection verification is BLOCKED by API network access; no phase merge is claimed.
+**Current anchor (2026-10-27):** `zeroexlive/Custody` main `3d32b763ff777347f77eae7a8a7936d85dc2d770` contains Phase 6G-B. A and B are IMPLEMENTED (DEV); C is IN PROGRESS on an unmerged branch, with complete acceptance still outstanding. Phase 7A/B/C, 8A/B/C/D and 9 are PLANNED. TON public scope remains DEFERRED; explicit non-goals remain OUT OF SCOPE. See INITIAL_REPOSITORY_AUDIT.md. Draft PR #1 exists and GitHub API connectivity is restored. Fork Actions execution is BLOCKED: no registered workflows/runs, dispatch 404 and Actions setting read/enable 403. Branch summary reports main unprotected and rulesets empty; required gates remain mandatory. No phase merge is claimed.
 
 ## Phases already delivered in development
 

@@ -252,3 +252,14 @@ Verified zeroexlive/Custody live main as `3d32b763ff777347f77eae7a8a7936d85dc2d7
 Adopted owner directive v2.0: conditional automatic development merge after all gates, optional withdrawal-only manual blacklist, no external AML/KYT or deposit screening. Created codex/phase-6gc-key-lifecycle from fetched main. Initial code correction blocks the keyset command from retiring active/imported/referenced keys without a drain protocol, serializes mutation commands, preserves retired timestamp on retries and rejects reopening retired metadata. This is not completion of 6G-C or system-wide lifecycle enforcement. No migration, ledger mutation, crypto dependency change or production enablement.
 
 See INITIAL_REPOSITORY_AUDIT.md for validation and remaining acceptance. No fork PR number, CI pass, review approval vote or merge is claimed. Full final-SHA cryptographic gates and independent review remain mandatory before phase merge; next phase remains blocked until 6G-C completes.
+
+
+## 2026-10-27 — API restored, Draft PR #1 and keyset admin safety
+
+After the owner updated Internet access, GitHub API confirmed the fork parent and main SHA. Initial PR listings/rulesets were empty; main reports protected=false. Created Draft PR https://github.com/zeroexlive/Custody/pull/1 for the same unfinished Phase 6G-C. Actions workflows/runs report zero; dispatch ci.yml is 404 and reading/enabling Actions settings is integration-permission 403. This is a CI activation/permission prerequisite, not an Internet failure or permission to waive gates.
+
+The Django keyset admin is now view-only: superusers can inspect metadata but cannot create/edit/delete it through generic model forms or bulk deletion. Explicit guarded commands remain the supported mutation path. Three real HTTP regressions failed before the change; all 15 focused lifecycle cases passed after it. Direct model/raw SQL remains a trusted boundary. No migrations, balances, production flags, crypto primitives or dependencies change. Phase 6G-C remains IN PROGRESS, Draft and unmerged.
+
+Direct API follow-up also verified upstream PR #37’s merged state and a92d00ca premerge head, final COMMENT review records 5633820156 / 5633830492, Fast run 40009083421 and all 14 successful jobs in full run 40009129783. This verifies historical upstream evidence; it does not satisfy fork PR #1 final-SHA gates or constitute production authorization.
+
+Post-admin-change local validation: 622 PostgreSQL backend tests passed (135.27s, four existing deprecation warnings); all 15 focused lifecycle/admin cases passed, including independent rerun; Django checks/migration drift and changed-file Ruff checks passed. Rust/frontend implementation is unchanged from the preceding 32-test Rust and two-contract/two-build validation. No new fork CI execution or phase completion is asserted.

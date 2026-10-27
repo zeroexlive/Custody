@@ -1,6 +1,8 @@
 # CUSTODY — INITIAL REPOSITORY AUDIT
 
-Date: 2026-10-27. Status: **IN PROGRESS; GitHub API restored; fork Actions execution blocked**.
+Date: 2026-10-27. Status: **IN PROGRESS; Actions executing; new dependency security gate OPEN**.
+
+Current update: Actions activation/dispatch now succeeds. Full run 40470890805 at 3db8c01 passed backend/frontend/rust-check but failed the unsuppressed crypto-bigint RUSTSEC-2026-0387 audit. Cryptographic preflight/dependents were skipped and the aggregate failed. Earlier network/activation observations below are historical; see [current dependency gate](PHASE6GC_DEPENDENCY_GATE.md). No full-phase or merge acceptance is claimed.
 This is an implementation/source audit, not an external security audit or production approval.
 
 ## Repository and evidence
@@ -70,7 +72,9 @@ README/AGENTS name 6F-D as current; status/requirements/phase reports still call
 
 Require genuine all-pair threshold signing/spending, native/SPL validators, attribution and liability accounting, unauthorized/cross-owner/network/replay/mixed-epoch tests, partial signer loss, restart/crash-at-commit recovery, concurrent issuance and measured storage/rent/throughput. Existing multi-chain regressions, PostgreSQL migrations, exact-final-SHA CI and independent review must pass before merge. Do not move to Phase 7 while this PR is incomplete.
 
-## Blocking dependencies
+## Earlier Actions activation prerequisite — resolved
+
+The following activation diagnosis is historical and was resolved by the subsequent Actions run; it is not a current request for owner action.
 
 Internet/API access is restored and Draft PR #1 exists. The remaining external prerequisite is fork GitHub Actions activation and adequate Actions integration permissions: workflow/run listings are empty, dispatch is 404, and both reading and enabling Actions settings via the integration are 403. Owner action in the fork’s Actions/settings and integration configuration is required. Do not request token values in chat, weaken workflows or bypass merge requirements. After the setting/permission changes, retry workflow discovery/dispatch, inspect actual runs and complete exact-final-SHA gates before merging. Complete the remaining 6G-C implementation and acceptance in this same draft PR; no later phase may start yet.
 
@@ -108,3 +112,15 @@ Upstream Fast run [40009083421](https://github.com/hassan-anari/Base/actions/run
 The keyset admin continuation denies creation, mutation and deletion while retaining authorized view access. Three HTTP regression cases fail before the change and all 15 focused cases pass after it. The independent reviewer reran the 15 cases (2.50s), inspected denied mutation permissions and confirmed the registered admin offers no bulk actions even to superusers. No P0/P1 blocker was found within this bounded change. Direct model/raw SQL and privileged code remain trusted; the whole lifecycle milestone is still incomplete.
 
 Continuation validation: the complete PostgreSQL backend suite passed **622 tests**, with four existing deprecation warnings, in 135.27s. Django system checks, migration-drift check and changed-file Ruff format/lint passed. There are no migrations or dependency changes. Rust/frontend outcomes above belong to the preceding checkpoint with identical Rust/frontend code; they were not rerun for this Python-admin-only change. Current fork CI still has zero runs/checks and remains an unmet mandatory gate.
+
+## Actions execution and Solana wire building block
+
+After the owner activated Actions, CI initially reported disabled_fork for the primary workflow. Enabling that existing workflow and dispatching the full gate succeeded. Run 40470890805 gives real fork execution evidence (backend/frontend/rust-check passed), but its new crypto-bigint audit finding blocks the full gate. The exact source graph, official advisory, independent assessment and failed scratch resolver are recorded in PHASE6GC_DEPENDENCY_GATE.md. No advisory suppression, dependency patch or crypto-backend migration has been made.
+
+`custody/solana_seeded.py` now constructs standard SystemProgram TransferWithSeed, atomic classic SPL CreateAccountWithSeed+InitializeAccount3, and TransferChecked with optional destination ATA creation. One original base authority signs and pays fees; this is no Ed25519 child-private-key protocol. Native and token seeds are distinct injective fixed-width encodings of an allocated bigint index, never customer/mint hash truncation. Typed validators rebuild and compare the complete expected message.
+
+41 isolated public SDK/encoding tests passed (0.34s); a separate reviewer reran them (0.39s) and checked actual message instruction/signer shapes without a P0/P1 finding in the unconnected helper scope. Public derivation of 2,000 addresses is not an issuance or throughput benchmark. The new file is included in existing CI Ruff checks. Future integration must durably reserve token indices across mints, authenticate FROST origin/ownership, pin network identity, validate on-chain mint/account/authority and fees/rent, independently validate signer messages, and pass genuine native/SPL spend, scanner/financial-attribution and restart tests before any address issuance route uses it.
+
+## Current validation and blocker
+
+The seeded-helper checkpoint passes **663 PostgreSQL/backend tests** (158.33s, four existing deprecation warnings), including all 41 new public SDK/encoding cases. Django checks, migration-drift and changed-file Ruff format/lint pass. No Rust dependency or lockfile changed. The next cryptographic dependency/backend remediation decision remains pending explicit owner input as described in PHASE6GC_DEPENDENCY_GATE.md; the code does not silently accept a local fork or downgrade the scanner. Phase 6G-C is IN PROGRESS; merge is BLOCKED by the new P1 audit gate and incomplete phase implementation/acceptance.

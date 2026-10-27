@@ -318,6 +318,14 @@ impl DurableStore {
                 Err(StoreError::Conflict)
             };
         }
+        if request.algorithm == "FROST_ED25519"
+            && request.chain == "SOL"
+            && self
+                .seeded_allocation_fenced(request.keyset_id)
+                .map_err(|_| StoreError::Storage)?
+        {
+            return Err(StoreError::Conflict);
+        }
         let session = SignSession {
             request: request.clone(),
             status: SessionStatus::Created,

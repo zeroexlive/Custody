@@ -19,6 +19,7 @@ from environment import ROLES, Processes
 from solders.pubkey import Pubkey
 from test_dkg import PARTIES, dkg_request, encrypted_files, execute, request
 from test_signing import (
+    assert_signature,
     create,
     execution,
     run_sign,
@@ -344,6 +345,9 @@ def run_coordinator_agreement(root_path):
             assert request(net, "coordinator", role, base + "root", root_proof)[0] == 403
         assert rpc("claims", claim_proof)[0] == 409
         assert rpc("root", approval(net, "root", root, "coordinator"))[0] == 409
+        # Recover a previously interrupted direct party approval. A fresh
+        # coordinator preflight itself does not mutate any unused party.
+        assert call(net, PARTIES[0], "enroll", root_proof)[0] == 200
         # Third signer offline: two receipts cannot become completed evidence.
         net.stop(PARTIES[2])
         assert rpc("root", root_proof)[0] == 409
@@ -353,7 +357,7 @@ def run_coordinator_agreement(root_path):
         assert not state.exists() or not list(state.glob("*.root"))
         first_roles = {
             p: (store(net, p) / f"{root['dkg']['keyset_id']}.role").read_bytes()
-            for p in PARTIES[:2]
+            for p in PARTIES[:1]
         }
         net.stop("coordinator")
         net.start("coordinator")
@@ -415,3 +419,87 @@ def run_coordinator_agreement(root_path):
                     verify_receipts("solana_claim", original_claim, bad)
             with pytest.raises(MpcBindingError, match="unverifiable independent"):
                 verify_receipts("solana_root", original_claim, reports)
+
+
+def run_global_history_preflight(root_path):
+    with services(root_path / "services") as net:
+        root, dkg = fresh_root(net)
+        path = f"/v1/keysets/{root['dkg']['keyset_id']}/solana-seeded-root"
+        proof = approval(net, "root", root)
+        # Historical first signature uses b/c, so the coordinator's fixed first
+        # party a has no local usage evidence. Never dedicate a before checking b.
+        net.stop(PARTIES[0])
+        payload = sign_request(dkg)
+        code, completed = run_sign(net, payload)
+        assert code == 200
+        assert_signature(payload, completed, dkg, PARTIES[1:])
+        net.start(PARTIES[0])
+
+        def roles():
+            return {
+                p: f.read_bytes()
+                if (f := store(net, p) / f"{root['dkg']['keyset_id']}.role").exists()
+                else None
+                for p in PARTIES
+            }
+
+        before = roles()
+        assert before[PARTIES[0]] is None
+        assert request(net, "coordinator", "custody", path, proof)[0] == 409
+        assert roles() == before
+        # A restored old coordinator snapshot can lack signing history while
+        # independent signer stores retain it. All-party readonly probes still
+        # reject without changing the unused first signer.
+        state = Path(net.configs["coordinator"]["MPC_COORDINATOR_STATE"])
+        net.stop("coordinator")
+        original = state.read_bytes()
+        older = json.loads(original)
+        older["signing"] = {}
+        state.write_text(json.dumps(older))
+        net.start("coordinator")
+        assert request(net, "coordinator", "custody", path, proof)[0] == 409
+        assert roles() == before
+        net.stop("coordinator")
+        state.write_bytes(original)
+        net.start("coordinator")
+        for omitted in PARTIES:
+            net.stop(omitted)
+            try:
+                payload = sign_request(dkg)
+                code, completed = run_sign(net, payload)
+                assert code == 200
+                assert_signature(payload, completed, dkg, [p for p in PARTIES if p != omitted])
+            finally:
+                net.start(omitted)
+
+        # Coordinator create_sign and root dedication share the durable-data
+        # lock. Exactly one can reserve the fresh keyset's original role.
+        root, dkg = fresh_root(net)
+        path = f"/v1/keysets/{root['dkg']['keyset_id']}/solana-seeded-root"
+        proof = approval(net, "root", root)
+        payload = sign_request(dkg)
+        with ThreadPoolExecutor(max_workers=2) as pool:
+            a = pool.submit(request, net, "coordinator", "custody", path, proof)
+            b = pool.submit(create, net, payload)
+            enrollment, signing = a.result(), b.result()
+        assert sorted([enrollment[0], signing[0]]) == [200, 409], (enrollment[0], signing[0])
+        if signing[0] == 200:
+            assert run_sign(net, payload)[0] == 200
+        else:
+            assert create(net, payload)[0] == 409
+
+        # A durable pending fence survives loss of the completed coordinator
+        # cache; none of the original party receipts or shares are replaced.
+        root, dkg = fresh_root(net)
+        path = f"/v1/keysets/{root['dkg']['keyset_id']}/solana-seeded-root"
+        proof = approval(net, "root", root)
+        code, evidence = request(net, "coordinator", "custody", path, proof)
+        assert code == 200
+        cache = state.with_suffix(".solana-seeded") / f"{root['dkg']['keyset_id']}.root"
+        pending = cache.with_suffix(".pending")
+        assert pending.exists()
+        net.stop("coordinator")
+        cache.unlink()
+        net.start("coordinator")
+        assert create(net, sign_request(dkg))[0] == 409
+        assert request(net, "coordinator", "custody", path, proof) == (200, evidence)

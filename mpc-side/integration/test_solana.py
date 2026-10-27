@@ -76,6 +76,12 @@ def test_phase6gc_seeded_three_store_coordinator_agreement(tmp_path):
     run_coordinator_agreement(tmp_path)
 
 
+def test_phase6gc_seeded_all_party_history_preflight_and_global_fence(tmp_path):
+    from seeded_enrollment import run_global_history_preflight
+
+    run_global_history_preflight(tmp_path)
+
+
 @pytest.mark.parametrize("fault", ["role", "index", "alias"])
 def test_phase6gc_seeded_corrupt_original_store_rejected(tmp_path, fault):
     from seeded_enrollment import run_corruption

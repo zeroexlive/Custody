@@ -1,3 +1,26 @@
+## 2026-10-27 — preserve unused-first historical signer quorum (unmerged)
+
+Independent review reproduced a valid-authority edge missed by earlier tests:
+historical b/c use let a dedicate first before b rejected. The coordinator now
+rejects all historical signing intent and probes every original store before
+mutation, including when its own signing history is restored older. It durably
+pins a pending intent while holding the same data mutex as new signing-session
+reservation; pending/complete roots reject new generic signing. Exact prior
+session recovery remains available. Seven genuine cases passed in20.36s, including
+all legacy pairs after rejection, create/enroll competition and missing-complete-
+cache recovery with the fence retained. Inventory227; fresh-head CI remains required.
+Direct local APIs, malicious-coordinator races and coherent rollback are not a
+global distributed lease; fresh unreferenced-root selection and later witness/
+policy enforcement remain mandatory. No issuance/funds activation is introduced.
+The reviewer independently reran the new regression (1passed,6.38s), with no
+remaining P0/P1 in the declared single-coordinator flow. All48 legacy FROST
+process cases passed in73.55s. New final-head gates remain mandatory.
+
+Separate review verified checkpoint94a0216 Fast40573881921 and full40573875580:
+all14 jobs passed, all225 scenarios called with zero skips, original-store
+compatibility315.32s. That checkpoint precedes coordinator aggregation and this
+later compatibility fix; it is not acceptance of the unfinished whole phase.
+
 ## 2026-10-27 — three-store seeded agreement and independent receipt checks (unmerged)
 
 Custody-mTLS coordinator routes relay original detached provisioning proofs,

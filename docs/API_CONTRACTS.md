@@ -132,3 +132,12 @@ after restart with all signers offline; it is not a new signing grant. Custody m
 verify separate `solana_root`/`solana_claim` receipt domains against its three
 archival HOT signer certificate pins before any future issuance consumption.
 Coordinator-provided keys, signatures, labels or two-store agreement are insufficient.
+
+The read-only signer `/internal/v1/solana/seeded/probe` requires original custody
+root proof and usable own original DKG/receipt identity. Its eligibility response
+is not a dedication signature or lease. Coordinated enrollment checks any historical
+signing intent plus every party before mutation, and retains an immutable pending
+fence through partial failures. New generic signing-session reservations conflict
+with pending/complete dedication under the same data lock; exact existing-session
+recovery is preserved. This is a coordinated-API fence, not Byzantine consensus
+or anti-rollback protection; see the explicit trust/availability limits above.

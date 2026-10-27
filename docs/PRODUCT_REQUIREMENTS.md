@@ -134,6 +134,12 @@ Customer wallet issuance must still bind real tenant/ledger ownership and consum
 this evidence only after independent pinned-signature verification. A cached
 agreement or successful retry does not grant new spending permission.
 
+Coordinated enrollment now also preserves a historically used b/c quorum when a
+is locally unused, including restored older coordinator history. All-party readonly
+preflight and a pending-root intent fence serialize against new generic signing
+reservations. Fresh unreferenced-root custody authorization and an independent
+generation/policy witness remain requirements before issued-wallet activation.
+
 The seeded Solana message/address and genuine all-pair spending building blocks
 are implemented on the unmerged branch; see [scope](PHASE6GC_SOLANA_SEEDED.md).
 Persistent authenticated issuance, tenant/owner identity, signer-origin root/epoch/

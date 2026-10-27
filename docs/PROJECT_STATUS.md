@@ -55,6 +55,16 @@ issuance/provisioning cases passed in 17.38s. Independent source review found no
 concrete P0/P1 in this bounded layer. This is subsequent to94a0216; inventory226
 and fresh final-head CI are required. No issued wallet or spending grant is added.
 
+Further review reproduced unused-first-participant dedication reducing an existing
+b/c historical quorum. The subsequent fix checks coordinator signing history and
+all three stores before mutation, and pins a pending intent under the same data
+lock used by new signing-session reservations. Seven genuine cases passed in20.36s,
+including restored coordinator history, all legacy pairs, concurrent intent and
+pending-fence cache recovery. Inventory227; fresh-head gates are required. This
+bounded coordinated-API fence is not a Byzantine lease or rollback witness.
+The separate reviewer independently reran the new case (1passed,6.38s), finding no
+remaining P0/P1 within that boundary; all48 legacy FROST cases passed in73.55s.
+
 Remaining 6G-C scope: authoritative custody integration of the new Solana records,
 tenant ownership and independently pinned all-party evidence; actual issued-wallet/scanner/sweep/withdrawal integration and benchmark;
 immutable epochs, authorized refresh/repair and rollback protection; controlled

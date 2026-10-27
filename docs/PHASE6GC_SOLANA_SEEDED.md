@@ -65,7 +65,7 @@ primitive spendability, not complete end-to-end custody acceptance.
 
 ## Signer-local authenticated enrollment and claims
 
-Two new internal signer routes accept only the coordinator's mTLS transport plus
+Three internal signer routes accept only the coordinator's mTLS transport plus
 an original detached P-256 custody-machine authorization. Separate domain-separated
 canonical statements prevent a root proof from becoming a claim proof. These
 routes remain internal to signer services:
@@ -76,6 +76,9 @@ routes remain internal to signer services:
 - `POST /internal/v1/solana/seeded/approve`: original root, reservation UUID,
   operator-supplied ledger owner reference, retry identity, monotonic index and
   native/classic-token identity (mint and decimals for tokens).
+- `POST /internal/v1/solana/seeded/probe`: read-only original-root eligibility,
+  requiring the same original custody proof, own encrypted DKG and usable receipt
+  identity. Its transport response is not a signed dedication receipt or lease.
 
 Each party reopens its own encrypted original DKG and compares the complete public
 evidence before signing a durable receipt with its separately held identity key.
@@ -151,6 +154,40 @@ EVM/TRON issuance/provisioning tests passed in **17.38s** after the receipt-doma
 extension. Separate source review found no concrete P0/P1 in this bounded layer.
 It is subsequent to checkpoint94a0216 and needs its own final-head CI. Whole-phase
 acceptance remains open; crypto inventory is now226.
+
+## Historical-quorum preservation and coordinator intent fence
+
+Further independent review reproduced a conditional compatibility gap: a root
+previously used only by signer-b/c could still look unused at signer-a. An
+authorized dedication collected in party order could change a before b rejected,
+reducing historical quorum availability. Earlier green gates did not cover it.
+
+The coordinator now rejects any existing signing-session history for that root,
+including never-executed intent, before changing a party. It probes all three
+original stores without mutation before committing a new immutable `.pending`
+root intent. The same durable-data mutex serializes this sequence against new
+`create_sign` reservations, which reject pending or complete dedication markers.
+Partial/uncertain dedication retains its original fence. Exact existing signing
+session/result recovery is preserved. A missing completed coordinator cache can
+be rebuilt from the original party receipts without reopening generic signing.
+
+Seven genuine store/agreement cases passed in **20.36s**. The new case verifies
+b/c-only historical use leaves all three roles unchanged, including after restoring
+coordinator metadata without that signing history; all three legacy signer pairs
+remain usable. It also covers concurrent enrollment/signing intent and recovery
+with the pending fence retained after complete-cache loss. New inventory: **227**.
+The independent reviewer reran this strengthened case (**1 passed in6.38s**) and
+found no remaining P0/P1 in the declared single-coordinator flow. All **48** legacy
+FROST process cases also passed in73.55s; new final-head CI remains required.
+
+The coordinator holds its data mutex across bounded signer RPCs for this rare
+operator ceremony; unrelated metadata requests may wait. This is not accepted
+population scalability or a distributed Byzantine lease. Direct internal enrollment
+still checks local history: custody must authorize only fresh, unreferenced roots.
+Readonly probes do not stop a malicious coordinator bypassing the coordinated API
+from racing separate local actions. Independent policy/generation fencing, protected
+deployment configuration and the rollback witness remain required before issuance.
+No global safety claim is made against coherent infrastructure rollback.
 
 ## Still required before customer issuance
 

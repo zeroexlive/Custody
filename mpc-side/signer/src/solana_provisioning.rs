@@ -285,6 +285,27 @@ impl Service {
         )?;
         Ok(report)
     }
+    pub async fn probe(&self, approval: Approval<Root>) -> Result<serde_json::Value> {
+        approval.statement.validate()?;
+        self.verify_authorization("root", &approval)?;
+        self.original(&approval.statement).await?;
+        self.identity
+            .as_ref()
+            .context("pinned receipt identity unavailable")?;
+        let _guard = self.lock.lock().await;
+        if let Some(role) = self.role(approval.statement.dkg.keyset_id)? {
+            ensure!(
+                role.enrollment
+                    .is_some_and(|e| e.report.statement == approval.statement),
+                "historical or differently dedicated root"
+            );
+        }
+        // Read-only transport response, not a durable dedication receipt or a
+        // promise against future concurrent state changes on other parties.
+        Ok(
+            serde_json::json!({"statement": approval.statement, "party_id": self.party, "eligible": true}),
+        )
+    }
     fn enrolled(&self, root: &Root) -> Result<()> {
         let enrollment = self
             .role(root.dkg.keyset_id)?
@@ -400,6 +421,19 @@ async fn enroll(
         .map(Json)
         .map_err(|_| StatusCode::CONFLICT)
 }
+async fn probe(
+    State(service): State<Arc<Service>>,
+    Extension(peer): Extension<PeerIdentity>,
+    body: axum::body::Bytes,
+) -> Result<Json<serde_json::Value>, StatusCode> {
+    ensure_coordinator(&peer)?;
+    let approval = serde_json::from_slice(&body).map_err(|_| StatusCode::BAD_REQUEST)?;
+    service
+        .probe(approval)
+        .await
+        .map(Json)
+        .map_err(|_| StatusCode::CONFLICT)
+}
 async fn approve(
     State(service): State<Arc<Service>>,
     Extension(peer): Extension<PeerIdentity>,
@@ -423,6 +457,7 @@ fn ensure_coordinator(peer: &PeerIdentity) -> Result<(), StatusCode> {
 pub fn router(service: Arc<Service>) -> Router {
     Router::new()
         .route("/internal/v1/solana/seeded/enroll", post(enroll))
+        .route("/internal/v1/solana/seeded/probe", post(probe))
         .route("/internal/v1/solana/seeded/approve", post(approve))
         .layer(DefaultBodyLimit::max(64 * 1024))
         .with_state(service)

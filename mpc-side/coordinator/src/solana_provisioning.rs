@@ -7,6 +7,22 @@ use wallet_mpc_protocol::solana_provisioning::{Approval, Claim, Evidence, Report
 use wallet_mpc_storage::{atomic_create_secret, confirm_parent_durability};
 use wallet_mpc_transport::SignerClient;
 
+impl DurableStore {
+    pub(super) fn seeded_allocation_fenced(&self, keyset: Uuid) -> Result<bool> {
+        for suffix in ["pending", "root"] {
+            let path = self
+                .path
+                .with_extension("solana-seeded")
+                .join(format!("{keyset}.{suffix}"));
+            if path.try_exists()? {
+                confirm_parent_durability(&path)?;
+                return Ok(true);
+            }
+        }
+        Ok(false)
+    }
+}
+
 struct Service {
     store: Arc<DurableStore>,
     peers: SignerClient,
@@ -107,8 +123,37 @@ impl Service {
             ensure!(previous.statement == *root, "original root cannot change");
             return Ok(previous);
         }
+        // Serialize against create_sign under its original durable-state lock.
+        // There are no coordinator callbacks in these bounded signer RPCs.
+        // Conservatively reject even never-executed historical signing claims.
+        let data = self.store.data.lock().await;
+        ensure!(
+            !data.signing.values().any(|s| s.request.keyset_id == keyset),
+            "root already has historical signing intent"
+        );
+        for party in PARTIES {
+            let bytes = self
+                .peers
+                .request(
+                    party,
+                    "POST",
+                    "/internal/v1/solana/seeded/probe",
+                    serde_json::to_vec(&approval)?,
+                )
+                .await?;
+            let eligibility: serde_json::Value = serde_json::from_slice(&bytes)?;
+            ensure!(
+                eligibility
+                    == serde_json::json!({"statement": root, "party_id": party, "eligible": true}),
+                "ineligible original root participant"
+            );
+        }
+        // A failed/uncertain collection may leave signer dedications. Retain the
+        // original intent fence; it can never silently reopen legacy signing.
+        self.pin(&format!("{keyset}.pending"), root)?;
         let evidence = self.collect("enroll", &approval).await?;
         self.pin(&name, &evidence)?;
+        drop(data);
         Ok(evidence)
     }
     async fn claim(&self, keyset: Uuid, approval: Approval<Claim>) -> Result<Evidence<Claim>> {

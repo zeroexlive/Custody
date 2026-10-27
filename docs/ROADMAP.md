@@ -20,6 +20,12 @@ pins. Six genuine store/agreement cases and38 existing backend provisioning case
 passed with independent source review; final-head gates remain required. This
 does not complete customer issuance, epochs/lifecycle or the whole6G-C scope.
 
+Further review added historical-quorum preflight and durable pending-root fencing
+against concurrent generic signing. Seven genuine cases pass, including b/c-only
+history with unused a and older coordinator metadata. Inventory227 and new-head
+gates are required; this coordinated-API correction does not implement a global
+Byzantine lease, witness, customer issuance or phase completion.
+
 **Current anchor (2026-10-27):** `zeroexlive/Custody` main `3d32b763ff777347f77eae7a8a7936d85dc2d770` contains Phase 6G-B. A and B are IMPLEMENTED (DEV); C is IN PROGRESS on an unmerged branch, with complete acceptance still outstanding. Phase 7A/B/C, 8A/B/C/D and 9 are PLANNED. TON public scope remains DEFERRED; explicit non-goals remain OUT OF SCOPE. See INITIAL_REPOSITORY_AUDIT.md. Draft PR #1 exists and GitHub API connectivity is restored. Fork Actions executes; the original RUSTSEC-2026-0387 failure was remediated by the explicitly authorized owned backend port at checkpoint ea4bb4ed, with exact-head Fast and all14 full-gate jobs passed. Later signer changes require fresh gates. Merge remains blocked on unfinished whole-phase acceptance; see PHASE6GC_DEPENDENCY_GATE.md. Branch summary reports main unprotected and rulesets empty; required gates remain mandatory. No phase merge is claimed.
 
 ## Phases already delivered in development

@@ -42,6 +42,17 @@ No Django wallet issuance or financial authority is added by these routes. The
 new layer has passing genuine partial/restart and forgery tests and separate
 source review; old checkpoint gates do not validate new source automatically.
 
+Further review found valid-authority dedication could first change an unused
+party before discovering historical use at the other pair. The coordinated path
+now checks all signing history and all three stores before mutation, then pins a
+pending root while serializing against new signing-session reservation. Pending
+and complete dedication fence new generic sessions, preserving exact prior recovery.
+Passing genuine regressions cover unused-first b/c history, older coordinator
+metadata, every legacy pair and pending-fence recovery. Readonly transport probes
+are not signed global leases: a malicious coordinator bypassing these APIs and
+coherent infrastructure rollback remain outside this bounded correction. Custody
+must only grant fresh unreferenced roots; witness/policy isolation remains mandatory.
+
 ## Distinct decision layers
 
 1. **Business policy / Human Approval** — whether operation is allowed; tenant, risk, destination, amount/USD value, wallet class and named human approvers. Example future configurable policy: withdrawal > USD 500 requires three *different authorized humans*; this is neither fixed nor implemented today.

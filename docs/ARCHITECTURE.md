@@ -128,6 +128,13 @@ archival HOT signer pins; transport/coordinator metadata cannot replace these
 checks. This adds no Django financial wallet, tenant authorization or spending
 grant. HTTP409 cannot establish that a partial operation never committed.
 
+Subsequent coordinated enrollment checks all signing-session history and all-party
+readonly eligibility before mutation. A durable pending-root fence and the signing
+reservation share the coordinator data lock, preserving historical unused-first
+quorum and partial-write fencing. Bounded RPCs hold that lock during the ceremony;
+future scalability and independent witness/policy isolation are still required.
+Direct local APIs do not constitute a global Byzantine eligibility lease.
+
 Standard seeded System/native and classic SPL account primitives now have exact
 SDK/Rust wire checks and genuine all-pair FROST spendability acceptance, described
 in [PHASE6GC_SOLANA_SEEDED.md](PHASE6GC_SOLANA_SEEDED.md). They do not yet issue

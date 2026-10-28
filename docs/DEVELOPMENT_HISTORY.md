@@ -1,3 +1,39 @@
+## 2026-10-29 — independent witness and protected signing (unmerged)
+
+Draft PR #2 now includes a separate isolated witness process and required-profile
+protected Solana signer. Own original approvals, independent live custody/business
+proofs, pinned TLS before sending public partials, durable one-use party/round
+permissions and independent source/fee/rent RPC checks precede private work.
+Execution and witness journals remain outside private-share backups. Classified
+DKG birth metadata cannot use generic signing; the protected binary has no generic
+router and COLD explicitly relays signer-origin challenges through a courier.
+
+Genuine native all-pair and courier finalized transfers passed131.35s; private
+pre-enrollment backup restore/R1 loss passed49.94s; withheld genuine R2 result,
+restart, journal faults/freeze/public recovery/finalization passed50.62s. Actual
+Rust same-CA/wrong-key TLS canary passed0.31s with zero HTTP bytes to the wrong key.
+Corrected cumulative real-RPC delay passed53.74s, rejecting an expired private
+operation while retaining conservative R2 uncertainty. Independent review found
+and the code fixed a pre-lock timestamp bug; post-lock admission and final expiry
+checks now have regressions. See [scope, evidence and limitations](PHASE6GC_SOLANA_SPENDING.md).
+
+No customer wallet, financial posting, production activation or phase completion
+is inferred. Distributed refresh/repair, generation loading, rotation/drain,
+late-deposit rescue, financial integration and1000-issued-wallet acceptance remain.
+Final-head Fast/full CI and final independent review are still required.
+
+The witness also anchors original claim ownership before issuance: shared root/
+index, owner/asset, retry and global reservation aliases survive restoring all
+three pre-claim backups. A genuine never-spent fork and cross-root reservation
+collision were rejected. Permanent genesis/message ownership prevents attaching
+one Agave message execution to another financial operation, including after a
+zero-R2 closure. The active-nonce limit was corrected to admit R2 at capacity;
+a genuine32-slot saturation/drain/finalization/new-R1 case passes. Thirteen new
+HTTP cases have local execution evidence, with interrupted cases rerun after
+environment restart. Independent final witness review reran12 unit tests with
+zero failures/ignored and found no demonstrated P0/P1 in this bounded component.
+Closed-R1 cleanup, snapshot/journal scaling and the remaining phase remain open.
+
 ## 2026-10-28 — PR #1 merged and next 6G-C intent contract started
 
 GitHub confirms PR #1 MERGED as `587e0969a216102879d17cadb6ffeee8dfb8b6c6`, with

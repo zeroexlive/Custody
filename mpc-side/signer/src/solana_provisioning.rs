@@ -330,6 +330,24 @@ impl Service {
         self.enrolled(&report.statement.root)?;
         self.verify_report("claim", report)
     }
+    /// Read-only original approval lookup. Spending cannot manufacture or repair
+    /// missing provisioning aliases, and a share backup alone is insufficient.
+    pub async fn require_approved(&self, claim: &Claim) -> Result<()> {
+        self.original(&claim.root).await?;
+        let _guard = self.lock.lock().await;
+        self.enrolled(&claim.root)?;
+        for name in self.names(claim)? {
+            let path = self.directory.join(name);
+            let report: Report<Claim> = serde_json::from_slice(&fs::read(&path)?)?;
+            self.verify_claim(&report)?;
+            ensure!(
+                report.statement == *claim,
+                "original claim identity mismatch"
+            );
+            confirm_parent_durability(&path)?;
+        }
+        Ok(())
+    }
     pub async fn approve(&self, approval: Approval<Claim>) -> Result<Report<Claim>> {
         approval.statement.validate()?;
         self.verify_authorization("claim", &approval)?;

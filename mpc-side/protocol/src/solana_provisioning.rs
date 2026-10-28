@@ -40,7 +40,11 @@ impl Root {
                 && self.chain_id == "SOL"
                 && key(&self.genesis_hash)? != [0; 32]
                 && self.purpose == "DEPOSIT"
-                && self.wallet_class == "HOT"
+                && match self.dkg.custody_class.as_deref() {
+                    None => self.wallet_class == "HOT",
+                    Some(class) =>
+                        self.wallet_class == class && ["HOT", "WARM", "COLD"].contains(&class),
+                }
                 && self.derivation_version == VERSION
                 && self.generation == 0,
             "invalid original seeded root namespace"

@@ -160,3 +160,40 @@ fence through partial failures. New generic signing-session reservations conflic
 with pending/complete dedication under the same data lock; exact existing-session
 recovery is preserved. This is a coordinated-API fence, not Byzantine consensus
 or anti-rollback protection; see the explicit trust/availability limits above.
+
+## Phase 6G-C protected Solana internal development interfaces
+
+The required-profile `wallet-mpc-protected-signer` entrypoint exposes bounded POST
+`/internal/v1/solana/protected/{auto,challenge,apply,recover}`. The first, second
+and fourth accept `protocol::witness::Binding` plus `round` and optional original
+`signing_package` in a strict `protected::Control`; `apply` accepts the original
+signed witness `Permit`. Challenge/result types are signer-signed. Coordinator
+mTLS is required; COLD also permits its explicit courier role. COLD has no
+automatic witness client. Original result recovery never repeats private work.
+The generic `/internal/v1/sign/*` router is absent from this entrypoint.
+
+The separate witness exposes `/v1/witness/{command,permit,record,query}`. Strict
+public Rust contracts are in `protocol::witness`. Lifecycle commands require a
+separate pinned lifecycle signature and lifecycle mTLS; they carry anchor,
+request UUID, original root identity, expected revision and expiry. Permit
+issuance also requires the immutable lifecycle-authorized `RegisterClaim`
+record, whose all-three receipts and permanent ownership/index/retry/reservation
+aliases survive signer restores. Fresh signed queries may request a claim UUID
+and recover its original public registration. Wallet issuance must wait for that
+durable claim-registration ACK.
+Permit
+requests require the original node signature plus signer transport or an
+explicit authenticated courier, independent custody and class-policy proofs,
+and a signer-origin challenge with at most15 seconds of life. Detached node
+pins are authoritative even when relayed without the original node certificate.
+Freeze/zero-R2 closure/prepare/activate and permissions share durable CAS state.
+Signed query responses echo the exact caller challenge. Public original round
+results can be redelivered idempotently; secret permissions cannot be repeated.
+
+Replies use200 for accepted public results and409 for rejected/uncertain authority
+requests; unauthorized transport roles use403 and malformed/bounded inputs use
+appropriate4xx responses. Failure never authorizes a fresh payout, releases a
+financial reserve or proves non-inclusion. `SignedPending` is cryptographic
+completion only. Backend issuance/ledger integration, distributed generation
+refresh/repair and the public production API contract remain unfinished. See
+[implementation evidence and limits](PHASE6GC_SOLANA_SPENDING.md).

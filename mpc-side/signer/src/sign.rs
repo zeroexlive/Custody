@@ -101,6 +101,10 @@ impl SigningService {
         Ok(())
     }
     async fn control(&self, action: &str, control: SignControl) -> Result<SignReport> {
+        ensure!(
+            control.execution.dkg.custody_class.is_none(),
+            "protected custody birth classification cannot use legacy signing"
+        );
         let message = control.execution.validate()?;
         ensure!(
             control.sender == "coordinator"

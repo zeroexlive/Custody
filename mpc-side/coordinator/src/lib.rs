@@ -675,6 +675,7 @@ mod tests {
     }
     fn dkg_request(id: Uuid) -> DkgRequest {
         DkgRequest {
+            custody_class: None,
             session_id: id,
             execution_id: Uuid::new_v4(),
             keyset_id: Uuid::new_v4(),

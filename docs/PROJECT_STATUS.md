@@ -1,4 +1,4 @@
-# Current project status — 2026-10-28
+# Current project status — 2026-10-29
 
 Verified `zeroexlive/Custody` main is **`587e0969a216102879d17cadb6ffeee8dfb8b6c6`**,
 merged [PR #1](https://github.com/zeroexlive/Custody/pull/1). Its parents are the
@@ -41,26 +41,29 @@ cases; genuine approvals and independent source review are recorded in the
 [reservation report](PHASE6GC_SOLANA_REGISTRY.md). The unchanged atomic-polyfill
 warning remains visible development-only P2 debt. See [dependency evidence](PHASE6GC_DEPENDENCY_GATE.md).
 
-Current branch `codex/phase6gc-seeded-spending` starts from this merged main and
-adds an unconnected public typed intent/wire/domain constructor. Nine promoted
-Rust contract tests pass (0.15s), workspace Clippy passes, and twelve public SDK/
-Python-canonical goldens regenerate without RPC or database access. Separate
-promoted-source review reran all final nine (0.29s) and the generator with DB
-connections forbidden, with no blocking P0/P1 in this limited scope. New exact-head
-CI remains required. These are format/
-wire checks: canonical tenant/p1 strings do not prove membership, generation
-references do not prove freshness, and fee/rent/height assertions are not live
-network attestations. No signer/coordinator route, nonce permission, wallet,
-transaction, journal, migration, dependency or activation flag is added. See
-[implemented and pending signing boundary](PHASE6GC_SOLANA_SPENDING.md).
+Draft PR #2, `codex/phase6gc-seeded-spending`, adds the typed intent, independent
+public witness authority and a separate protected signer/profile/journal. Local
+genuine three-party FROST/Agave tests now cover native all-pair spending, manual
+COLD courier, old private-backup restore, lost R1 nonces, withheld actual R2
+results, corruption/exclusive-writer rejection and read-only recovery after freeze.
+Independent live RPC checks separate source funds from base fee/rent funds.
+The witness independently preserves original claim ownership through all three
+pre-claim backup restores and binds each exact wire to one logical operation.
+Thirteen new HTTP scenarios cover these boundaries and full-queue R2 drain;
+twelve witness unit tests passed independently, with no ignored cases.
+The actual Rust witness client rejects a same-CA/wrong-key server before HTTP
+transmission. Independent review found and the implementation fixed a queued
+expiry race; post-lock/final-private-work expiry regressions pass. These remain
+isolated, unmerged development additions requiring final-head CI/review.
+See [implemented boundary and evidence](PHASE6GC_SOLANA_SPENDING.md).
 
-Remaining6G-C requires original proof verification and own local claim lookup
-before nonce work; an independent live generation witness and protected deployment
-policy outside share backups; actual generation continuity/refresh/repair and
-rotation/drain/late-deposit rescue; finalized SPL provisioning and actual issuance;
-financial source versus base fee/rent accounting and deposit/sweep/withdrawal
-integration; enforceable Hot/Warm/Cold boundaries and real1000-issued-Solana-wallet
-acceptance. Each subsequent checkpoint requires its own independent review,
+Live protected signing currently supports original generation 0. Remaining6G-C
+includes distributed refresh/repair, rotation/drain/late-deposit rescue, issued
+wallet and finalized SPL initialization records, financial ledger integration,
+and 1000 actual issued Solana wallets. Manual COLD relay is not physical airgap
+or production acceptance. Canonical tenant strings do not replace registry and
+financial authorization during backend integration.
+Each subsequent checkpoint requires its own independent review,
 applicable exact-head gates and normal repository merge rules. Do not advance7.
 TON stays isolated/deferred with its external artifact-audit gate open. Phase7B
 stays optional default-disabled manual withdrawal-only restrictions, with no

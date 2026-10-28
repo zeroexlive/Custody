@@ -58,6 +58,84 @@ CAPS = {
 }
 
 
+def test_phase6gc_witness_independent_authorization_and_round_replay(tmp_path):
+    from witness_acceptance import run_authorization
+
+    run_authorization(tmp_path)
+
+
+def test_phase6gc_witness_journal_restart_corruption_and_concurrency(tmp_path):
+    from witness_acceptance import run_durability
+
+    run_durability(tmp_path)
+
+
+def test_phase6gc_witness_rust_transport_pins_before_sending_body(tmp_path):
+    from witness_acceptance import run_transport_pin
+
+    run_transport_pin(tmp_path)
+
+
+def test_phase6gc_witness_claim_owner_survives_all_three_old_backups(tmp_path):
+    from witness_acceptance import run_claim_rollback_fence
+
+    run_claim_rollback_fence(tmp_path)
+
+
+def test_phase6gc_witness_current_detached_pin_and_nonactive_key(tmp_path):
+    from witness_acceptance import run_detached_node_pins
+
+    run_detached_node_pins(tmp_path)
+
+
+def test_phase6gc_protected_native_spending_all_pairs_and_restart(tmp_path):
+    from protected_acceptance import run_native_pairs
+
+    run_native_pairs(tmp_path)
+
+
+def test_phase6gc_protected_cold_manual_signed_courier(tmp_path):
+    from protected_acceptance import run_cold_courier
+
+    run_cold_courier(tmp_path)
+
+
+def test_phase6gc_protected_old_backup_and_partial_nonce_loss(tmp_path):
+    from protected_acceptance import run_backup_and_partial
+
+    run_backup_and_partial(tmp_path)
+
+
+def test_phase6gc_protected_r2_unknown_recovery_and_journal_faults(tmp_path):
+    from protected_acceptance import run_r2_uncertainty
+
+    run_r2_uncertainty(tmp_path)
+
+
+def test_phase6gc_protected_expired_permit_after_real_rpc_delay(tmp_path):
+    from protected_acceptance import run_delayed_private_expiry
+
+    run_delayed_private_expiry(tmp_path)
+
+
+def test_phase6gc_protected_atomic_classic_spl_creation_and_all_pairs(tmp_path):
+    from protected_acceptance import run_token_pairs
+
+    run_token_pairs(tmp_path)
+
+
+def test_phase6gc_protected_warm_independent_approval_credentials(tmp_path):
+    from protected_acceptance import run_warm_independent_credentials
+
+    run_warm_independent_credentials(tmp_path)
+
+
+def test_phase6gc_protected_full_nonce_queue_can_drain_round_two(tmp_path):
+    from protected_acceptance import run_full_queue_drain
+
+    run_full_queue_drain(tmp_path)
+
+
 def test_phase6gc_seeded_authenticated_immutable_store_approvals(tmp_path):
     from seeded_enrollment import run_approvals
 

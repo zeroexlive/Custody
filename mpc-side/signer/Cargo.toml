@@ -20,3 +20,9 @@ wallet-mpc-transport={path="../transport"}
 cggmp24.workspace=true
 futures-util = { version = "=0.3.34", default-features = false, features = ["std", "sink"] }
 base64 = "=0.13.1"
+libc.workspace=true
+bs58 = "=0.5.1"
+
+[[bin]]
+name = "wallet-mpc-protected-signer"
+path = "src/protected_main.rs"

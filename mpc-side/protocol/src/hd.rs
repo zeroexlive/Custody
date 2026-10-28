@@ -348,6 +348,7 @@ mod tests {
     fn request() -> ChildRequest {
         let public = "0279be667ef9dcbbac55a06295ce870b07029bfcdb2dce28d959f2815b16f81798";
         let dkg = crate::dkg::DkgRequest {
+            custody_class: None,
             session_id: Uuid::new_v4(),
             execution_id: Uuid::new_v4(),
             keyset_id: Uuid::new_v4(),

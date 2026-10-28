@@ -21,6 +21,8 @@ from .models import (
     LedgerTransaction,
     MpcKeyset,
     MpcSigningSession,
+    MpcSolanaClaim,
+    MpcSolanaRoot,
     SweepJob,
     UserWallet,
     WithdrawalRequest,
@@ -43,6 +45,8 @@ class RegistryIdentityAdmin(admin.ModelAdmin):
 
 admin.site.register(CustodyTenant, RegistryIdentityAdmin)
 admin.site.register(CustodyPrincipal, RegistryIdentityAdmin)
+admin.site.register(MpcSolanaRoot, RegistryIdentityAdmin)
+admin.site.register(MpcSolanaClaim, RegistryIdentityAdmin)
 
 
 @admin.register(MpcKeyset)

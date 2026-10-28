@@ -97,7 +97,9 @@ Staking/earn, off-exchange collateral, OTC-specific suite, cross-chain liquidity
 
 The unmerged branch implements an operator-managed immutable tenant/principal
 registry with generated ledger reference IDs and PostgreSQL/audit guards. This is
-identity mapping only. External authentication/RBAC, financial consumer integration
+connected to operator-only Solana root/claim reservations with original network,
+asset, index and independently verified three-store approvals. This does not issue
+wallets or grant spending. External authentication/RBAC, financial consumer integration
 and issued-wallet ownership remain requirements, not completed capabilities. No
 existing customer journal is reassigned. See [boundary](PHASE6GC_IDENTITY_REGISTRY.md).
 

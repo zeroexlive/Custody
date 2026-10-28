@@ -3,7 +3,8 @@
 Implemented on the unmerged development branch. This is an immutable mapping of
 opaque tenant/customer references, not external authentication, financial balance
 creation, retroactive ownership attribution or issued-wallet acceptance. It is
-not yet connected to Solana root/claim records or any financial/signing consumer.
+connected to operator-only [Solana root/claim reservations](PHASE6GC_SOLANA_REGISTRY.md).
+External authorization, issued wallets and financial/signing consumers remain incomplete.
 
 ## Identity and authority
 

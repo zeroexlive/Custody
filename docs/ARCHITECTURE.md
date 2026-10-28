@@ -32,9 +32,13 @@ All components can share a modular backend initially; **logical ownership bounda
 The unmerged operator identity registry persists immutable CustodyTenant and
 CustodyPrincipal mappings with generated globally unique ledger owner IDs, exact
 tenant-scoped references, atomic audit and PostgreSQL collision/immutability guards.
-It does not yet authorize external callers or connect these mappings to wallets,
-signer grants or financial posting. Existing ledger/wallet identities are preserved;
+Operator-only Solana root/claim reservations now bind these mappings to original
+DKG/network/asset evidence and independently verified three-store approvals.
+They do not authorize external callers, issue wallets, grant spending or post
+financial journals. Existing ledger/wallet identities are preserved;
 there is no automatic adoption/backfill. See [scope](PHASE6GC_IDENTITY_REGISTRY.md).
+The [Solana reservation boundary](PHASE6GC_SOLANA_REGISTRY.md) documents pending
+recovery, shared index allocation, legacy fences and migration0034.
 
 Design Tenant/Organization and principals; customer identity is scoped to tenant. Each API credential has explicit tenant/service/role/scopes; never trust caller-supplied user_id as an authorization boundary. Developer/merchant/ops capabilities are separated from signer policy authority. Prevent cross-tenant transaction IDs, account lookups, webhook delivery, wallet/address reuse and funding. Support distinct custody keyset policy and wallet class by tenant as needed, without promising one root per tenant by default.
 

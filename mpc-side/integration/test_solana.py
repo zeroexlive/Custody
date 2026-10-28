@@ -76,6 +76,13 @@ def test_phase6gc_seeded_three_store_coordinator_agreement(tmp_path):
     run_coordinator_agreement(tmp_path)
 
 
+@pytest.mark.django_db(transaction=True)
+def test_phase6gc_seeded_authoritative_registry_and_partial_approvals(tmp_path):
+    from seeded_registry import run_custody_registry
+
+    run_custody_registry(tmp_path / "custody-registry")
+
+
 def test_phase6gc_seeded_all_party_history_preflight_and_global_fence(tmp_path):
     from seeded_enrollment import run_global_history_preflight
 

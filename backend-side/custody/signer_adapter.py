@@ -233,6 +233,27 @@ class SelfHostedMpcAdapter:
         """Idempotently create the durable coordinator operation."""
         return self._request("POST", "/v1/sign-sessions", json=payload)
 
+    def _solana_provisioning(self, kind, keyset_id, statement):
+        from django.conf import settings
+
+        from .mpc_request_auth import authorize_solana_provisioning
+
+        action = "solana-seeded-root" if kind == "root" else "solana-seeded-claims"
+        proof = authorize_solana_provisioning(
+            kind, statement, settings.MPC_CLIENT_CERT, settings.MPC_CLIENT_KEY
+        )
+        return self._request(
+            "POST",
+            f"/v1/keysets/{keyset_id}/{action}",
+            json={"statement": statement, "custody_authorization": proof},
+        )
+
+    def enroll_solana_root(self, keyset_id, statement):
+        return self._solana_provisioning("root", keyset_id, statement)
+
+    def approve_solana_claim(self, keyset_id, statement):
+        return self._solana_provisioning("claim", keyset_id, statement)
+
     def get_signing_session(self, session_id: str) -> dict:
         return self._request("GET", f"/v1/sign-sessions/{session_id}")
 

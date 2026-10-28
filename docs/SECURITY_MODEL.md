@@ -27,8 +27,18 @@ reservations cannot be adopted, and populated registry downgrade is refused.
 External caller authorization and future privileged writes remain outside this
 boundary; IDs/operator audit labels are not credentials. All 47 PostgreSQL cases
 passed with independent rerun/review, no P0/P1 in that scope. See [trust/availability
-limits](PHASE6GC_IDENTITY_REGISTRY.md). Later source needs new gates; exact `e5b82faa`
-Fast/full passed 14 jobs/227 calls/zero skips but predates this registry.
+limits](PHASE6GC_IDENTITY_REGISTRY.md). Exact `a28da6d` Fast40626197327/full40626191763
+passed all14 full jobs/227 calls/zero skips with independently verified artifacts;
+original-store compatibility passed413.05s. Later source needs its own gates.
+
+Operator-only [Solana reservations](PHASE6GC_SOLANA_REGISTRY.md) now commit original
+tenant/principal/asset/network/index identity before remote approvals. Database
+guards fence legacy financial/signing references and immutable assignment; SQL
+receipt structure is never cryptographic proof. Three independent archival pins
+are verified by the application before approval and must be verified by every
+future consumer. PENDING is retained across partial/unknown commits. No issued
+wallet, initialized seeded SPL account, spending grant or balance change follows.
+External caller authentication, active epochs and anti-rollback remain open.
 
 New unmerged Solana signer-local enrollment/claim records require coordinator
 mTLS plus original, domain-separated custody-machine P-256 proofs, and verify

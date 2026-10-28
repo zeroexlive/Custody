@@ -1,3 +1,32 @@
+## 2026-10-28 — authoritative operator Solana reservations (unmerged)
+
+Migration0034 adds original tenant-bound Solana roots and principal/asset/index/
+retry reservations. PENDING records and mandatory audit commit before mutating
+RPCs; APPROVED requires all three independently pinned archival signer receipts.
+The database freezes original DKG/network/asset/ownership identity, allocates one
+shared monotonic signed-bigint index space with an exact exhausted sentinel,
+fences existing and later legacy financial/signing references, and refuses
+populated downgrade. No historical owner/journal backfill, wallet issuance,
+seeded SPL initialization, spending grant or financial posting is introduced.
+
+The initial46 PostgreSQL cases passed13.00s; a separate reviewer reran46 in13.45s.
+Real FROST/Agave/PostgreSQL acceptance passed30.16s and independently31.46s,
+including partial/lost responses, service/DB restart and all-signers-offline
+receipt recovery with original encrypted shares unchanged. Independent public
+verification checked all nine signer signatures and both SDK-derived addresses;
+bounded source review found no P0/P1. A subsequent isolation hardening covers
+cross-chain legacy aliases pointing to SOLANA keysets and invisible keysets.
+Final expanded fresh backend suite passes758 cases in103.75s, including all48 new
+cases. Exact-head Fast/full remain required before this checkpoint is accepted.
+SQLite full migration through0034 and protected-operation refusal pass.
+See [scope, residual trust and remaining work](PHASE6GC_SOLANA_REGISTRY.md).
+
+Separately, exact prior checkpointa28da6d passed Fast40626197327 and
+ALL40626191763: all14 full jobs,227 actual calls and zero skips. Independent
+remote artifact review verified exactSHA and original encrypted-store compatibility
+413.05s against fixed main3d32b763. These results do not transfer to later source.
+Whole6G-C remains Draft/unmerged; no phase advance or production activation.
+
 ## 2026-10-28 — operator-only tenant/principal identity registry (unmerged)
 
 Migration 0033 adds immutable CustodyTenant/CustodyPrincipal mappings, generated

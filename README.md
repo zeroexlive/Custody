@@ -23,6 +23,7 @@ This is more than an MPC signing service. The target system combines a single au
 ## Existing implementation evidence
 
 - [Operator identity registry](docs/PHASE6GC_IDENTITY_REGISTRY.md) — immutable tenant/customer mapping with PostgreSQL and audit guards; external authorization and financial integration remain incomplete.
+- [Authoritative Solana reservations](docs/PHASE6GC_SOLANA_REGISTRY.md) — durable tenant/owner/asset allocation and three-store approvals; wallet issuance and spending integration remain incomplete.
 
 - [Unmerged Phase 6G-C seeded Solana work](docs/PHASE6GC_SOLANA_SEEDED.md) — wire/spendability primitives, authenticated root/claim records and three-store receipt collection; customer issuance and lifecycle remain incomplete.
 - [Authoritative ledger](LEDGER.md), [chain adapters](CHAIN_ADAPTERS.md), [token custody](TOKEN_CUSTODY.md), [native transaction lifecycle](NATIVE_TX_LIFECYCLE.md).

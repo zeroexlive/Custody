@@ -6,15 +6,15 @@ Repository: `zeroexlive/Custody`. Verified main remains
 Phase 7–9 remain planned. The owner-directed acceptance/review/merge gates remain
 mandatory; no production, mainnet or customer-fund activation is authorized.
 
-Exact source checkpoint `e5b82faa0e552662243e2d04defa5b5d16ae4404` passed
-[Fast 40579867138](https://github.com/zeroexlive/Custody/actions/runs/40579867138)
-and [all 14 full-gate jobs](https://github.com/zeroexlive/Custody/actions/runs/40579857716).
+Exact source checkpoint `a28da6d46f07e06be717412c4d039dcabe9c720b` passed
+[Fast 40626197327](https://github.com/zeroexlive/Custody/actions/runs/40626197327)
+and [all 14 full-gate jobs](https://github.com/zeroexlive/Custody/actions/runs/40626191763).
 All seven downloaded suite manifests match that SHA: **227 actual selected/called
 scenarios, zero skips** (EVM45/TRON5/SOL10/TON3/network162/aux1/integrated1).
-Original encrypted-store upgrade acceptance passed in425.729s against fixed main
+Original encrypted-store upgrade acceptance passed in413.05s against fixed main
 3d32b763. A separate reviewer independently verified remote artifacts, job states
 and compatibility. These gates accept that bounded source checkpoint, not later
-registry work or the unfinished whole phase.
+Solana database integration or the unfinished whole phase.
 
 The branch's owner-approved owned RustCrypto integration removes crypto-bigint
 0.5.5 from its graph without scanner exceptions or threshold algorithm replacement.
@@ -40,13 +40,28 @@ Migration0033 creates only two new tables/collations/guards, refuses populated
 downgrade, and performs no ownership backfill or journal rewrite. SQLite demo
 migration remains usable while protected registry operations require PostgreSQL.
 47 registry cases passed with an independent47-case rerun; **710 full backend tests
-passed in149.78s**. External caller authentication, root/claim linkage, financial
-consumption and population scalability remain unimplemented. New source requires
-its own CI; it cannot inherit the e5b82faa gate. See [registry boundary](PHASE6GC_IDENTITY_REGISTRY.md).
+passed in149.78s**. External caller authentication, financial consumption and
+population scalability remain unimplemented. See [registry boundary](PHASE6GC_IDENTITY_REGISTRY.md).
+
+New operator-only `MpcSolanaRoot`/`MpcSolanaClaim` integration binds original DKG,
+tenant UUID, principal ledger owner, verified isolated network, native/classic mint,
+reservation/retry/index/address before any mutating signer RPC. Migration0034
+enforces immutable identity, shared monotonic allocation, legacy reference fences,
+reserved asset/keyset identity and populated downgrade refusal. PENDING survives
+unknown/partial remote outcomes; APPROVED requires all three independent receipts.
+All48 new PostgreSQL cases pass in the fresh final backend run: **758 passed
+in103.75s**, including actual writer races, cross-alias isolation and capacity.
+Genuine FROST/Agave/PostgreSQL integration passed in30.16s with partial/lost responses,
+restart and all-signers-offline original evidence recovery. This creates no issued
+wallet, initialized seeded SPL account, signing grant or financial posting. New
+final-head CI is required; a28 gates do not transfer. Separate review reran the
+initial46 DB cases and genuine scenario and independently checked all nine signer
+signatures and both SDK-derived addresses; no P0/P1 found in this bounded layer.
+See [authoritative reservation boundary](PHASE6GC_SOLANA_REGISTRY.md).
 
 Command/admin keyset safeguards remain bounded to unused metadata and view-only
 admin; controlled retirement/drain/recovery is unfinished. Remaining 6G-C requires
-authoritative root/claim database integration and actual tenant-bound issuance;
+actual tenant-bound issuance and finalized SPL provisioning;
 mandatory original typed signing intent before nonces; source/fee/rent accounting,
 scanner/sweep/withdrawal integration and real1000-wallet benchmark; immutable epochs,
 authorized refresh/repair, independent rollback witness, rotation/drain/late-deposit

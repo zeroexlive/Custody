@@ -162,6 +162,7 @@ jobs:
             work/crypto/fixtures/**/child-issuance-initial-stage.json
             work/crypto/fixtures/**/solana-evidence.json
             work/crypto/fixtures/**/solana-seeded-primitive-evidence.json
+            work/crypto/fixtures/**/solana-registry-public-evidence.json
             work/ton-review/mpc-tvm-evidence.json
             work/ton-review/validator-network-evidence.json
             work/ton-review/django-validator-evidence.json

@@ -139,6 +139,12 @@ verify separate `solana_root`/`solana_claim` receipt domains against its three
 archival HOT signer certificate pins before any future issuance consumption.
 Coordinator-provided keys, signatures, labels or two-store agreement are insufficient.
 
+The operator-only `solana_provisioning` command now registers original roots and
+reserves/approves tenant/principal/asset claims in PostgreSQL before mutating these
+RPCs. It reports `issued:false` even for APPROVED. Partial/unknown outcomes retain
+the original IDs/index/retry and require recovery; never delete/reassign them.
+This adds no external issuance endpoint. See [DB/authority contract](PHASE6GC_SOLANA_REGISTRY.md).
+
 The read-only signer `/internal/v1/solana/seeded/probe` requires original custody
 root proof and usable own original DKG/receipt identity. Its eligibility response
 is not a dedication signature or lease. Coordinated enrollment checks any historical

@@ -200,9 +200,10 @@ No global safety claim is made against coherent infrastructure rollback.
 
 ## Still required before customer issuance
 
-Connect the new signer-local records to authoritative custody root/owner/network
-registration and durable issuance, verify all three independently pinned receipts,
-and implement generation continuity and authenticated signing intent across the coordinator;
+The operator-only [authoritative reservation layer](PHASE6GC_SOLANA_REGISTRY.md)
+now connects root/owner/network records to the tenant/principal registry and verifies
+all three independently pinned receipts before approval. It creates no issued wallet.
+Still implement durable issuance, generation continuity and authenticated signing intent;
 mandatory signer-side decoding before nonce work; fee/rent policy and actual account
 validation; source-vs-authority settlement and operator-cost attribution; ledger,
 indexer/sweep/withdrawal integration; partial/restart/unauthorized/network/mint/replay

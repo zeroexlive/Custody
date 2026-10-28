@@ -6,12 +6,16 @@
 
 # Approved nine-phase roadmap and product work packages
 
-Checkpoint `e5b82faa` passed exact-head Fast/full (14 jobs, 227 calls, zero skips)
-with independent artifact review; whole 6G-C remains incomplete. Subsequent operator
+Checkpoint `a28da6d` passed exact-head Fast/full (14 jobs, 227 calls, zero skips)
+with independent artifact review; whole 6G-C remains incomplete. Operator
 tenant/principal registry work has 47 passing PostgreSQL cases and independent
 review, preserving legacy identity and SQLite demo migration compatibility. It
 does not complete external authorization, wallet issuance or financial linkage;
-new source needs its own gates. See [scope](PHASE6GC_IDENTITY_REGISTRY.md).
+new source needs its own gates. Subsequent authoritative Solana root/claim records
+bind tenant/principal/network/asset/index before genuine three-store approvals;
+48 PostgreSQL cases and one real FROST/Agave integration pass (758 full backend
+cases). They create no
+issued wallet or spending grant. See [scope](PHASE6GC_SOLANA_REGISTRY.md).
 
 Unmerged 6G-C now includes signer-local authenticated initial FROST root dedication
 and monotonic owner/mint/index/retry approvals, with exact receipt recovery and

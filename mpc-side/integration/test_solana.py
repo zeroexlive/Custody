@@ -58,6 +58,44 @@ CAPS = {
 }
 
 
+def test_phase6gc_seeded_authenticated_immutable_store_approvals(tmp_path):
+    from seeded_enrollment import run_approvals
+
+    run_approvals(tmp_path)
+
+
+def test_phase6gc_seeded_historical_signing_and_enrollment_race(tmp_path):
+    from seeded_enrollment import run_historical_and_race
+
+    run_historical_and_race(tmp_path)
+
+
+def test_phase6gc_seeded_three_store_coordinator_agreement(tmp_path):
+    from seeded_enrollment import run_coordinator_agreement
+
+    run_coordinator_agreement(tmp_path)
+
+
+@pytest.mark.django_db(transaction=True)
+def test_phase6gc_seeded_authoritative_registry_and_partial_approvals(tmp_path):
+    from seeded_registry import run_custody_registry
+
+    run_custody_registry(tmp_path / "custody-registry")
+
+
+def test_phase6gc_seeded_all_party_history_preflight_and_global_fence(tmp_path):
+    from seeded_enrollment import run_global_history_preflight
+
+    run_global_history_preflight(tmp_path)
+
+
+@pytest.mark.parametrize("fault", ["role", "index", "alias"])
+def test_phase6gc_seeded_corrupt_original_store_rejected(tmp_path, fault):
+    from seeded_enrollment import run_corruption
+
+    run_corruption(tmp_path, fault)
+
+
 def import_root(binding):
     keyset = MpcKeyset.objects.create(
         keyset_id=binding["keyset_id"],
@@ -760,3 +798,9 @@ def test_genuine_nonce_loss_and_expiration_preserve_owned_execution(tmp_path):
             validator.close()
         net.close()
         (tmp_path / "solana-evidence.json").write_text(json.dumps(evidence, indent=2))
+
+
+def test_phase6gc_seeded_wire_primitive_spendability(tmp_path):
+    from seeded_acceptance import run_seeded_spendability
+
+    run_seeded_spendability(tmp_path / "seeded-primitive")

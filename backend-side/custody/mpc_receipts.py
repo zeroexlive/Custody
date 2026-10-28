@@ -19,6 +19,8 @@ from .mpc_binding import PARTICIPANTS, MpcBindingError
 DOMAINS = {
     "root": b"Wallet-MPC/SIGNER_HD_ROOT_RECEIPT_V1\0",
     "child": b"Wallet-MPC/SIGNER_CHILD_RECEIPT_V1\0",
+    "solana_root": b"Wallet-MPC/SIGNER_SOLANA_ROOT_V1\0",
+    "solana_claim": b"Wallet-MPC/SIGNER_SOLANA_CLAIM_V1\0",
 }
 
 
@@ -59,7 +61,8 @@ def verify_receipts(kind, identity, reports):
         if len(encoded) != 3:
             raise ValueError("signers must have independent identity keys")
         for party, report in zip(PARTICIPANTS, reports, strict=True):
-            statement = {kind: identity, "party_id": party, "durable": True}
+            identity_field = "statement" if kind in {"solana_root", "solana_claim"} else kind
+            statement = {identity_field: identity, "party_id": party, "durable": True}
             if (
                 set(report) != {*statement, "signer_signature"}
                 or any(report[k] != v for k, v in statement.items())

@@ -11,6 +11,8 @@ from django.contrib import admin
 from .models import (
     AdminActionLog,
     Asset,
+    CustodyPrincipal,
+    CustodyTenant,
     Deposit,
     GasTopupIntent,
     HotWallet,
@@ -19,16 +21,49 @@ from .models import (
     LedgerTransaction,
     MpcKeyset,
     MpcSigningSession,
+    MpcSolanaClaim,
+    MpcSolanaRoot,
     SweepJob,
     UserWallet,
     WithdrawalRequest,
 )
 
 
+class RegistryIdentityAdmin(admin.ModelAdmin):
+    def get_readonly_fields(self, request, obj=None):
+        return tuple(field.name for field in self.model._meta.fields)
+
+    def has_add_permission(self, request):
+        return False
+
+    def has_change_permission(self, request, obj=None):
+        return False
+
+    def has_delete_permission(self, request, obj=None):
+        return False
+
+
+admin.site.register(CustodyTenant, RegistryIdentityAdmin)
+admin.site.register(CustodyPrincipal, RegistryIdentityAdmin)
+admin.site.register(MpcSolanaRoot, RegistryIdentityAdmin)
+admin.site.register(MpcSolanaClaim, RegistryIdentityAdmin)
+
+
 @admin.register(MpcKeyset)
 class MpcKeysetAdmin(admin.ModelAdmin):
     list_display = ("keyset_id", "algorithm", "threshold", "party_count", "status")
-    readonly_fields = ("keyset_id", "public_key", "created_at")
+    readonly_fields = tuple(field.name for field in MpcKeyset._meta.fields)
+
+    # Lifecycle changes require verified ceremonies and explicit command guards.
+    # A model form must not retire a funded key or replace its public identity.
+    def has_add_permission(self, request):
+        return False
+
+    def has_change_permission(self, request, obj=None):
+        return False
+
+    def has_delete_permission(self, request, obj=None):
+        return False
 
 
 @admin.register(MpcSigningSession)

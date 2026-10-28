@@ -1,0 +1,24 @@
+[package]
+name = "generic-ec-curves"
+version = "0.2.4+custody.rustcrypto014"
+edition = "2021"
+publish = false
+license = "MIT OR Apache-2.0"
+repository = "https://github.com/LFDT-Lockness/generic-ec"
+description = "Custody integration port of generic-ec-curves 0.2.4 to maintained RustCrypto"
+[dependencies]
+generic-ec-core = {version = "=0.2.3", default-features = false}
+elliptic-curve = {version = "=0.14.3", default-features = false, features = ["arithmetic", "sec1"], optional = true}
+k256 = {version = "=0.14.0", default-features = false, features = ["hash2curve"], optional = true}
+hash2curve = {version = "=0.14.0", default-features = false, optional = true}
+sha2 = {version = "=0.11.1", default-features = false, optional = true}
+rand_core = {version = "=0.6.4", default-features = false}
+subtle = {version = "2.4", default-features = false}
+zeroize = {version = "1", default-features = false, features = ["zeroize_derive"]}
+[features]
+default = []
+rust-crypto = ["dep:elliptic-curve", "dep:hash2curve"]
+secp256k1 = ["rust-crypto", "dep:k256", "dep:sha2"]
+ed25519 = []
+secp256r1 = []
+stark = []

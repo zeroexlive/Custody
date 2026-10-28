@@ -76,3 +76,13 @@ def dedication_statement(request):
         "original_role": "UNUSED",
         "target_role": "DEDICATED_DEPOSIT",
     }
+
+
+def authorize_solana_provisioning(kind, statement, certificate_path, key_path):
+    if kind not in {"root", "claim"}:
+        raise ValueError("invalid seeded authorization domain")
+    return _authorize_message(
+        f"Wallet-MPC/CUSTODY_SOLANA_{kind.upper()}_V1\0".encode() + _canonical(statement),
+        certificate_path,
+        key_path,
+    )

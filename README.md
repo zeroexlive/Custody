@@ -2,7 +2,7 @@
 
 **Self-hosted, API-first digital-asset custody and financial platform** for cryptocurrency exchanges, payment gateways, payment facilitators, merchants, and institutional operators.
 
-**Status (2026-10-11):** Phase 6F-D was merged in PR #34 at main commit 4488016a668283868633eb1a7fa2f64187a93b56. Phase 6G is next. Existing EVM, TRON, Solana and TON integrations have genuine isolated-development acceptance, **not production/mainnet authorization**. TON stays at its currently accepted isolated scope until explicitly reprioritized. No customer funds or production withdrawal activation is authorized by these documents.
+**Status (2026-10-28):** Phase 6G-C remains incomplete. The owner authorized merging the verified development checkpoint in [PR #1](https://github.com/zeroexlive/Custody/pull/1) and continuing the remaining 6G-C implementation; see [current evidence/status](docs/PROJECT_STATUS.md) and the [dated merge decision](docs/DECISIONS.md). The verified pre-merge main snapshot is `3d32b763ff777347f77eae7a8a7936d85dc2d770` (Phase 6G-B #37). Existing EVM, TRON, Solana and TON integrations have genuine isolated-development acceptance, **not production/mainnet authorization**. TON stays at its currently accepted isolated scope until explicitly reprioritized. No customer funds or production withdrawal activation is authorized by these documents.
 
 This is more than an MPC signing service. The target system combines a single authoritative double-entry ledger, a transaction/custody engine, independent MPC signers, human authorization, treasury operations, exchange settlement APIs, merchant payments, risk controls, and operator/developer interfaces. External exchange matching engines and order books remain separate systems.
 
@@ -22,6 +22,10 @@ This is more than an MPC signing service. The target system combines a single au
 
 ## Existing implementation evidence
 
+- [Operator identity registry](docs/PHASE6GC_IDENTITY_REGISTRY.md) — immutable tenant/customer mapping with PostgreSQL and audit guards; external authorization and financial integration remain incomplete.
+- [Authoritative Solana reservations](docs/PHASE6GC_SOLANA_REGISTRY.md) — durable tenant/owner/asset allocation and three-store approvals; wallet issuance and spending integration remain incomplete.
+
+- [Phase 6G-C seeded Solana foundations](docs/PHASE6GC_SOLANA_SEEDED.md) — wire/spendability primitives, authenticated root/claim records and three-store receipt collection; customer issuance and lifecycle remain incomplete.
 - [Authoritative ledger](LEDGER.md), [chain adapters](CHAIN_ADAPTERS.md), [token custody](TOKEN_CUSTODY.md), [native transaction lifecycle](NATIVE_TX_LIFECYCLE.md).
 - [Self-hosted MPC](SELF_HOSTED_MPC.md) and the [Rust-side protocol docs](mpc-side/).
 - [EVM](PHASE6E.md), [TRON](PHASE6F-A.md), [Solana](PHASE6F-B.md), [TON](PHASE6F-C.md), and [integrated four-chain acceptance](PHASE6F-D.md).

@@ -1,3 +1,42 @@
+## 2026-10-28 — owner-authorized verified development checkpoint merge
+
+The owner explicitly instructed: «چرا مرج نکردی؟ اگر صحیح است و همه چیز درست هست
+مرج کن و برو گام بعدی» (merge the current work if it is correct and proceed to the
+next step). This authorizes merging the independently reviewed bounded development
+checkpoint in PR #1 once its required final-head gates and repository rules pass.
+It supersedes the earlier instruction to retain all remaining 6G-C work in one
+Draft PR. Keep the original nine-phase numbering and continue the remaining 6G-C
+implementation in subsequent reviewed PRs; do not advance to Phase 7 yet.
+
+Scope accepted for this checkpoint: the owned RustCrypto integration and original
+store compatibility, standard seeded Solana primitives, original custody/signer
+approvals and historical-quorum fences, immutable operator tenant/principal
+registry, and durable owner/network/asset/index root/claim reservations. These
+are development foundations. Customer issuance, seeded spending, financial
+integration, active generation/witness, refresh/repair/rotation/drain/late-deposit
+rescue and class isolation remain unfinished. No feature acceptance is inferred
+from a merge, and production/mainnet/customer-fund restrictions remain unchanged.
+
+All required Fast/full checks must validate the actual final PR head. Preserve
+genuine independent review, no blocking P0/P1, normal repository merge rules,
+post-merge verification and truthful remaining-work status. This exception changes
+the delivery granularity, not any cryptographic, financial or activation gate.
+
+## 2026-10-27 — authorized maintained RustCrypto integration remediation
+
+After the incompatible RUSTSEC-2026-0387 resolver investigation, the owner
+explicitly approved investigation/migration with independent review. Maintain a
+small, explicitly owned generic-ec-curves 0.2.4 integration port to maintained
+RustCrypto 0.14 / patched crypto-bigint 0.7, preserving original CGGMP, HD and FROST
+protocols, original serialized identities/stores and nonce/replay controls. Record
+upstream integrity/licensing and the complete local patch delta. Unsupported
+adapter curves fail closed. Replace the patch with a compatible maintained
+upstream release when available; do not suppress scanners or rewrite local
+constant-time arithmetic. Require genuine original-store compatibility,
+independent review and exact-head full gates before acceptance. See
+[scope and evidence](PHASE6GC_DEPENDENCY_GATE.md). No production/phase merge is
+implied by dependency remediation.
+
 # Architecture and product decisions (ADRs in compact form)
 
 **Authority:** owner-approved choices, backed by explicit user discussions and implementation evidence. The entries below are durable decisions; newly suggested extras remain proposals until approved. Each material change should append a dated supersession, not quietly rewrite history.
@@ -48,3 +87,12 @@ wallet rows, with no balance reconstruction. Namespace remains a trusted deploym
 boundary; existing global customer ledger principals are preserved. Account claims
 commit before external work and can recover only their original reservation.
 Independent production review and Phase 7 policy authority remain separate.
+
+
+## 2026-10-27 owner directive v2.0 — superseding workflow and risk scope
+
+- **D-011:** The owner explicitly adopted the supplied Custody Master Development Directive v2.0. Conditional autonomous development merges replace the prior manual-merge-only workflow. All required acceptance, exact-final-SHA CI, independent reviews, migration assessment and repository rules remain mandatory; no admin bypass. A phase must be merged and validated before the next starts. Production activation and real-fund operation remain separately controlled.
+- **D-012:** Phase 7B is an optional default-disabled, manually managed withdrawal-only address blacklist. No deposit screening/blacklist holds, external AML/KYT integrations or address feeds. Preserve unrelated freezes/holds/limits and financial correctness. Enforce before signing/execution and at independent signer authority with policy-version/race controls. This supersedes external AML plugin requirements, not existing financial-security controls.
+- **Proposed implementation direction (not a new owner-selected architecture; review pending):** Phase 6G-C uses existing standard Solana seeded System-account and separately attributed classic SPL-account primitives under genuine FROST authority as its provisioning candidate. This is not Ed25519 HD or a new cryptographic protocol. Public allocation requires complete genuine validator/attribution/economic acceptance; the candidate is not implemented yet. FROST refresh/repair needs authenticated immutable epochs and rollback protection. Unsupported CGGMP core-share resharing remains explicit; fresh-root migration must not be mislabeled resharing.
+
+Historical final review dispositions and upstream workflow outcomes are now verified through GitHub API and qualified in INITIAL_REPOSITORY_AUDIT.md. Fork Actions execution is now restored; new crypto-bigint RUSTSEC-2026-0387 blocks the security gate. A crypto-backend integration migration is only proposed and awaits explicit owner input; no dependency patch is adopted. See PHASE6GC_DEPENDENCY_GATE.md. No external cryptographic audit or production approval is implied.

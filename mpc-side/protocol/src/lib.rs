@@ -9,6 +9,8 @@ pub mod cggmp;
 pub mod dkg;
 pub mod hd;
 pub mod sign;
+pub mod solana_provisioning;
+pub mod solana_seeded;
 pub mod ton;
 
 #[derive(Clone, Debug, Eq, PartialEq, Hash, Serialize, Deserialize)]

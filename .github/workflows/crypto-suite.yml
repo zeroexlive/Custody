@@ -124,7 +124,23 @@ jobs:
         env:
           PYTHONPATH: backend-side:mpc-side/integration
         run: python -m ton.localnet work/ton-bootstrap --container phase6fc-localton
-      - run: cargo build --locked --manifest-path mpc-side/Cargo.toml --bin wallet-mpc-coordinator --bin wallet-mpc-signer --example frost_round1_fixture --example frost_signing_package --example cggmp_round1_fixture --example cggmp_aux_message_fixture
+      - run: cargo build --locked --manifest-path mpc-side/Cargo.toml --bin wallet-mpc-coordinator --bin wallet-mpc-signer --example frost_round1_fixture --example frost_signing_package --example cggmp_round1_fixture --example cggmp_aux_message_fixture --example seeded_message_check
+      - name: Check out the fixed pre-migration development baseline
+        if: inputs.suite == 'network'
+        uses: actions/checkout@v4
+        with:
+          ref: 3d32b763ff777347f77eae7a8a7936d85dc2d770
+          path: work/backend-compat-baseline
+          persist-credentials: false
+      - name: Build the unchanged legacy services with the original lockfile
+        if: inputs.suite == 'network'
+        run: |
+          test "$(git -C work/backend-compat-baseline rev-parse HEAD)" = "3d32b763ff777347f77eae7a8a7936d85dc2d770"
+          CARGO_TARGET_DIR="$PWD/work/backend-compat-target" cargo build --locked --manifest-path work/backend-compat-baseline/mpc-side/Cargo.toml --bin wallet-mpc-coordinator --bin wallet-mpc-signer
+      - name: Verify original encrypted stores and receipts across backend migration
+        if: inputs.suite == 'network'
+        run: |
+          python mpc-side/integration/backend_compatibility.py --legacy-bin work/backend-compat-target/debug --candidate-bin mpc-side/target/debug --work-dir work/backend-compat-private --public-report work/backend-compat-public.json
       - name: Run every selected original scenario with private fixtures local to this job
         run: |
           mkdir -p work/crypto
@@ -136,6 +152,7 @@ jobs:
           retention-days: 7
           path: |
             work/crypto/manifest.json
+            work/backend-compat-public.json
             work/integrated-review/public-evidence.json
             work/crypto/results.xml
             work/crypto/fixtures/**/tron-evidence.json
@@ -144,6 +161,8 @@ jobs:
             work/crypto/fixtures/**/child-issuance-benchmark.json
             work/crypto/fixtures/**/child-issuance-initial-stage.json
             work/crypto/fixtures/**/solana-evidence.json
+            work/crypto/fixtures/**/solana-seeded-primitive-evidence.json
+            work/crypto/fixtures/**/solana-registry-public-evidence.json
             work/ton-review/mpc-tvm-evidence.json
             work/ton-review/validator-network-evidence.json
             work/ton-review/django-validator-evidence.json

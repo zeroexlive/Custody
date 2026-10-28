@@ -273,7 +273,7 @@ pub fn verified_signature(execution: &SigningExecution, bytes: &[u8]) -> Result<
     let digest = execution.validate()?;
     let signature = Signature::from_slice(bytes)?;
     ensure!(
-        signature.normalize_s().is_none(),
+        signature.normalize_s() == signature,
         "high-s signature rejected"
     );
     let group = decode_hex(&execution.signing_public_key()?).context("invalid group")?;
@@ -281,7 +281,7 @@ pub fn verified_signature(execution: &SigningExecution, bytes: &[u8]) -> Result<
     for id in 0..4 {
         if let Some(rid) = RecoveryId::from_byte(id) {
             if let Ok(key) = VerifyingKey::recover_from_prehash(&digest, &signature, rid) {
-                if key.to_encoded_point(true).as_bytes() == group {
+                if key.to_sec1_point(true).as_bytes() == group {
                     recovery_id = Some(id);
                     break;
                 }

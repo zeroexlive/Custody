@@ -13,7 +13,7 @@ The system must support secure custody, deposits/withdrawals, scalable deposit a
 - **Exchange operator / finance:** see available/reserved/total per customer and asset, total customer liabilities vs controlled on-chain assets, withdrawals requiring attention, hot liquidity, gas capacity, stuck items, daily close and reconciliation.
 - **Security administrator:** control and review signer topology, root/keyset lifecycle, privileged policy changes, MFA, approval groups, destination allowlists, immutable audit, emergency freeze.
 - **Withdrawal operations:** safe queues, human review, batch payouts, network fee controls, broadcast uncertainty resolution, approval SLA.
-- **Compliance / risk:** account freeze, KYT/AML/sanctions decisions, case management, evidence and escalation.
+- **Security / risk:** account freezes, withdrawal limits, authorized holds, manually administered optional withdrawal-destination restrictions, evidence and escalation. Deposits remain unaffected by the withdrawal blacklist.
 - **Merchant / payment facilitator:** onboarding, tenant API credentials, invoice/payment state, exceptions, refunds, settlement timing, signed webhooks and per-merchant fees.
 - **Developer / external exchange engine:** stable versioned APIs for reservations, partial fills, atomic trade settlement, idempotent posting, events and reconciliation; no direct SQL or key access.
 - **Auditor:** immutable journal and policy evidence, historical balances, exception reports and replayable financial statements.
@@ -33,7 +33,7 @@ The system must support secure custody, deposits/withdrawals, scalable deposit a
 
 ## Boundaries / non-goals
 
-Not an order book, matching engine, pricing engine or spot/futures exchange backend. Those remain independent services using narrow exchange-facing APIs. No Bitcoin in the current roadmap. Do not silently add bridging, cross-chain swaps, derivatives, staking/earn, off-exchange collateral, automatic asset conversion or white-label SaaS as binding release requirements; list such ideas as optional future extensions. KYC/KYB, market data, AML analytics, Travel Rule and banking/payment rails may use optional external integrations governed by jurisdiction and operator policy.
+Not an order book, matching engine, pricing engine or spot/futures exchange backend. Those remain independent services using narrow exchange-facing APIs. No Bitcoin in the current roadmap. Do not silently add bridging, cross-chain swaps, derivatives, staking/earn, off-exchange collateral, automatic asset conversion or white-label SaaS as binding release requirements; list such ideas as optional future extensions. External AML/KYT providers, address intelligence feeds and automated risk scoring are excluded by the latest owner directive. The optional manual withdrawal blacklist is not a legal compliance guarantee; independent financial/security controls remain mandatory.
 
 ## Practical product acceptance (high-level)
 

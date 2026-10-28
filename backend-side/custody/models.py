@@ -22,6 +22,68 @@ from django.db import models
 from django.db.models import Q
 
 
+class RegistryIdentityQuerySet(models.QuerySet):
+    def update(self, **kwargs):
+        raise ValueError("registry identity is immutable")
+
+    def delete(self):
+        raise ValueError("registry identity cannot be deleted")
+
+
+class RegistryIdentity(models.Model):
+    """Operator-managed identity only, not caller authentication or a balance."""
+
+    created_at = models.DateTimeField(auto_now_add=True)
+    objects = RegistryIdentityQuerySet.as_manager()
+
+    class Meta:
+        abstract = True
+
+    def save(self, *args, **kwargs):
+        if not self._state.adding:
+            raise ValueError("registry identity is immutable")
+        return super().save(*args, **kwargs)
+
+    def delete(self, *args, **kwargs):
+        raise ValueError("registry identity cannot be deleted")
+
+
+class CustodyTenant(RegistryIdentity):
+    tenant_id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
+    # PostgreSQL's byte-exact C collation is installed by migration 0033.
+    # Leave portable state unqualified so the legacy SQLite demo still migrates.
+    reference = models.CharField(max_length=64, unique=True)
+
+    class Meta:
+        constraints = [
+            models.CheckConstraint(condition=~Q(reference=""), name="custody_tenant_ref_required"),
+        ]
+
+
+class CustodyPrincipal(RegistryIdentity):
+    principal_id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
+    tenant = models.ForeignKey(CustodyTenant, on_delete=models.PROTECT)
+    customer_ref = models.CharField(max_length=64)
+    ledger_owner_id = models.CharField(max_length=64, unique=True, editable=False)
+
+    class Meta:
+        constraints = [
+            models.UniqueConstraint(
+                fields=["tenant", "customer_ref"], name="uq_tenant_customer_ref"
+            ),
+            models.CheckConstraint(
+                condition=~Q(customer_ref=""), name="custody_principal_ref_required"
+            ),
+        ]
+
+    def save(self, *args, **kwargs):
+        expected = f"p1:{self.principal_id}"
+        if self.ledger_owner_id and self.ledger_owner_id != expected:
+            raise ValidationError("ledger owner must be generated from the original principal UUID")
+        self.ledger_owner_id = expected
+        return super().save(*args, **kwargs)
+
+
 class Asset(models.Model):
     """Authoritative custody capability record for a reviewed asset.
 
@@ -193,6 +255,70 @@ class MpcKeyset(models.Model):
     def save(self, *args, **kwargs):
         self.full_clean()
         return super().save(*args, **kwargs)
+
+
+class MpcSolanaRoot(models.Model):
+    """Durable original dedication intent. APPROVED is not a spending grant."""
+
+    keyset = models.OneToOneField(MpcKeyset, on_delete=models.PROTECT, primary_key=True)
+    tenant = models.ForeignKey(CustodyTenant, on_delete=models.PROTECT)
+    statement = models.JSONField()
+    network_identity = models.JSONField()
+    dkg_public_evidence = models.JSONField()
+    base_address = models.CharField(max_length=44, unique=True)
+    status = models.CharField(max_length=16, default="PENDING")
+    evidence = models.JSONField(default=dict)
+    # Includes the exhausted sentinel 2**63 after the final signed-bigint index.
+    next_index = models.DecimalField(max_digits=20, decimal_places=0, default=0)
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        constraints = [
+            models.CheckConstraint(
+                condition=Q(next_index__gte=0, next_index__lte=9223372036854775808),
+                name="sol_root_index_capacity",
+            ),
+            models.CheckConstraint(
+                condition=Q(status="PENDING", evidence={})
+                | (Q(status="APPROVED") & ~Q(evidence={})),
+                name="sol_root_approval_shape",
+            ),
+        ]
+
+
+class MpcSolanaClaim(models.Model):
+    """Immutable owner/asset/index reservation, never an issued UserWallet."""
+
+    reservation_id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
+    root = models.ForeignKey(MpcSolanaRoot, on_delete=models.PROTECT)
+    principal = models.ForeignKey(CustodyPrincipal, on_delete=models.PROTECT)
+    asset = models.ForeignKey(Asset, on_delete=models.PROTECT)
+    asset_namespace = models.CharField(max_length=44)
+    idempotency_key = models.CharField(max_length=128)
+    index = models.PositiveBigIntegerField()
+    statement = models.JSONField()
+    address = models.CharField(max_length=44)
+    status = models.CharField(max_length=16, default="PENDING")
+    evidence = models.JSONField(default=dict)
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        constraints = [
+            models.UniqueConstraint(fields=["root", "index"], name="uq_sol_claim_index"),
+            models.UniqueConstraint(fields=["root", "idempotency_key"], name="uq_sol_claim_retry"),
+            models.UniqueConstraint(
+                fields=["root", "principal", "asset_namespace"], name="uq_sol_claim_owner_asset"
+            ),
+            models.UniqueConstraint(fields=["root", "address"], name="uq_sol_claim_address"),
+            models.CheckConstraint(
+                condition=Q(index__lte=9223372036854775807), name="sol_claim_index_capacity"
+            ),
+            models.CheckConstraint(
+                condition=Q(status="PENDING", evidence={})
+                | (Q(status="APPROVED") & ~Q(evidence={})),
+                name="sol_claim_approval_shape",
+            ),
+        ]
 
 
 class MpcProvisioningRoot(models.Model):

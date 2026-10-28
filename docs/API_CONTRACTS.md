@@ -1,5 +1,11 @@
 # Exchange / merchant / custody target API contracts
 
+The new `custody_identity` management command is an operator-only immutable
+tenant/principal registry, not a public identity API or authorization mechanism.
+Its generated `p1:<UUID>` ledger reference is not a bearer credential. Exact
+tenant scoping and mandatory atomic registration audit are implemented; financial
+and signer consumers are not yet connected. See [boundary](PHASE6GC_IDENTITY_REGISTRY.md).
+
 **Design specification only.** This file does **not** claim the routes exist today. Canonical OpenAPI schemas, validation, endpoint paths and auth infrastructure will be finalized during the assigned roadmap stages. Existing operator /api/wallet/... and /admin/ledger/... routes are not public exchange settlement APIs.
 
 ## 1. Transport, identity and financial rules
@@ -98,3 +104,52 @@ unsigned report under separate SIGNER_HD_ROOT_RECEIPT_V1/SIGNER_CHILD_RECEIPT_V1
 domains. All three independently pinned signer identities must verify at Django;
 coordinator-supplied certificates and unsigned historical reports are rejected.
 Original child/signing grant formats and canonical child references are unchanged.
+
+
+## Phase 7B withdrawal blacklist target — not implemented
+
+Provide tenant/administrator-authorized operations to read/update module configuration; list/create/update/activate/deactivate network-specific manual address restrictions; and read immutable audit history. Default enforcement is false. Use step-up authentication where available. Exact routes/schemas will be versioned and tested during Phase 7B, not claimed as existing endpoints here. Enabled policy is authoritatively revalidated at withdrawal request/execution/independent signer authorization with policy version binding. Disabled policy preserves entries/history/reservations. No deposit screening or external AML endpoint/provider is in scope. Existing /ops/blocklist CRUD is legacy metadata and does not satisfy these enforcement/authorization contracts.
+
+
+## Seeded Solana primitives and internal approvals
+
+The branch's public wire library and acceptance helper do not add an issuance or
+signing endpoint. Genuine primitive tests use the existing trusted root-signing
+contract with `expected_source` equal to the base authority; this is not the future
+seeded financial-source contract. Account ownership, original root/genesis/epoch
+and exact-message grants must be designed and enforced before exposing that API.
+See [implemented/pending boundaries](PHASE6GC_SOLANA_SEEDED.md).
+
+The subsequent signer-only `/internal/v1/solana/seeded/enroll` and `/approve`
+POST routes require coordinator mTLS plus domain-separated original custody P-256
+proofs. They return per-party signed immutable root/claim receipts; the same retry
+returns the original receipt. They do not expose an external issuance API or grant
+seeded signing. Historical/dedicated roles, operator scope, genesis, original DKG,
+owner/mint/index/reservation/retry are pinned. See the linked scope for failure,
+partial-write and rollback/identity-key limitations. No Django wallet or financial
+journal is added by these internal contracts.
+
+Custody-machine-only coordinator POST routes now collect these same original
+proofs at `/v1/keysets/{id}/solana-seeded-root` and `/solana-seeded-claims`.
+They return an immutable `statement` plus all three ordered `participant_agreement`
+receipts only after complete agreement. HTTP409 may follow partial signer commits:
+retain and retry the original identity. Completed public evidence can be returned
+after restart with all signers offline; it is not a new signing grant. Custody must
+verify separate `solana_root`/`solana_claim` receipt domains against its three
+archival HOT signer certificate pins before any future issuance consumption.
+Coordinator-provided keys, signatures, labels or two-store agreement are insufficient.
+
+The operator-only `solana_provisioning` command now registers original roots and
+reserves/approves tenant/principal/asset claims in PostgreSQL before mutating these
+RPCs. It reports `issued:false` even for APPROVED. Partial/unknown outcomes retain
+the original IDs/index/retry and require recovery; never delete/reassign them.
+This adds no external issuance endpoint. See [DB/authority contract](PHASE6GC_SOLANA_REGISTRY.md).
+
+The read-only signer `/internal/v1/solana/seeded/probe` requires original custody
+root proof and usable own original DKG/receipt identity. Its eligibility response
+is not a dedication signature or lease. Coordinated enrollment checks any historical
+signing intent plus every party before mutation, and retains an immutable pending
+fence through partial failures. New generic signing-session reservations conflict
+with pending/complete dedication under the same data lock; exact existing-session
+recovery is preserved. This is a coordinated-API fence, not Byzantine consensus
+or anti-rollback protection; see the explicit trust/availability limits above.

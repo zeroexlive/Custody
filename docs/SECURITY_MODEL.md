@@ -1,4 +1,78 @@
+> **Dependency checkpoint disposition (2026-10-27):** crypto-bigint 0.5.5 is
+> removed in the independently reviewed unmerged branch; exact checkpoint
+> `ea4bb4ed` passed Fast and all 14 full-gate jobs. The earlier OPEN advisory banner
+> below records the pre-remediation state. Main still carries the old graph until
+> Phase 6G-C is completed and merged. This does not authorize production or transfer
+> CI acceptance to subsequent commits. See [evidence](PHASE6GC_DEPENDENCY_GATE.md).
+
+> **Authorized dependency remediation (2026-10-27):** The owner explicitly approved
+> the RustCrypto backend migration with independent review. An owned integration
+> patch now removes crypto-bigint 0.5.5 from the branch graph; original public
+> encoding/HD vectors and real old-store FROST/root/child signing have passed
+> bounded local compatibility checks. Full final-head gates and phase work remain
+> incomplete; no merge or production activation is claimed. See
+> [current dependency evidence](PHASE6GC_DEPENDENCY_GATE.md).
+
+> **New OPEN security gate (2026-10-27):** Actual fork CI flags crypto-bigint 0.5.5 / RUSTSEC-2026-0387 (secret-dependent timing). There is no compatible patched release in the selected CGGMP dependency graph. Exact exploitability is not established and the scanner is not waived. See [dependency investigation](PHASE6GC_DEPENDENCY_GATE.md). No phase merge or production approval follows from the older closed findings below.
+
+> **Current supersession (2026-10-27):** Phase 6G-B is merged at verified fork main `3d32b763`. Earlier R1/R2-review-required and scc/Tokio-open descriptions below retain historical snapshots; current source facts and qualified final historical review dispositions are in [INITIAL_REPOSITORY_AUDIT.md](INITIAL_REPOSITORY_AUDIT.md). Phase 6G-C remains incomplete and no new production authorization is claimed.
+
 # Security, financial trust and production acceptance
+
+Subsequent operator-only CustodyTenant/CustodyPrincipal registration creates
+immutable mappings and generated `p1:<UUID>` ledger references, without financial
+or signer authority. READ COMMITTED/NOWAIT table guards serialize legacy collision
+checks; mandatory audit failure rolls back creation. Historical accounts and orphan
+reservations cannot be adopted, and populated registry downgrade is refused.
+External caller authorization and future privileged writes remain outside this
+boundary; IDs/operator audit labels are not credentials. All 47 PostgreSQL cases
+passed with independent rerun/review, no P0/P1 in that scope. See [trust/availability
+limits](PHASE6GC_IDENTITY_REGISTRY.md). Exact `a28da6d` Fast40626197327/full40626191763
+passed all14 full jobs/227 calls/zero skips with independently verified artifacts;
+original-store compatibility passed413.05s. Later source needs its own gates.
+
+Operator-only [Solana reservations](PHASE6GC_SOLANA_REGISTRY.md) now commit original
+tenant/principal/asset/network/index identity before remote approvals. Database
+guards fence legacy financial/signing references and immutable assignment; SQL
+receipt structure is never cryptographic proof. Three independent archival pins
+are verified by the application before approval and must be verified by every
+future consumer. PENDING is retained across partial/unknown commits. No issued
+wallet, initialized seeded SPL account, spending grant or balance change follows.
+External caller authentication, active epochs and anti-rollback remain open.
+
+New unmerged Solana signer-local enrollment/claim records require coordinator
+mTLS plus original, domain-separated custody-machine P-256 proofs, and verify
+each party's original encrypted FROST DKG before signing a public receipt. A shared
+role lock prevents both legacy nonce use and dedication of the same root; immutable
+index-first records fence partial/restarted owner/index/retry/reservation reuse.
+Independent review found two partial-write recovery issues; both now have passing
+regressions and no remaining concrete P0/P1 in the bounded diff. This does not add
+customer issuance or seeded signing grants. Deployment scope is not tenant identity;
+the signed genesis is not signer-side chain attestation. Coherent snapshot/binary
+rollback, archival receipt identity-key rotation, population scalability and real
+Hot/Warm/Cold isolation remain unaccepted. Preserve identity keys and private
+stores, and require final-head full regression evidence before phase acceptance.
+
+Subsequent coordinator aggregation requires original completed DKG context and
+three matching ordered mTLS signer responses before pinning complete evidence.
+Custody independently verifies detached Solana-domain signatures with archival
+HOT signer pins; coordinator-controlled trust keys are never accepted. Partial
+HTTP failures can leave committed signer records and require the original retry;
+cached complete agreements are public evidence reads, never fresh signing grants.
+No Django wallet issuance or financial authority is added by these routes. The
+new layer has passing genuine partial/restart and forgery tests and separate
+source review; old checkpoint gates do not validate new source automatically.
+
+Further review found valid-authority dedication could first change an unused
+party before discovering historical use at the other pair. The coordinated path
+now checks all signing history and all three stores before mutation, then pins a
+pending root while serializing against new signing-session reservation. Pending
+and complete dedication fence new generic sessions, preserving exact prior recovery.
+Passing genuine regressions cover unused-first b/c history, older coordinator
+metadata, every legacy pair and pending-fence recovery. Readonly transport probes
+are not signed global leases: a malicious coordinator bypassing these APIs and
+coherent infrastructure rollback remain outside this bounded correction. Custody
+must only grant fresh unreferenced roots; witness/policy isolation remains mandatory.
 
 ## Distinct decision layers
 
@@ -153,3 +227,8 @@ across restart. Unverified old signer HD stores fail startup for offline audit.
 These are machine-authentication corrections, not Phase 7 policy/RBAC or lifecycle
 completion. R1/R2 require independent re-review and fresh final-head gates; prior
 normal-path CI is insufficient. scc/RUSTSEC-2026-0205 remains P1 OPEN.
+
+
+## Continuation security scope — 2026-10-27
+
+The current fork/main and historical corrected findings are qualified in INITIAL_REPOSITORY_AUDIT.md. Tokio/scc remediation is present in the lockfile; atomic-polyfill remains development-only P2 maintenance debt per the exported final review, with production assessment outstanding. The local initial retirement correction is command-level fail-closed safety, not independently authorized rotation, compromise handling, an SQL-level lifecycle invariant or signer-state revocation. The continuation denies keyset add/change/delete in Django admin while preserving authorized viewing. DB administrators, direct model writes and signer administrators remain trusted. The optional manual blacklist restricts only outgoing withdrawal destinations; it must never screen/hold incoming deposits. Disabling it must preserve unrelated authorization, finality and ledger protections. No external AML/KYT service is permitted.

@@ -35,6 +35,7 @@ pub struct SigningService {
     directory: PathBuf,
     party: String,
     local: Mutex<Local>,
+    provisioning: Arc<crate::solana_provisioning::Service>,
 }
 impl SigningService {
     pub fn open(
@@ -42,6 +43,7 @@ impl SigningService {
         executions: ExecutionTombstones,
         storage: PathBuf,
         party: String,
+        provisioning: Arc<crate::solana_provisioning::Service>,
     ) -> Result<Arc<Self>> {
         let directory = storage.join("signing");
         fs::create_dir_all(&directory)?;
@@ -51,6 +53,7 @@ impl SigningService {
             executions,
             directory,
             party,
+            provisioning,
             local: Mutex::new(Local {
                 reports: BTreeMap::new(),
                 active: BTreeMap::new(),
@@ -117,6 +120,13 @@ impl SigningService {
             "wrong signing round"
         );
         let key = self.dkg.signing_key(&control.execution).await?;
+        if control.execution.dkg.scope == "SOLANA" {
+            // Shared dedication lock: either legacy round1 commits historical
+            // use first, or enrollment permanently fences this API first.
+            self.provisioning
+                .require_legacy(control.execution.dkg.keyset_id, action == "round1")
+                .await?;
+        }
         let id = control.execution.crypto_execution_id;
         let mut local = self.local.lock().await;
         let fresh_report = || SignReport {

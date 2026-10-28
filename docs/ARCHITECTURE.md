@@ -1,3 +1,5 @@
+> **Current supersession (2026-10-27):** Phase 6G-B is merged at verified fork main `3d32b763`. Earlier R1/R2-review-required and scc/Tokio-open descriptions below retain historical snapshots; current source facts and qualified final historical review dispositions are in [INITIAL_REPOSITORY_AUDIT.md](INITIAL_REPOSITORY_AUDIT.md). Phase 6G-C remains incomplete and no new production authorization is claimed.
+
 # Target architecture and boundaries
 
 **Status:** target/reference architecture; only a subset is implemented in main. See PROJECT_STATUS.md for actual implementation.
@@ -7,7 +9,7 @@
 External clients: Exchange Matching Engine / Order Book (independent), Payment Gateways / Merchants, Institutional Treasury, Admin/Operator, Auditors.
   -> Versioned Gateway/API / Tenant Authentication / RBAC / Idempotency / Quotas / Outbox
   -> Financial domain: immutable double-entry Ledger + Reservation + Trade Settlement + Fees
-  -> Business domain: Merchant Invoice / Refund / Settlement; Risk/KYT; Policy and Human Approvals; Treasury
+  -> Business domain: Merchant Invoice / Refund / Settlement; Internal Risk / Optional Withdrawal Blacklist; Policy and Human Approvals; Treasury
   -> Custody orchestrator: Address Provisioning, Indexing, Sweep, Gas, Withdrawal/Broadcast, Reconciliation
   -> Independent MPC authorization boundary / Coordinator / genuine 2-of-3 signer services (mTLS, isolated shares)
   -> independently reviewed EVM, TRON, Solana and currently limited isolated TON network adapters.
@@ -26,6 +28,17 @@ All components can share a modular backend initially; **logical ownership bounda
 - Snapshot/reporting/analytics are derived projections, not independent sources of truth.
 
 ## Tenant isolation and trust boundaries
+
+The operator identity registry persists immutable CustodyTenant and
+CustodyPrincipal mappings with generated globally unique ledger owner IDs, exact
+tenant-scoped references, atomic audit and PostgreSQL collision/immutability guards.
+Operator-only Solana root/claim reservations now bind these mappings to original
+DKG/network/asset evidence and independently verified three-store approvals.
+They do not authorize external callers, issue wallets, grant spending or post
+financial journals. Existing ledger/wallet identities are preserved;
+there is no automatic adoption/backfill. See [scope](PHASE6GC_IDENTITY_REGISTRY.md).
+The [Solana reservation boundary](PHASE6GC_SOLANA_REGISTRY.md) documents pending
+recovery, shared index allocation, legacy fences and migration0034.
 
 Design Tenant/Organization and principals; customer identity is scoped to tenant. Each API credential has explicit tenant/service/role/scopes; never trust caller-supplied user_id as an authorization boundary. Developer/merchant/ops capabilities are separated from signer policy authority. Prevent cross-tenant transaction IDs, account lookups, webhook delivery, wallet/address reuse and funding. Support distinct custody keyset policy and wallet class by tenant as needed, without promising one root per tenant by default.
 
@@ -101,3 +114,43 @@ across restart. Unverified old signer HD stores fail startup for offline audit.
 These are machine-authentication corrections, not Phase 7 policy/RBAC or lifecycle
 completion. R1/R2 require independent re-review and fresh final-head gates; prior
 normal-path CI is insufficient. scc/RUSTSEC-2026-0205 remains P1 OPEN.
+
+
+## Continuation boundaries — 2026-10-27
+
+Phase 6G-B is implemented on verified main 3d32b763; 6G-C remains incomplete. Immutable FROST epochs, authenticated generation commits/old-share fencing and independent Warm/Cold workflows are required before claiming lifecycle completion. If the standard seeded-account candidate is selected, SOL/SPL source/rent/authority bindings and genuine spendability acceptance are also required. Phase 7B adds only a default-disabled manual withdrawal blacklist with authoritative versioned checks at request/execution/signer boundaries. It must not become a deposit-processing dependency. No external AML/KYT integration is part of the approved target.
+
+
+## Seeded Solana primitive boundary — 2026-10-27
+
+Subsequent signer-local enrollment/claim records reopen each original encrypted
+FROST DKG and authenticate domain-separated custody statements. A shared role
+lock serializes dedication against legacy nonce reservation; dedicated roots
+cannot use the legacy signing API. Index-first immutable files recover partial
+aliases and protect global reservation UUIDs across roots. These are operator-
+scoped records, still unconnected to tenant identity, custody issuance or seeded
+spending. Genesis is the original custody pin, not signer-side chain attestation;
+epochs, an independent rollback witness and identity-key rollover remain pending.
+
+Custody-mTLS coordinator routes now collect and pin all three original receipts;
+partial commits remain recoverable and completed public evidence can be reread
+offline. Custody verifies distinct Solana domains with independently configured
+archival HOT signer pins; transport/coordinator metadata cannot replace these
+checks. This adds no Django financial wallet, tenant authorization or spending
+grant. HTTP409 cannot establish that a partial operation never committed.
+
+Subsequent coordinated enrollment checks all signing-session history and all-party
+readonly eligibility before mutation. A durable pending-root fence and the signing
+reservation share the coordinator data lock, preserving historical unused-first
+quorum and partial-write fencing. Bounded RPCs hold that lock during the ceremony;
+future scalability and independent witness/policy isolation are still required.
+Direct local APIs do not constitute a global Byzantine eligibility lease.
+
+Standard seeded System/native and classic SPL account primitives now have exact
+SDK/Rust wire checks and genuine all-pair FROST spendability acceptance, described
+in [PHASE6GC_SOLANA_SEEDED.md](PHASE6GC_SOLANA_SEEDED.md). They do not yet issue
+accounts or enter product signing/ledger flows. A seeded financial source differs
+from the original FROST authority/fee payer; settlement must bind and verify each
+separately. Custody integration of signer-local ownership/index/mint claims and
+enrollment, generation grants and ledger integration remain required. There is no
+Ed25519 child-private-key derivation or new local signing fallback.

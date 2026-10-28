@@ -22,6 +22,68 @@ from django.db import models
 from django.db.models import Q
 
 
+class RegistryIdentityQuerySet(models.QuerySet):
+    def update(self, **kwargs):
+        raise ValueError("registry identity is immutable")
+
+    def delete(self):
+        raise ValueError("registry identity cannot be deleted")
+
+
+class RegistryIdentity(models.Model):
+    """Operator-managed identity only, not caller authentication or a balance."""
+
+    created_at = models.DateTimeField(auto_now_add=True)
+    objects = RegistryIdentityQuerySet.as_manager()
+
+    class Meta:
+        abstract = True
+
+    def save(self, *args, **kwargs):
+        if not self._state.adding:
+            raise ValueError("registry identity is immutable")
+        return super().save(*args, **kwargs)
+
+    def delete(self, *args, **kwargs):
+        raise ValueError("registry identity cannot be deleted")
+
+
+class CustodyTenant(RegistryIdentity):
+    tenant_id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
+    # PostgreSQL's byte-exact C collation is installed by migration 0033.
+    # Leave portable state unqualified so the legacy SQLite demo still migrates.
+    reference = models.CharField(max_length=64, unique=True)
+
+    class Meta:
+        constraints = [
+            models.CheckConstraint(condition=~Q(reference=""), name="custody_tenant_ref_required"),
+        ]
+
+
+class CustodyPrincipal(RegistryIdentity):
+    principal_id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
+    tenant = models.ForeignKey(CustodyTenant, on_delete=models.PROTECT)
+    customer_ref = models.CharField(max_length=64)
+    ledger_owner_id = models.CharField(max_length=64, unique=True, editable=False)
+
+    class Meta:
+        constraints = [
+            models.UniqueConstraint(
+                fields=["tenant", "customer_ref"], name="uq_tenant_customer_ref"
+            ),
+            models.CheckConstraint(
+                condition=~Q(customer_ref=""), name="custody_principal_ref_required"
+            ),
+        ]
+
+    def save(self, *args, **kwargs):
+        expected = f"p1:{self.principal_id}"
+        if self.ledger_owner_id and self.ledger_owner_id != expected:
+            raise ValidationError("ledger owner must be generated from the original principal UUID")
+        self.ledger_owner_id = expected
+        return super().save(*args, **kwargs)
+
+
 class Asset(models.Model):
     """Authoritative custody capability record for a reviewed asset.
 

@@ -1,5 +1,11 @@
 # Exchange / merchant / custody target API contracts
 
+The new `custody_identity` management command is an operator-only immutable
+tenant/principal registry, not a public identity API or authorization mechanism.
+Its generated `p1:<UUID>` ledger reference is not a bearer credential. Exact
+tenant scoping and mandatory atomic registration audit are implemented; financial
+and signer consumers are not yet connected. See [boundary](PHASE6GC_IDENTITY_REGISTRY.md).
+
 **Design specification only.** This file does **not** claim the routes exist today. Canonical OpenAPI schemas, validation, endpoint paths and auth infrastructure will be finalized during the assigned roadmap stages. Existing operator /api/wallet/... and /admin/ledger/... routes are not public exchange settlement APIs.
 
 ## 1. Transport, identity and financial rules

@@ -1,5 +1,14 @@
 # Phase 6G-C — seeded Solana primitive boundary
 
+Exact checkpoint `e5b82faa` passed [Fast](https://github.com/zeroexlive/Custody/actions/runs/40579867138)
+and [all 14 full-gate jobs](https://github.com/zeroexlive/Custody/actions/runs/40579857716),
+with 227 actual calls and zero skips. Original-store compatibility passed in
+425.729s; independent review verified all seven remote artifacts. The full Solana
+suite executed all 10 cases, including historical-quorum preservation. Later
+changes need new checks; whole 6G-C remains incomplete. The subsequent [operator
+registry](PHASE6GC_IDENTITY_REGISTRY.md) does not yet bind these Solana records to
+database principals or issue wallets.
+
 Status: **implemented primitives and signer-local approvals / incomplete custody integration**. No issued
 customer wallet, new signing permission, production flag, ledger behavior or phase
 completion is implied. The separately reviewed dependency checkpoint `ea4bb4ed`

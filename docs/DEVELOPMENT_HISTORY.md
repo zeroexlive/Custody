@@ -1,3 +1,34 @@
+## 2026-10-28 — operator-only tenant/principal identity registry (unmerged)
+
+Migration 0033 adds immutable CustodyTenant/CustodyPrincipal mappings, generated
+`p1:<UUID>` owner IDs, exact scoped references and PostgreSQL identity guards.
+Standalone READ COMMITTED registration takes five-table NOWAIT locks before any
+legacy ownership scan, rejects prior ledger/wallet/withdrawal/MPC account or orphan
+reservation IDs, and writes mandatory audit atomically. Admin cannot mutate even
+unused rows. A populated registry blocks downgrade; no legacy row/backfill or
+financial account is created. PostgreSQL-only C collations preserve exact identity
+while portable SQLite demo migrations remain usable; protected registry operations
+require PostgreSQL. All 47 new cases passed in 18.48s; separate review independently
+reran 47 in 15.44s and found no P0/P1 in the operator-only boundary. SQLite fresh
+migration/registration-refusal smoke passed. See [scope](PHASE6GC_IDENTITY_REGISTRY.md).
+External auth, root/claim linkage, financial consumers, scalability and full phase
+acceptance remain incomplete. New source needs new CI; no funds/production flags.
+The complete backend suite passed710 cases in149.78s. A strengthened migration
+case additionally preserves a nonzero balanced journal, all original accounts/
+postings and7.25-unit balance (1passed,2.14s).
+
+## 2026-10-28 — bounded historical-quorum checkpoint verified (unmerged)
+
+At exact `e5b82faa0e552662243e2d04defa5b5d16ae4404`,
+[Fast 40579867138](https://github.com/zeroexlive/Custody/actions/runs/40579867138)
+and [full 40579857716](https://github.com/zeroexlive/Custody/actions/runs/40579857716)
+passed. Full has all 14 jobs successful, actual 227 selected/called scenarios and
+zero skips (EVM45/TRON5/SOL10/TON3/network162/aux1/integrated1). Original-store
+upgrade passed in 425.729s against fixed original main 3d32b763. A separate reviewer
+independently fetched all seven remote artifact ZIPs and verified exact SHA, all
+calls/skips and the original-store gate. This accepts the bounded quorum/fence
+checkpoint, not all 6G-C, production activation or subsequent registry changes.
+
 ## 2026-10-27 — preserve unused-first historical signer quorum (unmerged)
 
 Independent review reproduced a valid-authority edge missed by earlier tests:

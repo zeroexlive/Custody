@@ -19,6 +19,17 @@
 
 # Security, financial trust and production acceptance
 
+Subsequent operator-only CustodyTenant/CustodyPrincipal registration creates
+immutable mappings and generated `p1:<UUID>` ledger references, without financial
+or signer authority. READ COMMITTED/NOWAIT table guards serialize legacy collision
+checks; mandatory audit failure rolls back creation. Historical accounts and orphan
+reservations cannot be adopted, and populated registry downgrade is refused.
+External caller authorization and future privileged writes remain outside this
+boundary; IDs/operator audit labels are not credentials. All 47 PostgreSQL cases
+passed with independent rerun/review, no P0/P1 in that scope. See [trust/availability
+limits](PHASE6GC_IDENTITY_REGISTRY.md). Later source needs new gates; exact `e5b82faa`
+Fast/full passed 14 jobs/227 calls/zero skips but predates this registry.
+
 New unmerged Solana signer-local enrollment/claim records require coordinator
 mTLS plus original, domain-separated custody-machine P-256 proofs, and verify
 each party's original encrypted FROST DKG before signing a public receipt. A shared

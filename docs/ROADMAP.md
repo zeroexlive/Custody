@@ -6,6 +6,13 @@
 
 # Approved nine-phase roadmap and product work packages
 
+Checkpoint `e5b82faa` passed exact-head Fast/full (14 jobs, 227 calls, zero skips)
+with independent artifact review; whole 6G-C remains incomplete. Subsequent operator
+tenant/principal registry work has 47 passing PostgreSQL cases and independent
+review, preserving legacy identity and SQLite demo migration compatibility. It
+does not complete external authorization, wallet issuance or financial linkage;
+new source needs its own gates. See [scope](PHASE6GC_IDENTITY_REGISTRY.md).
+
 Unmerged 6G-C now includes signer-local authenticated initial FROST root dedication
 and monotonic owner/mint/index/retry approvals, with exact receipt recovery and
 legacy-signing fencing. Five genuine positive/negative/restart/concurrency cases

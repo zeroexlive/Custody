@@ -95,6 +95,12 @@ Staking/earn, off-exchange collateral, OTC-specific suite, cross-chain liquidity
 
 ## Status disclaimer
 
+The unmerged branch implements an operator-managed immutable tenant/principal
+registry with generated ledger reference IDs and PostgreSQL/audit guards. This is
+identity mapping only. External authentication/RBAC, financial consumer integration
+and issued-wallet ownership remain requirements, not completed capabilities. No
+existing customer journal is reassigned. See [boundary](PHASE6GC_IDENTITY_REGISTRY.md).
+
 As of verified main `3d32b763ff777347f77eae7a8a7936d85dc2d770`, Phase 6G-B is implemented in development; Phase 6G-C and the later product capabilities remain **not complete**. The historical review notes below retain their original dates and are superseded by the current audit where applicable. In particular tenant isolation, high-scale HD provisioning, approval quorum, trade settlement, merchant/invoice and policy-signing ticket platform are future work. A status must not be promoted without code and passing scope-relevant evidence.
 
 Phase 6G-B child requests must retain the original custody machine authorization

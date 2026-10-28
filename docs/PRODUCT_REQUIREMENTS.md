@@ -95,7 +95,7 @@ Staking/earn, off-exchange collateral, OTC-specific suite, cross-chain liquidity
 
 ## Status disclaimer
 
-The unmerged branch implements an operator-managed immutable tenant/principal
+The development checkpoint implements an operator-managed immutable tenant/principal
 registry with generated ledger reference IDs and PostgreSQL/audit guards. This is
 connected to operator-only Solana root/claim reservations with original network,
 asset, index and independently verified three-store approvals. This does not issue

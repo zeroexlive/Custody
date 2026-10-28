@@ -29,7 +29,7 @@ All components can share a modular backend initially; **logical ownership bounda
 
 ## Tenant isolation and trust boundaries
 
-The unmerged operator identity registry persists immutable CustodyTenant and
+The operator identity registry persists immutable CustodyTenant and
 CustodyPrincipal mappings with generated globally unique ledger owner IDs, exact
 tenant-scoped references, atomic audit and PostgreSQL collision/immutability guards.
 Operator-only Solana root/claim reservations now bind these mappings to original

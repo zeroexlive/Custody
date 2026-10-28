@@ -1,3 +1,20 @@
+## 2026-10-28 — verified checkpoint and explicit development merge request
+
+At `1d4737ecf53d3e445c83c89f382f71b9ddbd8c57`, Fast40675308341 and full40675302192
+passed all required checks:14 full jobs,228 actual calls and zero skips. Separate
+review independently fetched all seven remote artifacts, verified exact SHA,
+selected/called inventories and original-store compatibility652.422s against fixed
+main3d32b763, all six compatibility cases and distinct original/candidate binaries.
+No blocking P0/P1 was identified in the bounded implemented checkpoint.
+
+The owner then explicitly requested merging correct verified work and proceeding
+to the next step. The [dated decision](DECISIONS.md) records this delivery-granularity
+change: PR #1 may merge as a development checkpoint after its final-head gates,
+while 6G-C remains incomplete and subsequent work stays within that phase.
+This documentation update records preparation, not a future successful merge.
+Actual merge SHA/main verification must be recorded after GitHub confirms it.
+No production/mainnet/customer-fund gate or deferred TON scope is changed.
+
 ## 2026-10-28 — authoritative operator Solana reservations (unmerged)
 
 Migration0034 adds original tenant-bound Solana roots and principal/asset/index/

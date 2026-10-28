@@ -1,5 +1,13 @@
 # Phase 6G-C — RUSTSEC-2026-0387 security gate
 
+Current supersession (2026-10-28): the implemented source checkpoint `1d4737e`
+passed Fast40675308341 and all14 full-gate jobs40675302192,228 actual calls/zero
+skips and original-store compatibility652.422s, independently verified. The owner
+explicitly authorized merging this bounded development checkpoint; see the
+[dated decision](DECISIONS.md) and [live status](PROJECT_STATUS.md). The older
+unmerged/no-checkpoint-merge wording below is historical. Phase completion and
+production/mainnet/customer-fund authorization remain separate, unfinished gates.
+
 Status (2026-10-27): **bounded remediation VERIFIED in unmerged development
 checkpoint `ea4bb4edfd646b34a58e00170a734e57674b1825`**. Main `3d32b763` still
 contains the older affected graph. Phase 6G-C is incomplete and no phase merge or

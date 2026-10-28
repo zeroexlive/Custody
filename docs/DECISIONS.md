@@ -1,3 +1,27 @@
+## 2026-10-28 — owner-authorized verified development checkpoint merge
+
+The owner explicitly instructed: «چرا مرج نکردی؟ اگر صحیح است و همه چیز درست هست
+مرج کن و برو گام بعدی» (merge the current work if it is correct and proceed to the
+next step). This authorizes merging the independently reviewed bounded development
+checkpoint in PR #1 once its required final-head gates and repository rules pass.
+It supersedes the earlier instruction to retain all remaining 6G-C work in one
+Draft PR. Keep the original nine-phase numbering and continue the remaining 6G-C
+implementation in subsequent reviewed PRs; do not advance to Phase 7 yet.
+
+Scope accepted for this checkpoint: the owned RustCrypto integration and original
+store compatibility, standard seeded Solana primitives, original custody/signer
+approvals and historical-quorum fences, immutable operator tenant/principal
+registry, and durable owner/network/asset/index root/claim reservations. These
+are development foundations. Customer issuance, seeded spending, financial
+integration, active generation/witness, refresh/repair/rotation/drain/late-deposit
+rescue and class isolation remain unfinished. No feature acceptance is inferred
+from a merge, and production/mainnet/customer-fund restrictions remain unchanged.
+
+All required Fast/full checks must validate the actual final PR head. Preserve
+genuine independent review, no blocking P0/P1, normal repository merge rules,
+post-merge verification and truthful remaining-work status. This exception changes
+the delivery granularity, not any cryptographic, financial or activation gate.
+
 ## 2026-10-27 — authorized maintained RustCrypto integration remediation
 
 After the incompatible RUSTSEC-2026-0387 resolver investigation, the owner

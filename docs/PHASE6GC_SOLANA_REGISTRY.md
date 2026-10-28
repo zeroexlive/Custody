@@ -1,9 +1,11 @@
-# Authoritative Solana reservations — unmerged Phase 6G-C
+# Authoritative Solana reservations — Phase 6G-C development checkpoint
 
 This operator-only layer connects original FROST seeded root/claim approvals to
 the immutable tenant/principal registry. It does not issue customer wallets,
 initialize seeded SPL accounts, authorize spending or post financial journals.
-It remains in Draft PR #1; complete phase acceptance and production gates are open.
+It is included in the owner-authorized PR #1 development checkpoint; complete
+phase acceptance and production gates are open. See the [dated decision](DECISIONS.md)
+and [current status](PROJECT_STATUS.md) for merge evidence and remaining work.
 
 ## Original identity and durability
 

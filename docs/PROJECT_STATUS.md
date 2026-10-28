@@ -1,26 +1,32 @@
 # Current project status — 2026-10-28
 
-Repository: `zeroexlive/Custody`. Verified main remains
+Repository: `zeroexlive/Custody`. Verified pre-merge main is
 `3d32b763ff777347f77eae7a8a7936d85dc2d770`, the Phase 6G-B squash merge.
-**6G-C is IN PROGRESS, unmerged in Draft [PR #1](https://github.com/zeroexlive/Custody/pull/1).**
+**6G-C is IN PROGRESS. [PR #1](https://github.com/zeroexlive/Custody/pull/1) is a bounded
+development checkpoint prepared for the owner's explicitly requested merge.**
 Phase 7–9 remain planned. The owner-directed acceptance/review/merge gates remain
-mandatory; no production, mainnet or customer-fund activation is authorized.
+mandatory; no production, mainnet or customer-fund activation is authorized. The
+[2026-10-28 decision](DECISIONS.md) permits merging this verified checkpoint and
+continuing remaining 6G-C work in subsequent reviewed PRs. It supersedes keeping
+the unfinished whole phase in one Draft PR; it does not authorize Phase 7.
 
-Exact source checkpoint `a28da6d46f07e06be717412c4d039dcabe9c720b` passed
-[Fast 40626197327](https://github.com/zeroexlive/Custody/actions/runs/40626197327)
-and [all 14 full-gate jobs](https://github.com/zeroexlive/Custody/actions/runs/40626191763).
-All seven downloaded suite manifests match that SHA: **227 actual selected/called
-scenarios, zero skips** (EVM45/TRON5/SOL10/TON3/network162/aux1/integrated1).
-Original encrypted-store upgrade acceptance passed in413.05s against fixed main
+Exact source checkpoint `1d4737ecf53d3e445c83c89f382f71b9ddbd8c57` passed
+[Fast 40675308341](https://github.com/zeroexlive/Custody/actions/runs/40675308341)
+and [all 14 full-gate jobs](https://github.com/zeroexlive/Custody/actions/runs/40675302192).
+All seven downloaded suite manifests match that SHA: **228 actual selected/called
+scenarios, zero skips** (EVM45/TRON5/SOL11/TON3/network162/aux1/integrated1).
+Original encrypted-store upgrade acceptance passed in652.422s against fixed main
 3d32b763. A separate reviewer independently verified remote artifacts, job states
-and compatibility. These gates accept that bounded source checkpoint, not later
-Solana database integration or the unfinished whole phase.
+and compatibility. These gates accept the bounded code checkpoint, including
+Solana database integration. The subsequent documentation/owner-decision update
+requires its own final-head gates before merge; live PR checks record those.
 
-The branch's owner-approved owned RustCrypto integration removes crypto-bigint
+The owner-approved owned RustCrypto integration removes crypto-bigint
 0.5.5 from its graph without scanner exceptions or threshold algorithm replacement.
 Original shares, public encodings, HD receipts and nonce/reconciliation fencing
-have passing compatibility evidence. Main still carries the old graph until the
-whole phase is completed and merged. See [dependency evidence](PHASE6GC_DEPENDENCY_GATE.md).
+have passing compatibility evidence. The pre-merge main snapshot still carries
+the old graph; PR #1 delivers its reviewed remediation as part of this development
+checkpoint. See [dependency evidence](PHASE6GC_DEPENDENCY_GATE.md).
 The existing atomic-polyfill warning remains visible development-only P2 debt.
 
 Seeded Solana primitives use standard System and classic SPL instructions, with
@@ -54,7 +60,7 @@ in103.75s**, including actual writer races, cross-alias isolation and capacity.
 Genuine FROST/Agave/PostgreSQL integration passed in30.16s with partial/lost responses,
 restart and all-signers-offline original evidence recovery. This creates no issued
 wallet, initialized seeded SPL account, signing grant or financial posting. New
-final-head CI is required; a28 gates do not transfer. Separate review reran the
+final-head CI remains mandatory for subsequent commits. Separate review reran the
 initial46 DB cases and genuine scenario and independently checked all nine signer
 signatures and both SDK-derived addresses; no P0/P1 found in this bounded layer.
 See [authoritative reservation boundary](PHASE6GC_SOLANA_REGISTRY.md).
@@ -66,7 +72,8 @@ mandatory original typed signing intent before nonces; source/fee/rent accountin
 scanner/sweep/withdrawal integration and real1000-wallet benchmark; immutable epochs,
 authorized refresh/repair, independent rollback witness, rotation/drain/late-deposit
 rescue, backup/compromise handling and enforceable Hot/Warm/Cold boundaries. Complete
-independent acceptance and final-head full CI precede the one final major phase merge.
+independent acceptance and final-head full CI precede each development checkpoint
+merge; the owner-authorized checkpoint does not satisfy these remaining features.
 
 TON remains isolated/deferred with its external artifact-audit gate open. Phase7B
 remains optional default-disabled manual withdrawal-only restrictions, with no

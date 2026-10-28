@@ -1,6 +1,6 @@
 # Operator identity registry — Phase 6G-C
 
-Implemented on the unmerged development branch. This is an immutable mapping of
+Included in the PR #1 development checkpoint. This is an immutable mapping of
 opaque tenant/customer references, not external authentication, financial balance
 creation, retroactive ownership attribution or issued-wallet acceptance. It is
 connected to operator-only [Solana root/claim reservations](PHASE6GC_SOLANA_REGISTRY.md).

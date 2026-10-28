@@ -26,6 +26,13 @@ Build a self-hosted enterprise custody + **financial core**, not merely an MPC w
 
 ## Scope and sequence
 
+Latest merged development checkpoint: PR #1 at
+`587e0969a216102879d17cadb6ffeee8dfb8b6c6` (2026-10-28). Its tree exactly matches
+reviewed head `78394fc`; final-head Fast/full passed14jobs/228calls/zero skips,
+and automatic main Fast passed. Continue remaining 6G-C from this merged base.
+Current seeded intent library work is pure structure/wire checking; it does not
+grant signing permission or implement a live generation witness.
+
 Phase 6G-B is merged as **development** at `3d32b763ff777347f77eae7a8a7936d85dc2d770`. Phase 6G-C (Solana provisioning, key lifecycle/rotation/recovery and Hot/Warm/Cold foundations) remains incomplete. On 2026-10-28 the owner explicitly authorized merging the verified bounded development checkpoint in PR #1 and continuing the next implementation step. See the dated decision in docs/DECISIONS.md: this supersedes keeping all remaining 6G-C work in that one Draft PR; it does not complete 6G-C or authorize Phase 7 or production. Keep original Phase 7A/7B/7C, 8A/8B/8C/8D and 9. TON public network, arbitrary shards and real USDT work are **deferred**; preserve existing TON code and open audit blocker, do not activate or widen it unless owner explicitly changes scope. Bitcoin, bridging, swaps, exchange matching engine and trading order book are out of current scope.
 
 A proposed feature is not an implemented feature. A merged implementation is not production-approved. Label every status accordingly.

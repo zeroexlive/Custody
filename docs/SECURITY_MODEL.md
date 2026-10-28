@@ -1,3 +1,13 @@
+> **Merged development checkpoint (2026-10-28):** PR #1 merged as `587e0969`.
+> Its tree exactly matches final reviewed `78394fc`, with Fast/full14jobs/228calls/
+> zero skips and independently verified original-store compatibility665.205s.
+> Main Fast40716836844 passed. Earlier unmerged descriptions below are historical.
+> Phase6G-C and production gates remain incomplete. The next typed seeded intent
+> library supplies format/wire/domain checks only: canonical IDs are not registry
+> membership, generation references are not freshness and assertions are not live
+> RPC evidence. No new signer route or nonce permission is enabled. See
+> [precise boundary](PHASE6GC_SOLANA_SPENDING.md).
+
 > **Dependency checkpoint disposition (2026-10-27):** crypto-bigint 0.5.5 is
 > removed in the independently reviewed unmerged branch; exact checkpoint
 > `ea4bb4ed` passed Fast and all 14 full-gate jobs. The earlier OPEN advisory banner

@@ -6,6 +6,11 @@
 
 # Approved nine-phase roadmap and product work packages
 
+PR #1 merged its verified development checkpoint as587e0969; final783 Fast/full
+passed14jobs/228calls/zero skips and main Fast40716836844 passed. Phase6G-C remains
+incomplete. The next branch begins a pure typed seeded intent/wire contract; live
+signing/witness/financial integration remains unfinished. See [current status](PROJECT_STATUS.md).
+
 The owner explicitly authorized merging the verified bounded PR #1 development
 checkpoint and continuing remaining 6G-C work; see the [2026-10-28 decision](DECISIONS.md).
 The earlier single-Draft-PR restriction is superseded for delivery granularity.

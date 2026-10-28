@@ -139,6 +139,13 @@ verify separate `solana_root`/`solana_claim` receipt domains against its three
 archival HOT signer certificate pins before any future issuance consumption.
 Coordinator-provided keys, signatures, labels or two-store agreement are insufficient.
 
+The next 6G-C branch adds `protocol::solana_intent::Intent` as a public internal
+data contract and pure shape/wire/domain constructor. There is no HTTP signing
+route for it and no nonce permission. The canonical machine-message domain binds
+the complete intent and original payload; caller identity, own original approvals,
+live generation witness and independent policy/network checks remain mandatory
+future integration. See [precise current boundary](PHASE6GC_SOLANA_SPENDING.md).
+
 The operator-only `solana_provisioning` command now registers original roots and
 reserves/approves tenant/principal/asset claims in PostgreSQL before mutating these
 RPCs. It reports `issued:false` even for APPROVED. Partial/unknown outcomes retain

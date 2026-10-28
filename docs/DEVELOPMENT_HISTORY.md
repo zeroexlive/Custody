@@ -1,3 +1,28 @@
+## 2026-10-28 — PR #1 merged and next 6G-C intent contract started
+
+GitHub confirms PR #1 MERGED as `587e0969a216102879d17cadb6ffeee8dfb8b6c6`, with
+parents3d32b763 and final reviewed head78394fc. Its tree
+`affecb334af959a462fd747b0fdf49a3a731f182` exactly matches that final head.
+Fast40683968092 and ALL40683962776 passed:14 full jobs,228 actual calls/zero skips,
+all seven exact-head artifacts and original-store compatibility665.205s independently
+verified. Automatic main Fast40716836844 passed all four executed jobs. This is
+the owner-authorized development checkpoint, not completion of Phase 6G-C.
+
+Local post-merge checks/migration drift passed and all48 PostgreSQL provisioning
+cases passed53.73s after restarting existing development services stopped during
+environment idle. The initial attempt failed on connection-refused setup errors;
+no code regression or database reset was involved. Live/ready return200 with
+databaseOK and unchanged optional Redis degradation.
+
+The next branch `codex/phase6gc-seeded-spending` starts directly from merged main.
+It promotes a pure public typed intent/wire/domain constructor, nine Rust tests,
+twelve SDK/Python-canonical goldens and a reproducible no-RPC generator. No route,
+nonce, witness freshness, business authority, wallet issuance or financial flow
+is enabled. See [implemented and pending boundary](PHASE6GC_SOLANA_SPENDING.md).
+Independent promoted-source review reran final9 tests in0.29s and regenerated all12
+goldens with DB connections forbidden, including the Unicode case. No blocking
+P0/P1 was identified within the unconnected library. New exact-head CI remains required.
+
 ## 2026-10-28 — verified checkpoint and explicit development merge request
 
 At `1d4737ecf53d3e445c83c89f382f71b9ddbd8c57`, Fast40675308341 and full40675302192

@@ -1,84 +1,70 @@
 # Current project status — 2026-10-28
 
-Repository: `zeroexlive/Custody`. Verified pre-merge main is
-`3d32b763ff777347f77eae7a8a7936d85dc2d770`, the Phase 6G-B squash merge.
-**6G-C is IN PROGRESS. [PR #1](https://github.com/zeroexlive/Custody/pull/1) is a bounded
-development checkpoint prepared for the owner's explicitly requested merge.**
-Phase 7–9 remain planned. The owner-directed acceptance/review/merge gates remain
-mandatory; no production, mainnet or customer-fund activation is authorized. The
-[2026-10-28 decision](DECISIONS.md) permits merging this verified checkpoint and
-continuing remaining 6G-C work in subsequent reviewed PRs. It supersedes keeping
-the unfinished whole phase in one Draft PR; it does not authorize Phase 7.
+Verified `zeroexlive/Custody` main is **`587e0969a216102879d17cadb6ffeee8dfb8b6c6`**,
+merged [PR #1](https://github.com/zeroexlive/Custody/pull/1). Its parents are the
+previous Phase 6G-B main3d32b763 and final reviewed head78394fc. GitHub merge state,
+main ref and exact tree identity were independently confirmed.
 
-Exact source checkpoint `1d4737ecf53d3e445c83c89f382f71b9ddbd8c57` passed
-[Fast 40675308341](https://github.com/zeroexlive/Custody/actions/runs/40675308341)
-and [all 14 full-gate jobs](https://github.com/zeroexlive/Custody/actions/runs/40675302192).
-All seven downloaded suite manifests match that SHA: **228 actual selected/called
-scenarios, zero skips** (EVM45/TRON5/SOL11/TON3/network162/aux1/integrated1).
-Original encrypted-store upgrade acceptance passed in652.422s against fixed main
-3d32b763. A separate reviewer independently verified remote artifacts, job states
-and compatibility. These gates accept the bounded code checkpoint, including
-Solana database integration. The subsequent documentation/owner-decision update
-requires its own final-head gates before merge; live PR checks record those.
+**Phase 6G-C remains IN PROGRESS.** The owner's [2026-10-28 decision](DECISIONS.md)
+authorized this bounded development checkpoint merge and continuation within6G-C.
+It supersedes retaining the entire unfinished phase in one Draft PR. Phase7–9
+remain planned; production/mainnet/customer-fund activation remains unauthorized.
 
-The owner-approved owned RustCrypto integration removes crypto-bigint
-0.5.5 from its graph without scanner exceptions or threshold algorithm replacement.
-Original shares, public encodings, HD receipts and nonce/reconciliation fencing
-have passing compatibility evidence. The pre-merge main snapshot still carries
-the old graph; PR #1 delivers its reviewed remediation as part of this development
-checkpoint. See [dependency evidence](PHASE6GC_DEPENDENCY_GATE.md).
-The existing atomic-polyfill warning remains visible development-only P2 debt.
+Final reviewed head `78394fc2e5ae585cd265c195f1d02557cb062e21` passed
+[Fast40683968092](https://github.com/zeroexlive/Custody/actions/runs/40683968092)
+and [ALL40683962776](https://github.com/zeroexlive/Custody/actions/runs/40683962776):
+all14 full jobs, **228 actual selected/called scenarios, zero skips**
+(EVM45/TRON5/SOL11/TON3/network162/aux1/integrated1). Seven remote artifacts and
+mandatory original encrypted-store compatibility665.205s against fixed baseline
+3d32b763, all six cases and distinct old/new binaries were independently verified.
+Merged tree `affecb334af959a462fd747b0fdf49a3a731f182` exactly matches that head.
+Automatic [main Fast40716836844](https://github.com/zeroexlive/Custody/actions/runs/40716836844)
+passed all four executed jobs; its skipped crypto jobs are not another full gate.
 
-Seeded Solana primitives use standard System and classic SPL instructions, with
-independent SDK/Rust wire checks and genuine seven-transaction all-pair FROST/Agave
-spendability acceptance. Original custody-authorized signer root/claim records,
-all-party receipt collection, independent archival HOT receipt verification and
-partial-write recovery are implemented. Historical b/c use with locally unused a
-is protected by coordinated all-party preflight and durable pending-intent fencing.
-This is not a Byzantine lease, rollback witness, issued account or new spending
-grant. See [implemented/pending Solana scope](PHASE6GC_SOLANA_SEEDED.md).
+Post-merge checks/migration drift and48 PostgreSQL provisioning cases passed53.73s.
+Existing development services were restarted after environment idle; the first
+local attempt had connection-refused setup errors, not a source assertion failure.
+No database reset or source workaround was needed. Live/ready return200 with
+DBOK and unchanged optional Redis degradation.
 
-Subsequent operator-only CustodyTenant/CustodyPrincipal registry work adds immutable
-scoped mappings and generated `p1:<UUID>` ledger owner IDs. PostgreSQL READ COMMITTED
-and five-table NOWAIT collision checks prevent adoption of preexisting legacy
-ownership at the serialized birth point; audit creation is mandatory and atomic.
-Migration0033 creates only two new tables/collations/guards, refuses populated
-downgrade, and performs no ownership backfill or journal rewrite. SQLite demo
-migration remains usable while protected registry operations require PostgreSQL.
-47 registry cases passed with an independent47-case rerun; **710 full backend tests
-passed in149.78s**. External caller authentication, financial consumption and
-population scalability remain unimplemented. See [registry boundary](PHASE6GC_IDENTITY_REGISTRY.md).
+The merged checkpoint includes the owner-approved owned RustCrypto integration
+removing crypto-bigint0.5.5 without scanner exceptions or protocol replacement;
+original share/encoding/HD receipt/nonce recovery compatibility; standard Solana
+seeded wire primitives and seven finalized all-pair FROST/Agave transactions;
+signer-local original custody proofs, all-three receipt collection, independent
+archival pins and historical-quorum fences; immutable operator tenant/principal
+IDs; and durable original root/owner/network/asset/index reservations before
+mutating RPC. These are development foundations, not issued customer wallets or
+new seeded spending grants. Existing generic signing remains fenced for dedicated
+roots. Full backend758 cases passed before merge, including48 new provisioning
+cases; genuine approvals and independent source review are recorded in the
+[reservation report](PHASE6GC_SOLANA_REGISTRY.md). The unchanged atomic-polyfill
+warning remains visible development-only P2 debt. See [dependency evidence](PHASE6GC_DEPENDENCY_GATE.md).
 
-New operator-only `MpcSolanaRoot`/`MpcSolanaClaim` integration binds original DKG,
-tenant UUID, principal ledger owner, verified isolated network, native/classic mint,
-reservation/retry/index/address before any mutating signer RPC. Migration0034
-enforces immutable identity, shared monotonic allocation, legacy reference fences,
-reserved asset/keyset identity and populated downgrade refusal. PENDING survives
-unknown/partial remote outcomes; APPROVED requires all three independent receipts.
-All48 new PostgreSQL cases pass in the fresh final backend run: **758 passed
-in103.75s**, including actual writer races, cross-alias isolation and capacity.
-Genuine FROST/Agave/PostgreSQL integration passed in30.16s with partial/lost responses,
-restart and all-signers-offline original evidence recovery. This creates no issued
-wallet, initialized seeded SPL account, signing grant or financial posting. New
-final-head CI remains mandatory for subsequent commits. Separate review reran the
-initial46 DB cases and genuine scenario and independently checked all nine signer
-signatures and both SDK-derived addresses; no P0/P1 found in this bounded layer.
-See [authoritative reservation boundary](PHASE6GC_SOLANA_REGISTRY.md).
+Current branch `codex/phase6gc-seeded-spending` starts from this merged main and
+adds an unconnected public typed intent/wire/domain constructor. Nine promoted
+Rust contract tests pass (0.15s), workspace Clippy passes, and twelve public SDK/
+Python-canonical goldens regenerate without RPC or database access. Separate
+promoted-source review reran all final nine (0.29s) and the generator with DB
+connections forbidden, with no blocking P0/P1 in this limited scope. New exact-head
+CI remains required. These are format/
+wire checks: canonical tenant/p1 strings do not prove membership, generation
+references do not prove freshness, and fee/rent/height assertions are not live
+network attestations. No signer/coordinator route, nonce permission, wallet,
+transaction, journal, migration, dependency or activation flag is added. See
+[implemented and pending signing boundary](PHASE6GC_SOLANA_SPENDING.md).
 
-Command/admin keyset safeguards remain bounded to unused metadata and view-only
-admin; controlled retirement/drain/recovery is unfinished. Remaining 6G-C requires
-actual tenant-bound issuance and finalized SPL provisioning;
-mandatory original typed signing intent before nonces; source/fee/rent accounting,
-scanner/sweep/withdrawal integration and real1000-wallet benchmark; immutable epochs,
-authorized refresh/repair, independent rollback witness, rotation/drain/late-deposit
-rescue, backup/compromise handling and enforceable Hot/Warm/Cold boundaries. Complete
-independent acceptance and final-head full CI precede each development checkpoint
-merge; the owner-authorized checkpoint does not satisfy these remaining features.
-
-TON remains isolated/deferred with its external artifact-audit gate open. Phase7B
-remains optional default-disabled manual withdrawal-only restrictions, with no
-deposit screening or external AML/KYT integration. No new balance posting, wallet
-activation or production flag relaxation is introduced by the registry.
+Remaining6G-C requires original proof verification and own local claim lookup
+before nonce work; an independent live generation witness and protected deployment
+policy outside share backups; actual generation continuity/refresh/repair and
+rotation/drain/late-deposit rescue; finalized SPL provisioning and actual issuance;
+financial source versus base fee/rent accounting and deposit/sweep/withdrawal
+integration; enforceable Hot/Warm/Cold boundaries and real1000-issued-Solana-wallet
+acceptance. Each subsequent checkpoint requires its own independent review,
+applicable exact-head gates and normal repository merge rules. Do not advance7.
+TON stays isolated/deferred with its external artifact-audit gate open. Phase7B
+stays optional default-disabled manual withdrawal-only restrictions, with no
+deposit screening or external AML/KYT integration.
 
 ## Historical snapshots below
 

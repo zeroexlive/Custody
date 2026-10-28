@@ -48,6 +48,14 @@ Persist: request -> policy/risk check -> financial reservation -> required appro
 
 ## Signer security
 
+The next 6G-C branch supplies a pure typed seeded intent/wire library. It separates
+financial source from base fee/rent authority and binds operation/session/execution,
+original claim, action and generation reference into canonical machine-proof input.
+It is not connected to a signer route. Actual original proof/local claim checks,
+independent live witness and protected deployment profile must precede nonce work;
+canonical IDs/package references alone establish no authority or freshness. See
+[contract scope](PHASE6GC_SOLANA_SPENDING.md).
+
 Coordinator stores public/session metadata; signer nodes retain encrypted private shares and nonce/execution tombstones. FROST or CGGMP creates threshold signatures; no complete custody private key is assembled in the backend. Human approval is not signer quorum. Independent signer-side authorization must resist a compromised Django app minting arbitrary transactions; see SECURITY_MODEL.md. Never imply one PostgreSQL DB, one network operator or current CI fixture provides a production trust boundary.
 
 ## Chain-specific adapters

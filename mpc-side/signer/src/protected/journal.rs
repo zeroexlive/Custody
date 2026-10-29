@@ -1,0 +1,606 @@
+//! Public execution tombstones, outside every private-share backup. No nonce or
+//! private package is persisted here. A complete rollback of this independent
+//! anchor/configuration/binary is outside the share-restore protection claim.
+use anyhow::{ensure, Context, Result};
+use serde::{Deserialize, Serialize};
+use std::{
+    collections::BTreeMap,
+    fs::{self, File, OpenOptions},
+    os::{
+        fd::AsRawFd,
+        unix::fs::{OpenOptionsExt, PermissionsExt},
+    },
+    path::{Path, PathBuf},
+};
+use uuid::Uuid;
+use wallet_mpc_protocol::witness::{hash, Permit, PermitRequest, PublicRound, Signed};
+use wallet_mpc_storage::{atomic_create_secret, atomic_replace_state, confirm_parent_durability};
+use wallet_mpc_transport::{PinnedIdentity, ReceiptIdentity};
+
+#[derive(Clone, Copy)]
+pub(super) struct Authorities<'a> {
+    pub own: &'a PinnedIdentity,
+    pub witness: &'a PinnedIdentity,
+    pub lifecycle: Option<&'a PinnedIdentity>,
+    pub party: &'a str,
+    pub profile: &'a str,
+}
+
+pub(super) fn sign<T: Serialize>(
+    identity: &ReceiptIdentity,
+    domain: &str,
+    value: T,
+) -> Result<Signed<T>> {
+    let key_id = identity.key_id();
+    let signature = wallet_mpc_protocol::dkg::hex(
+        &identity.sign(&Signed::unsigned_message(domain, &key_id, &value)?)?,
+    );
+    Ok(Signed {
+        key_id,
+        value,
+        signature,
+    })
+}
+pub(super) fn verify<T: Serialize>(
+    pin: &PinnedIdentity,
+    domain: &str,
+    signed: &Signed<T>,
+) -> Result<()> {
+    ensure!(pin.key_id == signed.key_id, "pinned identity mismatch");
+    pin.verify(&signed.signing_message(domain)?, &signed.signature_bytes()?)
+}
+pub(super) fn slot(id: Uuid, round: u16) -> String {
+    format!("{id}:{round}")
+}
+
+#[derive(Clone, Serialize, Deserialize)]
+#[serde(tag = "kind", deny_unknown_fields)]
+pub(super) enum Change {
+    Initialize,
+    Request {
+        request: Box<Signed<PermitRequest>>,
+    },
+    Consume {
+        permit: Box<Signed<Permit>>,
+    },
+    Result {
+        report: Box<Signed<PublicRound>>,
+    },
+    RefreshStart {
+        start: Box<wallet_mpc_protocol::solana_generation::RefreshStart>,
+    },
+    RefreshReady {
+        report: Box<Signed<wallet_mpc_protocol::witness::GenerationReady>>,
+    },
+    RepairStart {
+        start: Box<wallet_mpc_protocol::solana_recovery::ReplacementStart>,
+    },
+    RepairReady {
+        report: Box<Signed<wallet_mpc_protocol::solana_recovery::RepairReady>>,
+    },
+    ReplacementRefreshStart {
+        start: Box<wallet_mpc_protocol::solana_recovery::ReplacementStart>,
+    },
+    Cancel {
+        attestation: Box<Signed<wallet_mpc_protocol::witness::NoRelease>>,
+    },
+}
+#[derive(Serialize, Deserialize)]
+#[serde(deny_unknown_fields)]
+struct Event {
+    profile: String,
+    sequence: u64,
+    previous: String,
+    change: Change,
+}
+#[derive(Serialize, Deserialize)]
+#[serde(deny_unknown_fields)]
+struct Head {
+    profile: String,
+    sequence: u64,
+    event_hash: String,
+}
+#[derive(Clone, Default)]
+pub(super) struct Records {
+    pub requests: BTreeMap<String, Signed<PermitRequest>>,
+    pub consumed: BTreeMap<String, Signed<Permit>>,
+    pub reports: BTreeMap<String, Signed<PublicRound>>,
+    pub ceremonies: BTreeMap<Uuid, wallet_mpc_protocol::solana_generation::RefreshStart>,
+    pub ready: BTreeMap<Uuid, Signed<wallet_mpc_protocol::witness::GenerationReady>>,
+    pub cancelled: BTreeMap<Uuid, Signed<wallet_mpc_protocol::witness::NoRelease>>,
+    pub repairs: BTreeMap<Uuid, wallet_mpc_protocol::solana_recovery::ReplacementStart>,
+    pub repaired: BTreeMap<Uuid, Signed<wallet_mpc_protocol::solana_recovery::RepairReady>>,
+    pub replacement_refresh: BTreeMap<Uuid, wallet_mpc_protocol::solana_recovery::ReplacementStart>,
+}
+impl Records {
+    pub fn refresh_plan(
+        &self,
+        ceremony: Uuid,
+    ) -> Result<&wallet_mpc_protocol::solana_generation::RefreshPlan> {
+        if let Some(start) = self.ceremonies.get(&ceremony) {
+            return Ok(&start.plan.value);
+        }
+        Ok(&self
+            .replacement_refresh
+            .get(&ceremony)
+            .context("missing original refresh start")?
+            .plan
+            .value
+            .refresh)
+    }
+    fn repair_id_reserved(&self, id: Uuid) -> bool {
+        self.repairs.values().any(|start| {
+            let p = &start.plan.value;
+            [
+                p.repair_session_id,
+                p.repair_ceremony_id,
+                p.refresh.session_id,
+                p.refresh.ceremony_id,
+                p.recipient_anchor_id,
+            ]
+            .contains(&id)
+        })
+    }
+    fn private_id_reserved(&self, id: Uuid) -> bool {
+        self.repair_id_reserved(id)
+            || self
+                .ceremonies
+                .values()
+                .any(|c| c.plan.value.session_id == id || c.plan.value.ceremony_id == id)
+            || self.requests.values().any(|r| {
+                let i = &r.value.binding.authorized.intent;
+                i.session_id == id || i.crypto_execution_id == id
+            })
+    }
+    fn apply(&mut self, change: &Change, authorities: Authorities<'_>) -> Result<()> {
+        let Authorities {
+            own,
+            witness,
+            lifecycle,
+            party,
+            profile,
+        } = authorities;
+        match change {
+            Change::Cancel { attestation } => {
+                let proof = &attestation.value;
+                let request = &proof.request;
+                verify(own, "WITNESS_NO_RELEASE_V1", attestation)?;
+                verify(own, "WITNESS_PERMIT_REQUEST_V1", request)?;
+                verify(
+                    lifecycle.context("lifecycle cancellation disabled")?,
+                    "WITNESS_CANCELLATION_V1",
+                    &proof.authorization,
+                )?;
+                proof.authorization.value.matches(request)?;
+                let id = request.value.binding.authorized.intent.crypto_execution_id;
+                let key = slot(id, 2);
+                ensure!(
+                    request.value.party_id == party
+                        && self.requests.get(&key) == Some(request)
+                        && !self.reports.contains_key(&key)
+                        && !self.cancelled.contains_key(&id),
+                    "original R2 request required; a durable result can never attest no release"
+                );
+                self.cancelled.insert(id, (**attestation).clone());
+            }
+            Change::RepairStart { start } => {
+                let life = lifecycle.context("lifecycle repair disabled")?;
+                verify(life, "WITNESS_FROST_REPLACEMENT_PLAN_V1", &start.plan)?;
+                verify(witness, "WITNESS_QUERY_REPLY_V1", &start.frozen)?;
+                start.validate_shape()?;
+                let p = &start.plan.value;
+                let expected_key = if p.party_id == party {
+                    ensure!(
+                        p.recipient_profile_sha256 == profile,
+                        "exact replacement profile required"
+                    );
+                    &p.refresh.node_keys[party]
+                } else {
+                    &p.previous_node_keys[party]
+                };
+                let ids = [
+                    p.repair_session_id,
+                    p.repair_ceremony_id,
+                    p.refresh.session_id,
+                    p.refresh.ceremony_id,
+                    p.recipient_anchor_id,
+                ];
+                ensure!(
+                    expected_key == &own.key_id
+                        && ids.iter().all(|id| !self.private_id_reserved(*id)),
+                    "original repair identity/ceremony already consumed or mismatched"
+                );
+                self.repairs.insert(p.repair_ceremony_id, (**start).clone());
+            }
+            Change::RepairReady { report } => {
+                verify(own, "WITNESS_FROST_REPAIR_READY_V1", report)?;
+                let r = &report.value;
+                let p = &self
+                    .repairs
+                    .get(&r.repair_ceremony_id)
+                    .context("missing original private repair start")?
+                    .plan
+                    .value;
+                ensure!(
+                    party == p.party_id
+                        && !self.repaired.contains_key(&p.repair_ceremony_id)
+                        && r.root_identity == p.refresh.root.identity()?
+                        && r.plan_identity == p.identity()?
+                        && r.generation == p.refresh.previous
+                        && r.party_id == party,
+                    "exact recipient one-share staging provenance required"
+                );
+                self.repaired
+                    .insert(p.repair_ceremony_id, (**report).clone());
+            }
+            Change::ReplacementRefreshStart { start } => {
+                let life = lifecycle.context("lifecycle repair disabled")?;
+                verify(life, "WITNESS_FROST_REPLACEMENT_PLAN_V1", &start.plan)?;
+                verify(witness, "WITNESS_QUERY_REPLY_V1", &start.frozen)?;
+                start.validate_shape()?;
+                let p = &start.plan.value;
+                let original = self
+                    .repairs
+                    .get(&p.repair_ceremony_id)
+                    .context("missing original repair ceremony")?;
+                ensure!(
+                    original.plan.value == *p
+                        && p.refresh.node_keys.get(party) == Some(&own.key_id)
+                        && !self.ceremonies.contains_key(&p.refresh.ceremony_id)
+                        && !self
+                            .replacement_refresh
+                            .contains_key(&p.refresh.ceremony_id)
+                        && (party != p.party_id
+                            || self.repaired.contains_key(&p.repair_ceremony_id)),
+                    "exact reserved repair then fresh replacement refresh required"
+                );
+                self.replacement_refresh
+                    .insert(p.refresh.ceremony_id, (**start).clone());
+            }
+            Change::RefreshStart { start } => {
+                let life =
+                    lifecycle.context("lifecycle mutation is disabled for this deployment")?;
+                verify(life, "WITNESS_FROST_REFRESH_PLAN_V1", &start.plan)?;
+                verify(witness, "WITNESS_QUERY_REPLY_V1", &start.frozen)?;
+                start.validate_shape()?;
+                let plan = &start.plan.value;
+                ensure!(
+                    !self.repair_id_reserved(plan.ceremony_id)
+                        && !self.repair_id_reserved(plan.session_id),
+                    "ordinary refresh identifiers belong to a reserved replacement"
+                );
+                ensure!(
+                    plan.node_keys.get(party) == Some(&own.key_id)
+                        && !self.ceremonies.contains_key(&plan.ceremony_id)
+                        && !self
+                            .ceremonies
+                            .values()
+                            .any(|c| c.plan.value.session_id == plan.session_id)
+                        && !self.requests.values().any(|r| r
+                            .value
+                            .binding
+                            .authorized
+                            .intent
+                            .crypto_execution_id
+                            == plan.ceremony_id
+                            || r.value.binding.authorized.intent.session_id == plan.session_id),
+                    "ceremony/identity already consumed or disagrees"
+                );
+                self.ceremonies.insert(plan.ceremony_id, (**start).clone());
+            }
+            Change::RefreshReady { report } => {
+                verify(own, "WITNESS_GENERATION_READY_V1", report)?;
+                let r = &report.value;
+                let p = self.refresh_plan(r.generation.ceremony_id)?;
+                ensure!(
+                    !self.ready.contains_key(&p.ceremony_id)
+                        && r.party_id == party
+                        && r.root_identity == p.root.identity()?
+                        && r.previous_generation == p.previous
+                        && r.generation.epoch == p.next_epoch
+                        && r.generation.public_key_package_sha256 == hash(&r.public_key_package)
+                        && r.public_key_package != p.previous_public_key_package,
+                    "original durable refresh agreement mismatch"
+                );
+                wallet_mpc_protocol::sign::public_package(
+                    &r.public_key_package,
+                    &p.root.group_public_key,
+                )?;
+                let ceremony = p.ceremony_id;
+                self.ready.insert(ceremony, (**report).clone());
+            }
+            Change::Initialize => ensure!(
+                self.requests.is_empty() && self.consumed.is_empty() && self.reports.is_empty(),
+                "invalid local genesis"
+            ),
+            Change::Request { request } => {
+                let intent = &request.value.binding.authorized.intent;
+                ensure!(
+                    !self.repair_id_reserved(intent.crypto_execution_id)
+                        && !self.repair_id_reserved(intent.session_id),
+                    "private signing identifiers belong to replacement history"
+                );
+                verify(own, "WITNESS_PERMIT_REQUEST_V1", request)?;
+                ensure!(request.value.party_id == party, "foreign private request");
+                ensure!(
+                    !self
+                        .cancelled
+                        .contains_key(&request.value.binding.authorized.intent.crypto_execution_id),
+                    "execution permanently cancelled"
+                );
+                ensure!(
+                    !self
+                        .ceremonies
+                        .contains_key(&request.value.binding.authorized.intent.crypto_execution_id)
+                        && !self.ceremonies.values().any(|c| c.plan.value.session_id
+                            == request.value.binding.authorized.intent.session_id),
+                    "signing identifiers belong to a lifecycle ceremony"
+                );
+                let key = slot(
+                    request.value.binding.authorized.intent.crypto_execution_id,
+                    request.value.round,
+                );
+                ensure!(
+                    !self.requests.contains_key(&key),
+                    "private round request already reserved"
+                );
+                self.requests.insert(key, (**request).clone());
+            }
+            Change::Consume { permit } => {
+                verify(witness, "WITNESS_PERMIT_V1", permit)?;
+                let request = &permit.value.request;
+                ensure!(
+                    !self
+                        .cancelled
+                        .contains_key(&request.binding.authorized.intent.crypto_execution_id),
+                    "execution permanently cancelled"
+                );
+                let key = slot(
+                    request.binding.authorized.intent.crypto_execution_id,
+                    request.round,
+                );
+                ensure!(
+                    !self.consumed.contains_key(&key)
+                        && self.requests.get(&key).is_some_and(|r| r.value == *request),
+                    "private permission original request mismatch/replay"
+                );
+                self.consumed.insert(key, (**permit).clone());
+            }
+            Change::Result { report } => {
+                verify(own, "WITNESS_PUBLIC_ROUND_V1", report)?;
+                let p = &report.value;
+                ensure!(
+                    !self.cancelled.contains_key(&p.execution_id),
+                    "execution permanently cancelled"
+                );
+                let key = slot(p.execution_id, p.round);
+                let request = &self
+                    .consumed
+                    .get(&key)
+                    .context("result lacks consumed permission")?
+                    .value
+                    .request;
+                ensure!(
+                    p.party_id == party
+                        && p.anchor_id == request.anchor_id
+                        && p.binding_fingerprint == request.binding.identity()?
+                        && !self.reports.contains_key(&key),
+                    "original public round mismatch"
+                );
+                self.reports.insert(key, (**report).clone());
+            }
+        }
+        Ok(())
+    }
+}
+pub(super) struct Journal {
+    pub records: Records,
+    directory: PathBuf,
+    profile: String,
+    sequence: u64,
+    last_hash: String,
+    pub poisoned: bool,
+    _lock: File,
+}
+impl Journal {
+    pub fn open(
+        directory: &Path,
+        profile: String,
+        identity: &ReceiptIdentity,
+        authorities: Authorities<'_>,
+        initialize: bool,
+    ) -> Result<Self> {
+        let Authorities { own, .. } = authorities;
+        fs::create_dir_all(directory)?;
+        ensure!(
+            fs::symlink_metadata(directory)?.file_type().is_dir(),
+            "protected anchor cannot be a symlink"
+        );
+        fs::set_permissions(directory, fs::Permissions::from_mode(0o700))?;
+        let lock = OpenOptions::new()
+            .read(true)
+            .write(true)
+            .create(true)
+            .truncate(false)
+            .custom_flags(libc::O_NOFOLLOW)
+            .mode(0o600)
+            .open(directory.join("node.lock"))?;
+        ensure!(
+            unsafe { libc::flock(lock.as_raw_fd(), libc::LOCK_EX | libc::LOCK_NB) } == 0,
+            "protected anchor already owned by a process"
+        );
+        let events = directory.join("events");
+        let marker = directory.join("initialized.json");
+        if initialize {
+            ensure!(
+                !events.exists() && !marker.exists(),
+                "protected anchor initialization cannot reset history"
+            );
+            fs::create_dir(&events)?;
+            let event = sign(
+                identity,
+                "WITNESS_NODE_EVENT_V1",
+                Event {
+                    profile: profile.clone(),
+                    sequence: 0,
+                    previous: "00".repeat(32),
+                    change: Change::Initialize,
+                },
+            )?;
+            let event_hash = hash(&serde_json::to_vec(&serde_json::to_value(&event)?)?);
+            atomic_create_secret(
+                &events.join(format!("{:020}.json", 0)),
+                &serde_json::to_vec(&event)?,
+            )?;
+            let head = sign(
+                identity,
+                "WITNESS_NODE_HEAD_V1",
+                Head {
+                    profile: profile.clone(),
+                    sequence: 0,
+                    event_hash,
+                },
+            )?;
+            atomic_create_secret(&marker, &serde_json::to_vec(&head)?)?;
+        }
+        ensure!(
+            fs::symlink_metadata(&marker).is_ok_and(|m| m.file_type().is_file() && m.len() <= 4096)
+                && fs::symlink_metadata(&events).is_ok_and(|m| m.file_type().is_dir()),
+            "protected history missing; share restore cannot initialize it"
+        );
+        let head: Signed<Head> = serde_json::from_slice(&fs::read(&marker)?)?;
+        verify(own, "WITNESS_NODE_HEAD_V1", &head)?;
+        ensure!(head.value.profile == profile, "protected profile changed");
+        let mut paths = vec![];
+        for e in fs::read_dir(&events)? {
+            let p = e?.path();
+            if p.extension()
+                .and_then(|s| s.to_str())
+                .and_then(|s| s.strip_prefix("tmp-"))
+                .and_then(|s| Uuid::parse_str(s).ok().filter(|u| u.to_string() == s))
+                .is_some()
+            {
+                continue;
+            }
+            ensure!(
+                fs::symlink_metadata(&p)?.file_type().is_file(),
+                "invalid protected journal entry"
+            );
+            paths.push(p);
+        }
+        paths.sort();
+        ensure!(
+            head.value.sequence < paths.len() as u64,
+            "protected history tail missing"
+        );
+        let mut records = Records::default();
+        let mut last_hash = "00".repeat(32);
+        let mut sequence = 0;
+        for (index, path) in paths.iter().enumerate() {
+            ensure!(
+                path.file_name().and_then(|s| s.to_str())
+                    == Some(format!("{index:020}.json").as_str())
+                    && fs::metadata(path)?.len() <= 1024 * 1024,
+                "protected journal gap/bounds"
+            );
+            let event: Signed<Event> = serde_json::from_slice(&fs::read(path)?)?;
+            verify(own, "WITNESS_NODE_EVENT_V1", &event)?;
+            let e = &event.value;
+            ensure!(
+                e.profile == profile
+                    && e.sequence == index as u64
+                    && e.previous == last_hash
+                    && (index != 0 || matches!(e.change, Change::Initialize))
+                    && (index == 0 || !matches!(e.change, Change::Initialize)),
+                "protected journal identity/sequence"
+            );
+            records.apply(&e.change, authorities)?;
+            last_hash = hash(&serde_json::to_vec(&serde_json::to_value(&event)?)?);
+            sequence = e.sequence;
+            if sequence == head.value.sequence {
+                ensure!(
+                    last_hash == head.value.event_hash,
+                    "protected head mismatch"
+                );
+            }
+            confirm_parent_durability(path)?;
+        }
+        if sequence > head.value.sequence {
+            let head = sign(
+                identity,
+                "WITNESS_NODE_HEAD_V1",
+                Head {
+                    profile: profile.clone(),
+                    sequence,
+                    event_hash: last_hash.clone(),
+                },
+            )?;
+            atomic_replace_state(&marker, &serde_json::to_vec(&head)?)?;
+        }
+        confirm_parent_durability(&marker)?;
+        Ok(Self {
+            records,
+            directory: directory.into(),
+            profile,
+            sequence,
+            last_hash,
+            poisoned: false,
+            _lock: lock,
+        })
+    }
+    pub fn append(
+        &mut self,
+        change: Change,
+        identity: &ReceiptIdentity,
+        authorities: Authorities<'_>,
+    ) -> Result<()> {
+        ensure!(!self.poisoned, "protected durability uncertain");
+        let mut candidate = self.records.clone();
+        candidate.apply(&change, authorities)?;
+        let sequence = self
+            .sequence
+            .checked_add(1)
+            .context("protected journal exhausted")?;
+        let event = sign(
+            identity,
+            "WITNESS_NODE_EVENT_V1",
+            Event {
+                profile: self.profile.clone(),
+                sequence,
+                previous: self.last_hash.clone(),
+                change,
+            },
+        )?;
+        let last_hash = hash(&serde_json::to_vec(&serde_json::to_value(&event)?)?);
+        let bytes = serde_json::to_vec(&event)?;
+        ensure!(bytes.len() <= 1024 * 1024, "protected event bounds");
+        let head = sign(
+            identity,
+            "WITNESS_NODE_HEAD_V1",
+            Head {
+                profile: self.profile.clone(),
+                sequence,
+                event_hash: last_hash.clone(),
+            },
+        )?;
+        // Poison on every write error, including errors after an immutable event
+        // but before head publication. Restart conservatively replays the tail.
+        self.poisoned = true;
+        atomic_create_secret(
+            &self
+                .directory
+                .join("events")
+                .join(format!("{sequence:020}.json")),
+            &bytes,
+        )?;
+        atomic_replace_state(
+            &self.directory.join("initialized.json"),
+            &serde_json::to_vec(&head)?,
+        )?;
+        self.records = candidate;
+        self.sequence = sequence;
+        self.last_hash = last_hash;
+        self.poisoned = false;
+        Ok(())
+    }
+}

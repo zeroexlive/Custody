@@ -95,6 +95,12 @@ Staking/earn, off-exchange collateral, OTC-specific suite, cross-chain liquidity
 
 ## Status disclaimer
 
+PR #1 delivered its development checkpoint on main587e0969; Phase6G-C remains
+incomplete. The subsequent typed seeded intent/wire contract is an unconnected
+library foundation. It does not implement caller authorization, epoch freshness,
+signing permission, issued wallets or financial flows. See
+[current implementation boundary](PHASE6GC_SOLANA_SPENDING.md).
+
 The development checkpoint implements an operator-managed immutable tenant/principal
 registry with generated ledger reference IDs and PostgreSQL/audit guards. This is
 connected to operator-only Solana root/claim reservations with original network,

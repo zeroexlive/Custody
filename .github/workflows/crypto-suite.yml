@@ -124,7 +124,7 @@ jobs:
         env:
           PYTHONPATH: backend-side:mpc-side/integration
         run: python -m ton.localnet work/ton-bootstrap --container phase6fc-localton
-      - run: cargo build --locked --manifest-path mpc-side/Cargo.toml --bin wallet-mpc-coordinator --bin wallet-mpc-signer --example frost_round1_fixture --example frost_signing_package --example cggmp_round1_fixture --example cggmp_aux_message_fixture --example seeded_message_check
+      - run: cargo build --locked --manifest-path mpc-side/Cargo.toml --bin wallet-mpc-coordinator --bin wallet-mpc-signer --bin wallet-mpc-witness --bin wallet-mpc-protected-signer --example frost_round1_fixture --example frost_signing_package --example cggmp_round1_fixture --example cggmp_aux_message_fixture --example seeded_message_check --example authority_client_probe
       - name: Check out the fixed pre-migration development baseline
         if: inputs.suite == 'network'
         uses: actions/checkout@v4
@@ -163,6 +163,10 @@ jobs:
             work/crypto/fixtures/**/solana-evidence.json
             work/crypto/fixtures/**/solana-seeded-primitive-evidence.json
             work/crypto/fixtures/**/solana-registry-public-evidence.json
+            work/crypto/fixtures/**/solana-native-issuance-public-evidence.json
+            work/crypto/fixtures/**/solana-replacement-witness-public-evidence.json
+            work/crypto/fixtures/**/solana-repair-public-evidence.json
+            work/crypto/fixtures/**/solana-repair-fence-public-evidence.json
             work/ton-review/mpc-tvm-evidence.json
             work/ton-review/validator-network-evidence.json
             work/ton-review/django-validator-evidence.json

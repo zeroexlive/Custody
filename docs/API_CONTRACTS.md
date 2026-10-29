@@ -139,6 +139,13 @@ verify separate `solana_root`/`solana_claim` receipt domains against its three
 archival HOT signer certificate pins before any future issuance consumption.
 Coordinator-provided keys, signatures, labels or two-store agreement are insufficient.
 
+The next 6G-C branch adds `protocol::solana_intent::Intent` as a public internal
+data contract and pure shape/wire/domain constructor. There is no HTTP signing
+route for it and no nonce permission. The canonical machine-message domain binds
+the complete intent and original payload; caller identity, own original approvals,
+live generation witness and independent policy/network checks remain mandatory
+future integration. See [precise current boundary](PHASE6GC_SOLANA_SPENDING.md).
+
 The operator-only `solana_provisioning` command now registers original roots and
 reserves/approves tenant/principal/asset claims in PostgreSQL before mutating these
 RPCs. It reports `issued:false` even for APPROVED. Partial/unknown outcomes retain
@@ -153,3 +160,91 @@ fence through partial failures. New generic signing-session reservations conflic
 with pending/complete dedication under the same data lock; exact existing-session
 recovery is preserved. This is a coordinated-API fence, not Byzantine consensus
 or anti-rollback protection; see the explicit trust/availability limits above.
+
+## Phase 6G-C protected Solana internal development interfaces
+
+The required-profile `wallet-mpc-protected-signer` entrypoint exposes bounded POST
+`/internal/v1/solana/protected/{auto,challenge,apply,recover}`. The first, second
+and fourth accept `protocol::witness::Binding` plus `round` and optional original
+`signing_package` in a strict `protected::Control`; `apply` accepts the original
+signed witness `Permit`. Challenge/result types are signer-signed. Coordinator
+mTLS is required; COLD also permits its explicit courier role. COLD has no
+automatic witness client. Original result recovery never repeats private work.
+The generic `/internal/v1/sign/*` router is absent from this entrypoint.
+The subsequent `/internal/v1/solana/protected/cancel` accepts `CancelControl`:
+original R2 control plus independently lifecycle-signed `Cancellation` binding the
+exact durable signed request. It returns a durable terminal `NoRelease` only if
+no durable R2 result exists. This removes local authority and may occur while
+ACTIVE; all future old private work is forbidden. Witness `CloseUnreleased`
+separately requires Frozen state and original-key certificates from every actual
+R2 grantee. Neither timeout nor absent history closes a permission. See
+[cancellation semantics and assumptions](PHASE6GC_NO_RELEASE.md).
+
+The separate witness exposes `/v1/witness/{command,permit,record,query}`. Strict
+public Rust contracts are in `protocol::witness`. Lifecycle commands require a
+separate pinned lifecycle signature and lifecycle mTLS; they carry anchor,
+request UUID, original root identity, expected revision and expiry. Permit
+issuance also requires the immutable lifecycle-authorized `RegisterClaim`
+record, whose all-three receipts and permanent ownership/index/retry/reservation
+aliases survive signer restores. Fresh signed queries may request a claim UUID
+and recover its original public registration. Wallet issuance must wait for that
+durable claim-registration ACK.
+Permit
+requests require the original node signature plus signer transport or an
+explicit authenticated courier, independent custody and class-policy proofs,
+and a signer-origin challenge with at most15 seconds of life. Detached node
+pins are authoritative even when relayed without the original node certificate.
+Freeze/zero-R2 closure/prepare/activate and permissions share durable CAS state.
+Signed query responses echo the exact caller challenge. Public original round
+results can be redelivered idempotently; secret permissions cannot be repeated.
+
+Replies use200 for accepted public results and409 for rejected/uncertain authority
+requests; unauthorized transport roles use403 and malformed/bounded inputs use
+appropriate4xx responses. Failure never authorizes a fresh payout, releases a
+financial reserve or proves non-inclusion. `SignedPending` is cryptographic
+completion only. Backend issuance/ledger integration, explicit replacement/share
+repair and the public production API contract remain unfinished. See
+[implementation evidence and limits](PHASE6GC_SOLANA_SPENDING.md).
+
+The protected signer additionally accepts strict `RefreshPlan`/`refresh::Control`
+POSTs at `/internal/v1/solana/generation/{query,start,round1,round2,finalize,report,abort}`.
+Every plan needs the independently pinned lifecycle signature. Ordinary refresh
+requires each node's own fresh signed Frozen witness query and the exact current
+identity roster. COLD query responses use explicit courier relay. The bounded
+`/internal/v1/solana/generation/message` endpoint accepts only exact planned
+signer identities and canonical session-bound direct-peer envelopes. Controllers
+receive no private round packages. Original ceremony/session tombstones survive
+restart; report may recover an already completed encrypted generation's public
+Ready without repeating private work. See [refresh contract](PHASE6GC_SOLANA_REFRESH.md).
+
+
+### Phase6G-C native wallet publication (Draft PR #2 development)
+
+Privileged local `solana_wallet_publication request/complete` exports an original
+durable issuance UUID plus public witness query/action, then consumes the exact
+signed response to atomically create its original Claim-linked native wallet.
+The backend does not own the independent lifecycle approval key. No external
+API credential or generic signing authority follows. See
+[publication authority, migration and acceptance](PHASE6GC_NATIVE_ISSUANCE.md).
+SPL publication, protected financial sessions and lifecycle drain remain pending.
+
+
+### Phase6G-C public replacement reservation (unmerged development)
+
+Separate Lifecycle `ReserveReplacement` and `AbandonReplacement` commands bind
+one exact Frozen original Root/generation and never release failed-plan identity
+history. Signed query replies optionally expose the pending plan, original
+command ID and original all-three Root receipt evidence. Prepare/Activate require
+the exact reserved next refresh and all3 readiness. Original ordinary refresh
+roster checks remain strict. New event rules do not rewrite old signed history.
+The protected signer additionally exposes strict
+`/internal/v1/solana/replacement/{query,start,round1,round2,finalize,report,abort}`
+controls with a separate Life-signed ReplacementPlan and mandatory `stage`
+(`repair` or `refresh`). Direct canonical private envelopes are accepted only at
+`/internal/v1/solana/replacement/message` from exact planned signer TLS keys.
+Controllers receive public status/RepairReady/GenerationReady, never private
+Delta or Sigma. COLD controls require courier identity; HOT/WARM coordinator.
+Fresh recipient profiles are dedicated to one original Root; generic DKG and
+original-generation signing are unavailable there. RepairReady cannot authorize
+activation. Explicit migration of old immutable profiles remains unfinished; see
+[implemented boundary and remaining acceptance](PHASE6GC_RECOVERY.md).

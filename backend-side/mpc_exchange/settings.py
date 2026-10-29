@@ -190,3 +190,7 @@ CUSTODY_INDEXER_MODE = config("CUSTODY_INDEXER_MODE", default="live")
 
 # Independently installed archival signer public certificates; never supplied by RPC.
 MPC_HD_SIGNER_CERTIFICATES = config("MPC_HD_SIGNER_CERTIFICATES", default="{}", cast=json.loads)
+# Current independently installed public authority only; the backend never owns
+# its lifecycle signing key. Empty settings disable seeded wallet publication.
+MPC_SOLANA_WITNESS_CERTIFICATE = config("MPC_SOLANA_WITNESS_CERTIFICATE", default="")
+MPC_SOLANA_WITNESS_ANCHOR_ID = config("MPC_SOLANA_WITNESS_ANCHOR_ID", default="")

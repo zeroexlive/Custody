@@ -1,5 +1,12 @@
 # Phase 6G-C — RUSTSEC-2026-0387 security gate
 
+Merged development status (2026-10-28): PR #1 is merged as587e0969. Its tree equals
+final reviewed78394fc; Fast40683968092/full40683962776 passed14jobs/228calls/zero
+skips and original-store compatibility665.205s. Main Fast40716836844 passed. The
+older pre-merge source/main statements below are historical. Remaining6G-C and
+production/mainnet/customer-fund gates remain open; subsequent source needs its
+own acceptance. The owned backend integration is now included in this main snapshot.
+
 Current supersession (2026-10-28): the implemented source checkpoint `1d4737e`
 passed Fast40675308341 and all14 full-gate jobs40675302192,228 actual calls/zero
 skips and original-store compatibility652.422s, independently verified. The owner

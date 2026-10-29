@@ -47,7 +47,12 @@ def _audit(action, row, operator_ref):
 def _root_statement(keyset, tenant_id, network):
     metadata = keyset.dkg_public_evidence
     verify_coordinator_keyset(keyset, metadata)
-    if keyset.scope != "SOLANA" or not keyset.dkg_execution_id or keyset.active_for_new_wallets:
+    if (
+        keyset.scope != "SOLANA"
+        or not keyset.dkg_execution_id
+        or keyset.active_for_new_wallets
+        or metadata.get("custody_class") not in (None, "HOT")
+    ):
         raise MpcBindingError("original inactive-for-auto-issuance SOLANA root required")
     report = metadata["participant_agreement"][0]
     if len(report["public_key_package"]) > 4096 or bytes(

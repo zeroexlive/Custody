@@ -2,7 +2,7 @@
 
 **Self-hosted, API-first digital-asset custody and financial platform** for cryptocurrency exchanges, payment gateways, payment facilitators, merchants, and institutional operators.
 
-**Status (2026-10-28):** Phase 6G-C remains incomplete. The owner authorized merging the verified development checkpoint in [PR #1](https://github.com/zeroexlive/Custody/pull/1) and continuing the remaining 6G-C implementation; see [current evidence/status](docs/PROJECT_STATUS.md) and the [dated merge decision](docs/DECISIONS.md). The verified pre-merge main snapshot is `3d32b763ff777347f77eae7a8a7936d85dc2d770` (Phase 6G-B #37). Existing EVM, TRON, Solana and TON integrations have genuine isolated-development acceptance, **not production/mainnet authorization**. TON stays at its currently accepted isolated scope until explicitly reprioritized. No customer funds or production withdrawal activation is authorized by these documents.
+**Status (2026-10-28):** Phase 6G-C remains incomplete. [PR #1](https://github.com/zeroexlive/Custody/pull/1) merged its verified development foundations as `587e0969a216102879d17cadb6ffeee8dfb8b6c6`; final-head Fast/full and main Fast passed. Remaining 6G-C implementation continues from that merged base; see [current evidence/status](docs/PROJECT_STATUS.md) and the [dated merge decision](docs/DECISIONS.md). Existing EVM, TRON, Solana and TON integrations have genuine isolated-development acceptance, **not production/mainnet authorization**. TON stays at its currently accepted isolated scope until explicitly reprioritized. No customer funds or production withdrawal activation is authorized by these documents.
 
 This is more than an MPC signing service. The target system combines a single authoritative double-entry ledger, a transaction/custody engine, independent MPC signers, human authorization, treasury operations, exchange settlement APIs, merchant payments, risk controls, and operator/developer interfaces. External exchange matching engines and order books remain separate systems.
 
@@ -24,6 +24,7 @@ This is more than an MPC signing service. The target system combines a single au
 
 - [Operator identity registry](docs/PHASE6GC_IDENTITY_REGISTRY.md) — immutable tenant/customer mapping with PostgreSQL and audit guards; external authorization and financial integration remain incomplete.
 - [Authoritative Solana reservations](docs/PHASE6GC_SOLANA_REGISTRY.md) — durable tenant/owner/asset allocation and three-store approvals; wallet issuance and spending integration remain incomplete.
+- [Seeded Solana intent contract](docs/PHASE6GC_SOLANA_SPENDING.md) — the next development branch's public structure/wire checks; authenticated nonce/signing integration remains incomplete.
 
 - [Phase 6G-C seeded Solana foundations](docs/PHASE6GC_SOLANA_SEEDED.md) — wire/spendability primitives, authenticated root/claim records and three-store receipt collection; customer issuance and lifecycle remain incomplete.
 - [Authoritative ledger](LEDGER.md), [chain adapters](CHAIN_ADAPTERS.md), [token custody](TOKEN_CUSTODY.md), [native transaction lifecycle](NATIVE_TX_LIFECYCLE.md).

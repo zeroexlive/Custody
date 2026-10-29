@@ -82,6 +82,12 @@ jobs:
       - run: ruff check custody/identity_registry.py custody/management/commands/custody_identity.py custody/migrations/0033_tenant_principal_registry.py
       - run: ruff format --check custody/solana_provisioning.py custody/management/commands/solana_provisioning.py custody/migrations/0034_solana_authoritative_claims.py custody/signer_adapter.py
       - run: ruff check custody/solana_provisioning.py custody/management/commands/solana_provisioning.py custody/migrations/0034_solana_authoritative_claims.py custody/signer_adapter.py
+      - run: ruff format --check custody/solana_issuance.py custody/management/commands/solana_wallet_publication.py custody/migrations/0035_solana_native_wallet_issuance.py
+      - run: ruff check custody/solana_issuance.py custody/management/commands/solana_wallet_publication.py custody/migrations/0035_solana_native_wallet_issuance.py
+      - run: ruff format --check ../mpc-side/protocol/tests/fixtures/generate_solana_intent.py
+      - run: ruff check ../mpc-side/protocol/tests/fixtures/generate_solana_intent.py
+      - name: Verify independent public seeded intent SDK and canonical message fixtures
+        run: python ../mpc-side/protocol/tests/fixtures/generate_solana_intent.py --fixture ../mpc-side/protocol/tests/fixtures/solana-seeded-intent-sdk.json --check
       - run: ruff format --check custody/checks.py custody/mpc_payload.py custody/mpc_identity.py custody/mpc_binding.py custody/mpc_evm_network.py custody/mpc_tron_network.py custody/mpc_solana_network.py custody/mpc_ton_network.py custody/ton*.py custody/account_chain_costs.py custody/management/commands/ton_wallet_binding.py custody/solana_wire.py custody/solana_seeded.py custody/solana_policy.py custody/solana_settlement.py custody/solana_deposits.py custody/solana_costs.py custody/tron_wire.py custody/tron_policy.py custody/tron_settlement.py custody/mpc_signing.py custody/management/commands/mpc_keyset.py custody/management/commands/advance_mpc_signing.py custody/management/commands/bind_mpc_hot_wallet.py custody/migrations/001[2-9]* custody/migrations/002[0-6]* custody/tests
       - run: ruff check custody/checks.py custody/mpc_payload.py custody/mpc_identity.py custody/mpc_binding.py custody/mpc_evm_network.py custody/mpc_tron_network.py custody/mpc_solana_network.py custody/mpc_ton_network.py custody/ton*.py custody/account_chain_costs.py custody/management/commands/ton_wallet_binding.py custody/solana_wire.py custody/solana_seeded.py custody/solana_policy.py custody/solana_settlement.py custody/solana_deposits.py custody/solana_costs.py custody/tron_wire.py custody/tron_policy.py custody/tron_settlement.py custody/mpc_signing.py custody/management/commands/mpc_keyset.py custody/management/commands/advance_mpc_signing.py custody/management/commands/bind_mpc_hot_wallet.py custody/migrations/001[2-9]* custody/migrations/002[0-6]* custody/tests
       - run: >-
@@ -270,7 +276,7 @@ jobs:
             curl --fail --location --silent --show-error https://github.com/tronprotocol/java-tron/releases/download/GreatVoyage-v4.8.2.3/FullNode.jar -o "$PHASE6F_TRON_JAR"
           fi
           echo "faef7f4d89b9f154632bbab2db1712c25f02ee37b356013e098558ea994accec  $PHASE6F_TRON_JAR" | sha256sum --check
-      - run: cargo build --locked --manifest-path mpc-side/Cargo.toml --bin wallet-mpc-coordinator --bin wallet-mpc-signer --example frost_round1_fixture --example frost_signing_package --example cggmp_round1_fixture --example cggmp_aux_message_fixture --example seeded_message_check
+      - run: cargo build --locked --manifest-path mpc-side/Cargo.toml --bin wallet-mpc-coordinator --bin wallet-mpc-signer --bin wallet-mpc-witness --bin wallet-mpc-protected-signer --example frost_round1_fixture --example frost_signing_package --example cggmp_round1_fixture --example cggmp_aux_message_fixture --example seeded_message_check --example authority_client_probe
       - name: Verify complete crypto inventory without executing fixtures
         run: |
           mkdir -p work

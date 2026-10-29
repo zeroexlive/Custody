@@ -189,6 +189,10 @@ def verify_coordinator_keyset(keyset, metadata):
     ):
         raise MpcBindingError("coordinator DKG result mismatch")
     dkg = {k: metadata[k] for k in ("session_id", *expected)}
+    if "custody_class" in metadata:
+        if not frost or keyset.scope != "SOLANA" or metadata["custody_class"] != "HOT":
+            raise MpcBindingError("invalid classified original DKG birth metadata")
+        dkg["custody_class"] = metadata["custody_class"]
     reports = metadata.get("participant_agreement", [])
     if len(reports) != 3:
         raise MpcBindingError("incomplete DKG participant agreement")

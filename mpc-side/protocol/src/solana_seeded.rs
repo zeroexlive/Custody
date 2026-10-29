@@ -30,7 +30,7 @@ pub fn address(base: &Key, index: u64, token: bool) -> Result<Key> {
     let owner = if token { key(TOKEN)? } else { SYSTEM };
     Ok(Sha256::digest([base.as_slice(), seed(index, token)?.as_bytes(), &owner].concat()).into())
 }
-fn ata(owner: &Key, mint: &Key) -> Result<Key> {
+pub fn associated_address(owner: &Key, mint: &Key) -> Result<Key> {
     let token = key(TOKEN)?;
     let program = key(ATA)?;
     for bump in (0u8..=255).rev() {
@@ -140,7 +140,7 @@ fn expected(base: Key, index: u64, op: &Operation) -> Result<Vec<Instruction>> {
         } => {
             ensure!(*amount > 0 && *decimals <= 18, "token amount/precision");
             let source = address(&base, index, true)?;
-            let target = ata(destination_owner, mint)?;
+            let target = associated_address(destination_owner, mint)?;
             ensure!(source != target, "same token source and destination");
             if *create_ata {
                 out.push(Instruction {

@@ -23,20 +23,47 @@ use tokio_rustls::{TlsAcceptor, TlsConnector};
 use x509_parser::{extensions::GeneralName, prelude::*};
 
 pub const PROTOCOL_VERSION: &str = "phase6-v1";
+pub mod solana_rpc;
 pub const ROLES: [&str; 5] = ["custody", "coordinator", "signer-a", "signer-b", "signer-c"];
+/// Separate listeners explicitly opt into this catalog. Legacy custody/signer
+/// listeners continue accepting only ROLES; this does not widen their boundary.
+pub const AUTHORITY_ROLES: [&str; 10] = [
+    "witness",
+    "lifecycle",
+    "signer-a",
+    "signer-b",
+    "signer-c",
+    "policy-hot",
+    "policy-warm",
+    "policy-cold",
+    "custody",
+    "courier",
+];
 
 #[derive(Clone, Debug, PartialEq, Eq)]
-pub struct PeerIdentity(String);
+pub struct PeerIdentity {
+    role: String,
+    key_id: String,
+}
 
 impl PeerIdentity {
     pub fn role(&self) -> &str {
-        &self.0
+        &self.role
+    }
+    /// SHA-256 of the authenticated leaf's public-key bytes. A lifecycle plan
+    /// can fence a retired same-role certificate without changing legacy roles.
+    pub fn key_id(&self) -> &str {
+        &self.key_id
     }
 }
 
 /// CN, headers and request JSON are never identity sources. Require exactly
 /// one URI SAN and an exact, fixed mapping; ambiguous identities fail closed.
 pub fn certificate_identity(cert: &CertificateDer<'_>) -> Result<PeerIdentity> {
+    certificate_identity_in(cert, &ROLES)
+}
+
+pub fn certificate_identity_in(cert: &CertificateDer<'_>, roles: &[&str]) -> Result<PeerIdentity> {
     let (remaining, cert) = X509Certificate::from_der(cert.as_ref())?;
     ensure!(remaining.is_empty(), "trailing certificate data");
     let san = cert
@@ -58,8 +85,19 @@ pub fn certificate_identity(cert: &CertificateDer<'_>) -> Result<PeerIdentity> {
     let role = uris[0]
         .strip_prefix("spiffe://wallet-mpc/")
         .context("unknown identity domain")?;
-    ensure!(ROLES.contains(&role), "unknown certificate role");
-    Ok(PeerIdentity(role.to_owned()))
+    ensure!(roles.contains(&role), "unknown certificate role");
+    let key_id = ring::digest::digest(
+        &ring::digest::SHA256,
+        cert.public_key().subject_public_key.data.as_ref(),
+    )
+    .as_ref()
+    .iter()
+    .map(|b| format!("{b:02x}"))
+    .collect();
+    Ok(PeerIdentity {
+        role: role.to_owned(),
+        key_id,
+    })
 }
 
 fn certificates(path: &str) -> Result<Vec<CertificateDer<'static>>> {
@@ -68,7 +106,8 @@ fn certificates(path: &str) -> Result<Vec<CertificateDer<'static>>> {
     Ok(certs)
 }
 
-#[derive(Clone)]
+#[derive(Clone, Deserialize, Serialize)]
+#[serde(deny_unknown_fields)]
 pub struct TlsConfig {
     pub ca: String,
     pub cert: String,
@@ -79,12 +118,19 @@ pub struct TlsConfig {
 /// Uses the same private CA and client-auth identity as the mTLS boundary.
 pub struct CustodyRequestVerifier {
     verifier: Arc<dyn rustls::server::danger::ClientCertVerifier>,
+    role: String,
+    roles: Vec<String>,
 }
 
 impl CustodyRequestVerifier {
     pub fn new(config: &TlsConfig) -> Result<Self> {
+        Self::for_role(&config.ca, "custody", &ROLES)
+    }
+
+    pub fn for_role(ca: &str, role: &str, roles: &[&str]) -> Result<Self> {
+        ensure!(roles.contains(&role), "unknown proof issuer role");
         let mut roots = RootCertStore::empty();
-        for cert in certificates(&config.ca)? {
+        for cert in certificates(ca)? {
             roots.add(cert)?;
         }
         Ok(Self {
@@ -93,6 +139,8 @@ impl CustodyRequestVerifier {
                 Arc::new(rustls::crypto::ring::default_provider()),
             )
             .build()?,
+            role: role.to_owned(),
+            roles: roles.iter().map(|s| (*s).to_owned()).collect(),
         })
     }
 
@@ -115,8 +163,13 @@ impl CustodyRequestVerifier {
             rustls::pki_types::UnixTime::now(),
         )?;
         ensure!(
-            certificate_identity(&leaf)?.role() == "custody",
-            "custody identity required"
+            certificate_identity_in(
+                &leaf,
+                &self.roles.iter().map(String::as_str).collect::<Vec<_>>()
+            )?
+            .role()
+                == self.role,
+            "original proof issuer identity mismatch"
         );
         let (_, cert) = X509Certificate::from_der(leaf.as_ref())?;
         let public = cert.public_key();
@@ -152,9 +205,10 @@ impl TlsConfig {
         })
     }
 
-    fn material(
+    fn material_in(
         &self,
         role: &str,
+        roles: &[&str],
     ) -> Result<(
         RootCertStore,
         Vec<CertificateDer<'static>>,
@@ -166,7 +220,7 @@ impl TlsConfig {
         }
         let certs = certificates(&self.cert)?;
         ensure!(
-            certificate_identity(&certs[0])?.role() == role,
+            certificate_identity_in(&certs[0], roles)?.role() == role,
             "local certificate role mismatch"
         );
         let key = PrivateKeyDer::from_pem_file(&self.key)?;
@@ -174,7 +228,11 @@ impl TlsConfig {
     }
 
     pub fn server(&self, role: &str) -> Result<Arc<ServerConfig>> {
-        let (roots, certs, key) = self.material(role)?;
+        self.server_in(role, &ROLES)
+    }
+
+    pub fn server_in(&self, role: &str, roles: &[&str]) -> Result<Arc<ServerConfig>> {
+        let (roots, certs, key) = self.material_in(role, roles)?;
         let verifier = WebPkiClientVerifier::builder_with_provider(
             Arc::new(roots),
             Arc::new(rustls::crypto::ring::default_provider()),
@@ -193,7 +251,11 @@ impl TlsConfig {
     }
 
     pub fn client(&self, role: &str) -> Result<Arc<ClientConfig>> {
-        let (roots, certs, key) = self.material(role)?;
+        self.client_in(role, &ROLES)
+    }
+
+    pub fn client_in(&self, role: &str, roles: &[&str]) -> Result<Arc<ClientConfig>> {
+        let (roots, certs, key) = self.material_in(role, roles)?;
         let mut config =
             ClientConfig::builder_with_provider(Arc::new(rustls::crypto::ring::default_provider()))
                 .with_protocol_versions(&[&rustls::version::TLS13])?
@@ -252,6 +314,16 @@ pub async fn serve_roles(
     app: Router,
     allowed: &'static [&'static str],
 ) -> Result<()> {
+    serve_roles_in(bind, config, app, allowed, &ROLES).await
+}
+
+pub async fn serve_roles_in(
+    bind: SocketAddr,
+    config: Arc<ServerConfig>,
+    app: Router,
+    allowed: &'static [&'static str],
+    identity_roles: &'static [&'static str],
+) -> Result<()> {
     let listener = TcpListener::bind(bind).await?;
     let acceptor = TlsAcceptor::from(config);
     let slots = Arc::new(Semaphore::new(256));
@@ -276,7 +348,7 @@ pub async fn serve_roles(
             else {
                 return;
             };
-            let Ok(peer) = certificate_identity(cert) else {
+            let Ok(peer) = certificate_identity_in(cert, identity_roles) else {
                 return;
             };
             let app = app
@@ -322,6 +394,25 @@ impl Drop for AbortOnDrop {
 }
 
 impl SignerClient {
+    pub fn with_targets(
+        tls: &TlsConfig,
+        local_role: &str,
+        targets: Vec<(String, SocketAddr, String)>,
+    ) -> Result<Self> {
+        ensure!(
+            targets.len() == 3
+                && ["signer-a", "signer-b", "signer-c"].iter().all(|p| targets
+                    .iter()
+                    .filter(|(role, _, name)| role == p && !name.is_empty())
+                    .count()
+                    == 1),
+            "three explicit signer destinations required"
+        );
+        Ok(Self {
+            tls: tls.client(local_role)?,
+            targets,
+        })
+    }
     pub fn from_env(tls: &TlsConfig) -> Result<Self> {
         Self::from_env_for(tls, "coordinator")
     }
@@ -377,6 +468,80 @@ impl SignerClient {
         .await?
     }
 
+    /// Lifecycle private-round messages require the exact plan-approved peer
+    /// key BEFORE their body is sent, in addition to chain/hostname/role checks.
+    pub async fn request_pinned(
+        &self,
+        role: &str,
+        key_id: &str,
+        method: &str,
+        path: &str,
+        body: Vec<u8>,
+    ) -> Result<Vec<u8>> {
+        ensure!(
+            key_id.len() == 64
+                && key_id
+                    .bytes()
+                    .all(|b| b.is_ascii_digit() || (b'a'..=b'f').contains(&b)),
+            "canonical peer key pin required"
+        );
+        let (_, addr, name) = self
+            .targets
+            .iter()
+            .find(|(r, _, _)| r == role)
+            .context("unconfigured pinned peer")?;
+        timeout(
+            Duration::from_secs(5),
+            exchange_to(
+                self.tls.clone(),
+                (role, *addr, name, &ROLES, Some(key_id)),
+                method,
+                path,
+                body,
+            ),
+        )
+        .await?
+    }
+
+    /// Lifecycle-private output has a hard release deadline in addition to
+    /// the exact peer pin. Recheck time after the awaited TLS/HTTP handshakes,
+    /// immediately before any request body can leave this process.
+    pub async fn request_pinned_until<R>(
+        &self,
+        role: &str,
+        key_id: &str,
+        path: &str,
+        body: Vec<u8>,
+        expires_at: u64,
+        release: impl Fn() -> Result<R> + Send + Sync,
+    ) -> Result<Vec<u8>> {
+        ensure!(
+            key_id.len() == 64
+                && key_id
+                    .bytes()
+                    .all(|b| b.is_ascii_digit() || (b'a'..=b'f').contains(&b)),
+            "canonical peer key pin required"
+        );
+        let (_, addr, name) = self
+            .targets
+            .iter()
+            .find(|(r, _, _)| r == role)
+            .context("unconfigured pinned peer")?;
+        timeout(
+            Duration::from_secs(5),
+            exchange_to_until(
+                self.tls.clone(),
+                (role, *addr, name, &ROLES, Some(key_id)),
+                "POST",
+                path,
+                body,
+                Some(expires_at),
+                Some(&release),
+            ),
+        )
+        .await?
+    }
+
     async fn fetch(&self, role: &str, _addr: SocketAddr, _name: &str) -> Result<Capabilities> {
         let body = self
             .request(role, "GET", "/internal/v1/capabilities", vec![])
@@ -408,52 +573,176 @@ impl SignerClient {
         path: &str,
         body: Vec<u8>,
     ) -> Result<Vec<u8>> {
-        // Auxiliary/signing proofs need more space than keygen controls. These RPCs
-        // enqueue bounded messages; expensive crypto runs in asynchronous workers.
-        let limit = if path.starts_with("/internal/v1/cggmp/aux/")
-            || path.starts_with("/internal/v1/cggmp/sign/")
-        {
-            1024 * 1024
-        } else {
-            64 * 1024
-        };
-        ensure!(body.len() <= limit, "protocol request too large");
-        let socket = tokio::net::TcpStream::connect(addr).await?;
-        let stream = TlsConnector::from(self.tls.clone())
-            .connect(ServerName::try_from(name.to_owned())?, socket)
-            .await?;
-        let cert = stream
-            .get_ref()
-            .1
-            .peer_certificates()
-            .and_then(|c| c.first())
-            .context("server certificate missing")?;
+        exchange_to(
+            self.tls.clone(),
+            (role, addr, name, &ROLES, None),
+            method,
+            path,
+            body,
+        )
+        .await
+    }
+}
+
+async fn exchange_to(
+    tls: Arc<ClientConfig>,
+    target: (&str, SocketAddr, &str, &[&str], Option<&str>),
+    method: &str,
+    path: &str,
+    body: Vec<u8>,
+) -> Result<Vec<u8>> {
+    exchange_to_until::<()>(tls, target, method, path, body, None, None).await
+}
+
+async fn exchange_to_until<R>(
+    tls: Arc<ClientConfig>,
+    target: (&str, SocketAddr, &str, &[&str], Option<&str>),
+    method: &str,
+    path: &str,
+    body: Vec<u8>,
+    expires_at: Option<u64>,
+    release: Option<&(dyn Fn() -> Result<R> + Sync)>,
+) -> Result<Vec<u8>> {
+    let (role, addr, name, roles, pin) = target;
+    // Auxiliary/signing proofs need more space than keygen controls. These RPCs
+    // enqueue bounded messages; expensive crypto runs in asynchronous workers.
+    let limit = if path.starts_with("/internal/v1/cggmp/aux/")
+        || path.starts_with("/internal/v1/cggmp/sign/")
+        || path.starts_with("/v1/witness/")
+        || path.starts_with("/internal/v1/solana/protected/")
+    {
+        1024 * 1024
+    } else {
+        64 * 1024
+    };
+    ensure!(body.len() <= limit, "protocol request too large");
+    let socket = tokio::net::TcpStream::connect(addr).await?;
+    let stream = TlsConnector::from(tls)
+        .connect(ServerName::try_from(name.to_owned())?, socket)
+        .await?;
+    let cert = stream
+        .get_ref()
+        .1
+        .peer_certificates()
+        .and_then(|c| c.first())
+        .context("server certificate missing")?;
+    ensure!(
+        certificate_identity_in(cert, roles)?.role() == role,
+        "destination signer identity mismatch"
+    );
+    if let Some(expected) = pin {
         ensure!(
-            certificate_identity(cert)?.role() == role,
-            "destination signer identity mismatch"
+            certificate_key_id(cert)? == expected,
+            "authority TLS key pin mismatch"
         );
-        let (mut sender, connection) =
-            hyper::client::conn::http1::handshake(TokioIo::new(stream)).await?;
-        let _task = AbortOnDrop(tokio::spawn(async move {
-            let _ = connection.await;
-        }));
-        // Abort the HTTP driver even when a response or bounded body read fails.
-        let request = hyper::Request::builder()
-            .method(method)
-            .uri(path)
-            .header("Host", name)
-            .header("Content-Type", "application/json")
-            .body(Full::new(Bytes::from(body)))?;
-        let response = sender.send_request(request).await?;
-        if response.status() != StatusCode::OK {
-            return Err(PeerHttpStatus(response.status()).into());
-        }
-        let body = Limited::new(response.into_body(), limit)
-            .collect()
-            .await
-            .map_err(|_| anyhow::anyhow!("invalid signer response"))?
-            .to_bytes();
-        Ok(body.to_vec())
+    }
+    let (mut sender, connection) =
+        hyper::client::conn::http1::handshake(TokioIo::new(stream)).await?;
+    let _task = AbortOnDrop(tokio::spawn(async move {
+        let _ = connection.await;
+    }));
+    // Abort the HTTP driver even when a response or bounded body read fails.
+    let request = hyper::Request::builder()
+        .method(method)
+        .uri(path)
+        .header("Host", name)
+        .header("Content-Type", "application/json")
+        .body(Full::new(Bytes::from(body)))?;
+    // Hyper dispatches synchronously in send_request. A caller's guard orders
+    // that exact release against its durable writes; never retain this guard
+    // across the peer response await (two peers may send concurrently).
+    let response = guarded_dispatch(
+        release,
+        expires_at,
+        || {
+            Ok(std::time::SystemTime::now()
+                .duration_since(std::time::UNIX_EPOCH)?
+                .as_secs())
+        },
+        || sender.send_request(request),
+    )?
+    .await?;
+    if response.status() != StatusCode::OK {
+        return Err(PeerHttpStatus(response.status()).into());
+    }
+    let body = Limited::new(response.into_body(), limit)
+        .collect()
+        .await
+        .map_err(|_| anyhow::anyhow!("invalid signer response"))?
+        .to_bytes();
+    Ok(body.to_vec())
+}
+
+/// Linearize enqueue with the caller's write guard, and drop it before polling
+/// the returned response future. Clock is injectable for deterministic races.
+fn guarded_dispatch<R, T>(
+    release: Option<&(dyn Fn() -> Result<R> + Sync)>,
+    expires_at: Option<u64>,
+    clock: impl FnOnce() -> Result<u64>,
+    dispatch: impl FnOnce() -> T,
+) -> Result<T> {
+    let _release = release.map(|f| f()).transpose()?;
+    if let Some(deadline) = expires_at {
+        ensure!(
+            clock()? < deadline,
+            "private lifecycle release expired before HTTP transmission"
+        );
+    }
+    Ok(dispatch())
+}
+
+/// A single operator-configured authority destination; never a request URL.
+#[derive(Clone)]
+pub struct AuthorityClient {
+    tls: Arc<ClientConfig>,
+    addr: SocketAddr,
+    name: String,
+    pin: String,
+}
+impl AuthorityClient {
+    pub fn new(
+        config: &TlsConfig,
+        local_role: &str,
+        addr: SocketAddr,
+        name: String,
+        witness_certificate: &str,
+    ) -> Result<Self> {
+        let pin = PinnedIdentity::new(witness_certificate, "witness", &AUTHORITY_ROLES)?.key_id;
+        Ok(Self {
+            tls: config.client_in(local_role, &AUTHORITY_ROLES)?,
+            addr,
+            name,
+            pin,
+        })
+    }
+    pub async fn request(&self, path: &str, body: Vec<u8>) -> Result<Vec<u8>> {
+        ensure!(
+            [
+                "/v1/witness/command",
+                "/v1/witness/permit",
+                "/v1/witness/record",
+                "/v1/witness/query"
+            ]
+            .contains(&path),
+            "authority path required"
+        );
+        timeout(
+            Duration::from_secs(5),
+            exchange_to(
+                self.tls.clone(),
+                (
+                    "witness",
+                    self.addr,
+                    &self.name,
+                    &AUTHORITY_ROLES,
+                    Some(&self.pin),
+                ),
+                "POST",
+                path,
+                body,
+            ),
+        )
+        .await?
     }
 }
 
@@ -465,12 +754,15 @@ pub struct ReceiptIdentity {
 }
 impl ReceiptIdentity {
     pub fn new(config: &TlsConfig, party: &str) -> Result<Self> {
-        use ring::signature::KeyPair;
         ensure!(
             party.starts_with("signer-") && ROLES.contains(&party),
             "signer identity required"
         );
-        let (_, certs, secret) = config.material(party)?;
+        Self::for_role(config, party, &ROLES)
+    }
+    pub fn for_role(config: &TlsConfig, role: &str, roles: &[&str]) -> Result<Self> {
+        use ring::signature::KeyPair;
+        let (_, certs, secret) = config.material_in(role, roles)?;
         let key = ring::signature::EcdsaKeyPair::from_pkcs8(
             &ring::signature::ECDSA_P256_SHA256_ASN1_SIGNING,
             secret.secret_der(),
@@ -483,6 +775,14 @@ impl ReceiptIdentity {
             "receipt key must match local signer certificate"
         );
         Ok(Self { key })
+    }
+    pub fn key_id(&self) -> String {
+        use ring::{digest, signature::KeyPair};
+        digest::digest(&digest::SHA256, self.key.public_key().as_ref())
+            .as_ref()
+            .iter()
+            .map(|b| format!("{b:02x}"))
+            .collect()
     }
     pub fn sign(&self, message: &[u8]) -> Result<Vec<u8>> {
         Ok(self
@@ -500,5 +800,166 @@ impl ReceiptIdentity {
         )
         .verify(message, signature)
         .map_err(|_| anyhow::anyhow!("invalid own signer receipt"))
+    }
+}
+
+/// Operator-pinned archival public key. This verifies receipts, not live TLS or
+/// issuer validity: use CustodyRequestVerifier for current authorization proofs.
+pub struct PinnedIdentity {
+    public: Vec<u8>,
+    pub key_id: String,
+}
+
+pub fn certificate_key_id(cert: &CertificateDer<'_>) -> Result<String> {
+    let (remaining, parsed) = X509Certificate::from_der(cert.as_ref())?;
+    ensure!(remaining.is_empty(), "certificate trailing data");
+    Ok(ring::digest::digest(
+        &ring::digest::SHA256,
+        parsed.public_key().subject_public_key.data.as_ref(),
+    )
+    .as_ref()
+    .iter()
+    .map(|b| format!("{b:02x}"))
+    .collect())
+}
+impl PinnedIdentity {
+    pub fn new(path: &str, role: &str, roles: &[&str]) -> Result<Self> {
+        let certs = certificates(path)?;
+        ensure!(
+            certificate_identity_in(&certs[0], roles)?.role() == role,
+            "pinned role mismatch"
+        );
+        let (_, cert) = X509Certificate::from_der(certs[0].as_ref())?;
+        let spki = cert.public_key();
+        ensure!(
+            spki.algorithm.algorithm.to_id_string() == "1.2.840.10045.2.1"
+                && spki
+                    .algorithm
+                    .parameters
+                    .as_ref()
+                    .and_then(|p| p.as_oid().ok())
+                    .is_some_and(|oid| oid.to_id_string() == "1.2.840.10045.3.1.7"),
+            "pinned P256 key required"
+        );
+        let public = spki.subject_public_key.data.to_vec();
+        let key_id = ring::digest::digest(&ring::digest::SHA256, &public)
+            .as_ref()
+            .iter()
+            .map(|b| format!("{b:02x}"))
+            .collect();
+        Ok(Self { public, key_id })
+    }
+    pub fn verify(&self, message: &[u8], signature: &[u8]) -> Result<()> {
+        ensure!((8..=80).contains(&signature.len()), "signature bounds");
+        ring::signature::UnparsedPublicKey::new(
+            &ring::signature::ECDSA_P256_SHA256_ASN1,
+            &self.public,
+        )
+        .verify(message, signature)
+        .map_err(|_| anyhow::anyhow!("pinned signature mismatch"))
+    }
+}
+
+#[cfg(test)]
+mod release_tests {
+    use super::*;
+    use std::sync::{
+        atomic::{AtomicBool, AtomicU64, Ordering},
+        mpsc, Arc, Mutex, TryLockError,
+    };
+
+    #[tokio::test]
+    async fn release_wins_enqueue_precedes_append_and_guard_drops_before_response_poll() {
+        let serial = Arc::new(Mutex::new(()));
+        let enqueued = Arc::new(AtomicBool::new(false));
+        let (begin, started) = mpsc::channel();
+        let (attempt, attempted) = mpsc::channel();
+        let writer_serial = serial.clone();
+        let writer_enqueued = enqueued.clone();
+        let writer = std::thread::spawn(move || {
+            started.recv().unwrap();
+            assert!(matches!(
+                writer_serial.try_lock(),
+                Err(TryLockError::WouldBlock)
+            ));
+            attempt.send(()).unwrap();
+            let _append = writer_serial.lock().unwrap();
+            assert!(writer_enqueued.load(Ordering::SeqCst));
+        });
+        let release = || -> Result<_> { Ok(serial.lock().unwrap()) };
+        let response = guarded_dispatch(
+            Some(&release),
+            Some(10),
+            || Ok(9),
+            || {
+                begin.send(()).unwrap();
+                attempted.recv().unwrap();
+                enqueued.store(true, Ordering::SeqCst);
+                // Real send_request returns a future after synchronous enqueue.
+                // The future must be polled only once that release guard is gone.
+                async {
+                    assert!(serial.try_lock().is_ok());
+                }
+            },
+        )
+        .unwrap();
+        writer.join().unwrap();
+        response.await;
+    }
+
+    #[test]
+    fn append_wins_uncertain_history_never_enqueues() {
+        let serial = Arc::new(Mutex::new(()));
+        let uncertain = Arc::new(AtomicBool::new(false));
+        let append = serial.lock().unwrap();
+        let (entered, entry) = mpsc::channel();
+        let peer_serial = serial.clone();
+        let peer_uncertain = uncertain.clone();
+        let task = std::thread::spawn(move || {
+            let release = || -> Result<_> {
+                entered.send(()).unwrap();
+                let guard = peer_serial.lock().unwrap();
+                ensure!(!peer_uncertain.load(Ordering::SeqCst), "uncertain");
+                Ok(guard)
+            };
+            assert!(guarded_dispatch(
+                Some(&release),
+                Some(10),
+                || Ok(9),
+                || panic!("secret enqueued after uncertain append")
+            )
+            .is_err());
+        });
+        entry.recv().unwrap();
+        uncertain.store(true, Ordering::SeqCst);
+        drop(append);
+        task.join().unwrap();
+    }
+
+    #[test]
+    fn expiry_while_waiting_for_append_guard_never_enqueues() {
+        let serial = Arc::new(Mutex::new(()));
+        let clock = Arc::new(AtomicU64::new(9));
+        let append = serial.lock().unwrap();
+        let (entered, entry) = mpsc::channel();
+        let peer_serial = serial.clone();
+        let peer_clock = clock.clone();
+        let task = std::thread::spawn(move || {
+            let release = || -> Result<_> {
+                entered.send(()).unwrap();
+                Ok(peer_serial.lock().unwrap())
+            };
+            assert!(guarded_dispatch(
+                Some(&release),
+                Some(10),
+                || Ok(peer_clock.load(Ordering::SeqCst)),
+                || panic!("expired secret enqueued")
+            )
+            .is_err());
+        });
+        entry.recv().unwrap();
+        clock.store(10, Ordering::SeqCst);
+        drop(append);
+        task.join().unwrap();
     }
 }

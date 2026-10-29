@@ -1,3 +1,106 @@
+## 2026-10-29 — terminal original-key R2 cancellation (unmerged)
+
+Protected nodes now require original durable R2 requests and independent
+lifecycle approval before fsyncing an irreversible cancellation. The same mutex
+serializes cancellation with private apply; a durable partial, even withheld,
+cannot be cancelled. Frozen witness closure recomputes the exact actual grantee
+set, verifies every original key/request/package and rejects contradictory
+results. Existing zero-R2 closure and conservative unknown-outcome rules remain.
+
+Four genuine cases passed165.76s; expanded grantee/write-failure/late-permission
+cases passed97.98s, independently96.04s. Independent apply/cancel race passed30.40s,
+all13 witness units pass, and COLD/manual refresh/retry passed51.64s. Independent
+review found no demonstrated P0/P1 in the bounded component. Current lifecycle
+and intact independent-journal assumptions, including the coherent rollback
+exclusion, remain explicit. See [scope and remaining work](PHASE6GC_NO_RELEASE.md).
+Final-head Fast/ALL and whole-phase financial/issuance/repair/rotation acceptance
+remain open; this does not authorize merging Draft PR #2.
+
+## 2026-10-29 — ordinary distributed FROST refresh (unmerged)
+
+Draft PR #2 now adds separately authorized all-three upstream same-key refresh,
+durable ceremony/session tombstones before private polynomial generation, direct
+peer key pins before HTTP bodies and immutable encrypted generation files. Own
+fresh Frozen witness replies and the exact current roster are mandatory. New
+generation signing verifies the actual private/public share, with no original-
+share fallback. Root/claim/original DKG identities stay unchanged. Public report
+recovery may append a missing Ready record without repeating private work.
+
+Genuine Gen1 all-pair/restart passed89.04s; COLD/manual and interrupted/missing-
+generation/Gen2 cases passed146.02s. Expanded actual wrong-peer private-R2 zero-
+HTTP, corrupt/transplanted share and durable-share-before-Ready filesystem-fault
+recovery passed61.81s, independently62.59s. Independent source review found no
+demonstrated P0/P1 in this bounded layer;12 witness units and local protocol/
+transport checks pass. Interrupted and initially ineffective chmod fault attempts
+are excluded from acceptance. See [evidence and limits](PHASE6GC_SOLANA_REFRESH.md).
+
+This is ordinary refresh under the same identities, not custody-key rotation or
+replacement-node repair. Optional lifecycle trust changes the immutable profile;
+explicit profile/provenance migration remains unfinished. Old threshold shares
+are not cryptographically revoked. Whole-phase financial/issuance/rotation/repair
+acceptance and exact-final-head gates remain open; PR #2 stays Draft/unmerged.
+
+## 2026-10-29 — independent witness and protected signing (unmerged)
+
+Draft PR #2 now includes a separate isolated witness process and required-profile
+protected Solana signer. Own original approvals, independent live custody/business
+proofs, pinned TLS before sending public partials, durable one-use party/round
+permissions and independent source/fee/rent RPC checks precede private work.
+Execution and witness journals remain outside private-share backups. Classified
+DKG birth metadata cannot use generic signing; the protected binary has no generic
+router and COLD explicitly relays signer-origin challenges through a courier.
+
+Genuine native all-pair and courier finalized transfers passed131.35s; private
+pre-enrollment backup restore/R1 loss passed49.94s; withheld genuine R2 result,
+restart, journal faults/freeze/public recovery/finalization passed50.62s. Actual
+Rust same-CA/wrong-key TLS canary passed0.31s with zero HTTP bytes to the wrong key.
+Corrected cumulative real-RPC delay passed53.74s, rejecting an expired private
+operation while retaining conservative R2 uncertainty. Independent review found
+and the code fixed a pre-lock timestamp bug; post-lock admission and final expiry
+checks now have regressions. See [scope, evidence and limitations](PHASE6GC_SOLANA_SPENDING.md).
+
+No customer wallet, financial posting, production activation or phase completion
+is inferred. Distributed refresh/repair, generation loading, rotation/drain,
+late-deposit rescue, financial integration and1000-issued-wallet acceptance remain.
+Final-head Fast/full CI and final independent review are still required.
+
+The witness also anchors original claim ownership before issuance: shared root/
+index, owner/asset, retry and global reservation aliases survive restoring all
+three pre-claim backups. A genuine never-spent fork and cross-root reservation
+collision were rejected. Permanent genesis/message ownership prevents attaching
+one Agave message execution to another financial operation, including after a
+zero-R2 closure. The active-nonce limit was corrected to admit R2 at capacity;
+a genuine32-slot saturation/drain/finalization/new-R1 case passes. Thirteen new
+HTTP cases have local execution evidence, with interrupted cases rerun after
+environment restart. Independent final witness review reran12 unit tests with
+zero failures/ignored and found no demonstrated P0/P1 in this bounded component.
+Closed-R1 cleanup, snapshot/journal scaling and the remaining phase remain open.
+
+## 2026-10-28 — PR #1 merged and next 6G-C intent contract started
+
+GitHub confirms PR #1 MERGED as `587e0969a216102879d17cadb6ffeee8dfb8b6c6`, with
+parents3d32b763 and final reviewed head78394fc. Its tree
+`affecb334af959a462fd747b0fdf49a3a731f182` exactly matches that final head.
+Fast40683968092 and ALL40683962776 passed:14 full jobs,228 actual calls/zero skips,
+all seven exact-head artifacts and original-store compatibility665.205s independently
+verified. Automatic main Fast40716836844 passed all four executed jobs. This is
+the owner-authorized development checkpoint, not completion of Phase 6G-C.
+
+Local post-merge checks/migration drift passed and all48 PostgreSQL provisioning
+cases passed53.73s after restarting existing development services stopped during
+environment idle. The initial attempt failed on connection-refused setup errors;
+no code regression or database reset was involved. Live/ready return200 with
+databaseOK and unchanged optional Redis degradation.
+
+The next branch `codex/phase6gc-seeded-spending` starts directly from merged main.
+It promotes a pure public typed intent/wire/domain constructor, nine Rust tests,
+twelve SDK/Python-canonical goldens and a reproducible no-RPC generator. No route,
+nonce, witness freshness, business authority, wallet issuance or financial flow
+is enabled. See [implemented and pending boundary](PHASE6GC_SOLANA_SPENDING.md).
+Independent promoted-source review reran final9 tests in0.29s and regenerated all12
+goldens with DB connections forbidden, including the Unicode case. No blocking
+P0/P1 was identified within the unconnected library. New exact-head CI remains required.
+
 ## 2026-10-28 — verified checkpoint and explicit development merge request
 
 At `1d4737ecf53d3e445c83c89f382f71b9ddbd8c57`, Fast40675308341 and full40675302192
@@ -455,3 +558,76 @@ Activated the existing fork CI workflow after the owner enabled Actions. Full di
 Added unconnected standard Solana seeded-address and native/SPL wire builders/typed validators, with 41 independent SDK/public-encoding cases and a separate 41-case review rerun. Included the source in existing Ruff CI checks. No issuance endpoint, signer authorization, on-chain activation, deposit/ledger change or dependency/lockfile change. These helpers do not complete 6G-C; all authenticated persistence, signer, validator, attribution and recovery gates remain outstanding in the same Draft PR #1.
 
 Seeded-wire checkpoint local validation completed: 663 PostgreSQL/backend tests passed (158.33s, four existing deprecation warnings), including 41 new wire/address tests; Django/migration/Ruff checks passed. The independent reviewer also passed all 41 helper tests, verified single-base-signer standard messages and reported no P0/P1 in that unconnected builder scope. This does not close the cryptographic dependency gate or establish account issuance, chain spending, financial attribution or complete 6G-C acceptance.
+
+
+## 2026-10-29 — unmerged native issuance development
+
+Added independent permanent native Claim issuance grants, backend public-query
+relay/completion and migration0035 for immutable Claim-linked UserWallet identity.
+Backend has no lifecycle private key; original all-three detached proofs and
+current witness pin/nonce/grant remain mandatory. No ledger journal or generic
+signing bypass is introduced. PostgreSQL identity/adoption/isolation/admin guards
+and SQLite schema compatibility remain distinct from genuine MPC acceptance.
+
+Expanded actual three-wallet publication passed111.00s, including unissued and
+UUID-collision refusals, witness ACK-loss/restart, exact backend retry, warm-cache
+history corruption/removal refusal and three signer restarts before all-pair
+finalized transfers. The first actual1000 run failed HTTP timeout after300+ at
+771.42s. Exact-byte inventory verification caching removes repeated cryptographic
+work while retaining original inventory reads/collision fences. The retry actually issued1000 wallets in627.149s; complete test passed737.59s,
+with three finalized pair transfers from issued indices0/500/999, unchanged
+original DKG ciphertexts and zero issuance journals. Independent fresh80-case
+PostgreSQL run passed97.01s and expanded genuine3 rerun passed113.42s, with no
+demonstrated P0/P1 in the bounded source review. Exact checkpoint/phase gates
+remain pending. See
+PHASE6GC_NATIVE_ISSUANCE.md. No merge, phase completion or production activation.
+
+
+## 2026-10-29 — unmerged replacement authorization and original witness-store replay
+
+Native6e2bcee passed exact Fast40851236750, including remote790 backend tests
+(218.58s); local corrected full backend rerun passed790 cases431.17s. Selected
+Solana40851260306 passed exact6e2 with34 actual calls/zero scenario skips,
+independently verified artifact12889217392 and remote actual1000 issuance
+(307.076s issuance;402.073s whole case). ALL/original-store compatibility was
+unselected and remains mandatory for final whole-phase acceptance.
+
+Further public replacement foundations bind exact current Frozen generation,
+one fresh key/profile/anchor and repair+refresh identities, with permanent
+abandonment tombstones and exact next-generation readiness. Signed event rules
+preserve original authenticated historical semantics and enforce monotonic
+strict rules for new admissions. Independent17Witnessunit and actual runtime
+archived-store upgrade/restart/tampering checks pass; archive signatures and
+original persisted bytes were independently checked. This is no private repair,
+profile migration or whole-phase completion. See PHASE6GC_RECOVERY.md.
+
+## 2026-10-29 — unmerged private single-share repair and replacement refresh
+
+Connected upstream RTS over exact pinned direct helper Delta and recipient Sigma
+channels. Fresh required-profile recipients bind original archival enrollment,
+new key/profile/anchor and durable repair history; encrypted one-share staging is
+separate from original DKG and active generations. All-three distributed refresh
+and witness activation precede private signing. Old profile mutation and epoch0
+fallback remain forbidden. Current original Claims remain supported; approval of
+new Claims with retired receipt identities is not enabled.
+
+Initial HOT all-pair finalized restart case passed84.85s after correcting a test
+amount below the validator's rent minimum. Staging-publication/restart and
+missing/corrupt/transplanted/symlink/profile-anchor faults plus COLD passed two
+cases165.03s. Actual Delta wrong-key/delayed-TLS-expiry tests observed zero HTTP
+bytes and interrupted/fresh-recipient retry passed two cases73.86s. Independent
+review identified an enqueue/write ordering gap; a mutex now covers the exact
+synchronous enqueue boundary with deadline recheck after lock acquisition,
+dropping before response await. Three deterministic production-dispatch tests
+cover both race orders and expiry while waiting. Upstream-DKG/RTS storage unit
+rejects forged canonical zero Sigmas, wrong participant and plan/AAD transplant.
+
+Environment disconnection interrupted the first final five-case/unit rerun;
+partial '..' output was not counted as success. After restoration all37 Rust
+library tests passed and independent genuine staging/provenance rerun passed
+76.81s, with independent three-dispatch/store-negative unit reruns. No demonstrated
+P0/P1 remains in bounded private review; complete current-source genuine/exact-head
+CI and whole-phase gates remain pending. Complete restored private run subsequently
+passed5 cases297.72s; ordinary-refresh regressions passed2 cases138.78s and final
+all-target Clippy passed5.69s. Public local evidence is
+`docs/evidence/phase6gc-private-repair-local.json`. No merge or production activation.

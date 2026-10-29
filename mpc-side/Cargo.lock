@@ -2383,9 +2383,11 @@ dependencies = [
  "anyhow",
  "axum",
  "base64",
+ "bs58",
  "cggmp24",
  "frost-ed25519",
  "futures-util",
+ "libc",
  "rand_core 0.6.4",
  "serde",
  "serde_json",
@@ -2427,6 +2429,26 @@ dependencies = [
  "tokio",
  "tokio-rustls",
  "x509-parser",
+]
+
+[[package]]
+name = "wallet-mpc-witness"
+version = "0.1.0"
+dependencies = [
+ "anyhow",
+ "axum",
+ "frost-core",
+ "frost-ed25519",
+ "libc",
+ "rand_core 0.6.4",
+ "serde",
+ "serde_json",
+ "sha2 0.10.9",
+ "tokio",
+ "uuid",
+ "wallet-mpc-protocol",
+ "wallet-mpc-storage",
+ "wallet-mpc-transport",
 ]
 
 [[package]]

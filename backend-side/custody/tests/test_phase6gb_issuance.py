@@ -627,7 +627,10 @@ def test_migration_quarantines_unsigned_issued_evidence_without_rewriting_histor
         MigrationExecutor(connection).migrate(final)
         assert MpcHdRootEvidence.objects.get(root=root).evidence == evidence
         assert MpcCustodyAccount.objects.values().get(pk=account.pk) == before
-        assert UserWallet.objects.values().get(pk=wallet.pk) == before_wallet
+        assert UserWallet.objects.values().get(pk=wallet.pk) == {
+            **before_wallet,
+            "solana_claim_id": None,
+        }
         persisted = MpcCustodyAccount.objects.get(pk=account.pk)
         from io import StringIO
 

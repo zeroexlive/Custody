@@ -556,6 +556,10 @@ impl Authority {
         } else {
             None
         };
+        let claim_issuance = request
+            .value
+            .claim_reservation_id
+            .and_then(|id| j.state.claim_issuances.get(&id).cloned());
         self.trust.sign(
             "WITNESS_QUERY_REPLY_V1",
             QueryReply {
@@ -575,6 +579,7 @@ impl Authority {
                 abandoned,
                 claim,
                 lifecycle_key_id: Some(self.trust.lifecycle.key_id.clone()),
+                claim_issuance,
             },
         )
     }

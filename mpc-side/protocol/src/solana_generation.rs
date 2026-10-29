@@ -95,3 +95,37 @@ impl RefreshPlan {
         crate::hd::fingerprint("SOLANA_FROST_REFRESH_PLAN_V1", self)
     }
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    #[test]
+    fn original_signed_frozen_reply_survives_optional_issuance_schema() {
+        let original: serde_json::Value = serde_json::from_str(include_str!(
+            "../tests/fixtures/solana-refresh-pre-issuance.json"
+        ))
+        .unwrap();
+        let start: RefreshStart = serde_json::from_value(original["start"].clone()).unwrap();
+        start.validate_shape().unwrap();
+        assert!(start.frozen.value.claim_issuance.is_none());
+        assert_eq!(serde_json::to_value(&start).unwrap(), original["start"]);
+        assert_eq!(
+            hash(
+                &start
+                    .plan
+                    .signing_message("WITNESS_FROST_REFRESH_PLAN_V1")
+                    .unwrap()
+            ),
+            original["plan_message_sha256"]
+        );
+        assert_eq!(
+            hash(
+                &start
+                    .frozen
+                    .signing_message("WITNESS_QUERY_REPLY_V1")
+                    .unwrap()
+            ),
+            original["frozen_message_sha256"]
+        );
+    }
+}

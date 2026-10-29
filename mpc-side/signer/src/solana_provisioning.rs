@@ -9,7 +9,12 @@ use axum::{
     Extension, Json, Router,
 };
 use serde::{Deserialize, Serialize};
-use std::{collections::BTreeMap, fs, path::PathBuf, sync::Arc};
+use std::{
+    collections::{BTreeMap, BTreeSet},
+    fs,
+    path::PathBuf,
+    sync::Arc,
+};
 use tokio::sync::Mutex;
 use uuid::Uuid;
 use wallet_mpc_protocol::{
@@ -33,13 +38,22 @@ struct Role {
     enrollment: Option<Enrollment>,
 }
 
+// Only a byte-for-byte verification cache. Every approval still reads the
+// complete committed index inventory; disk remains authoritative. No cache
+// entry can authorize spending or repair missing aliases.
+struct VerifiedIndex {
+    bytes: Vec<u8>,
+    report: Report<Claim>,
+    names: [String; 4],
+}
+
 pub struct Service {
     directory: PathBuf,
     party: String,
     dkg: Arc<crate::dkg::DkgService>,
     verifier: CustodyRequestVerifier,
     identity: Option<ReceiptIdentity>,
-    lock: Mutex<()>,
+    lock: Mutex<BTreeMap<String, VerifiedIndex>>,
 }
 impl Service {
     pub fn open(
@@ -58,7 +72,7 @@ impl Service {
             dkg,
             verifier,
             identity,
-            lock: Mutex::new(()),
+            lock: Mutex::new(BTreeMap::new()),
         };
         // Original prepared/consumed/aborted executions are historical use too.
         // Never manufacture UNUSED after upgrading a previously used root.
@@ -76,6 +90,7 @@ impl Service {
             }
         }
         let mut indices = BTreeMap::<String, Report<Claim>>::new();
+        let mut verified = BTreeMap::new();
         for entry in fs::read_dir(&service.directory)? {
             let path = entry?.path();
             let name = path
@@ -105,11 +120,20 @@ impl Service {
                     service.role(role.keyset_id)?;
                 }
                 Some("index") => {
-                    let report: Report<Claim> = serde_json::from_slice(&fs::read(&path)?)?;
+                    let bytes = fs::read(&path)?;
+                    let report: Report<Claim> = serde_json::from_slice(&bytes)?;
                     service.verify_claim(&report)?;
                     ensure!(
                         name == service.names(&report.statement)?[0],
                         "wrong index filename"
+                    );
+                    verified.insert(
+                        name.clone(),
+                        VerifiedIndex {
+                            bytes,
+                            names: service.names(&report.statement)?,
+                            report: report.clone(),
+                        },
                     );
                     indices.insert(name, report);
                 }
@@ -155,6 +179,7 @@ impl Service {
                 confirm_parent_durability(&path)?;
             }
         }
+        *service.lock.try_lock().context("startup inventory lock")? = verified;
         Ok(Arc::new(service))
     }
     fn pin<T: Serialize>(&self, name: &str, value: &T) -> Result<()> {
@@ -357,7 +382,7 @@ impl Service {
         approval.statement.validate()?;
         self.verify_authorization("claim", &approval)?;
         self.original(&approval.statement.root).await?;
-        let _guard = self.lock.lock().await;
+        let mut verified = self.lock.lock().await;
         let claim = &approval.statement;
         self.enrolled(&claim.root)?;
         let names = self.names(claim)?;
@@ -381,37 +406,64 @@ impl Service {
         // The index is authoritative even if a crash preceded every alias.
         // Check all committed indices before granting a different owner/retry
         // at the next index; missing aliases must never permit reassignment.
-        let prefix = format!("{}-", claim.root.dkg.keyset_id);
         let mut next = 0;
+        let mut seen = BTreeSet::new();
         for entry in fs::read_dir(&self.directory)? {
             let path = entry?.path();
             let name = path
                 .file_name()
                 .context("missing index filename")?
-                .to_string_lossy();
+                .to_string_lossy()
+                .into_owned();
             if name.ends_with(".index") {
-                let stored: Report<Claim> = serde_json::from_slice(&fs::read(&path)?)?;
-                self.verify_claim(&stored)?;
-                if name.starts_with(&prefix) {
+                let bytes = fs::read(&path)?;
+                if let Some(cached) = verified.get(&name) {
+                    ensure!(
+                        cached.bytes == bytes,
+                        "committed index changed since verification"
+                    );
+                } else {
+                    // Also covers a committed index whose reply/alias writes
+                    // failed. Verify it once before caching its exact bytes.
+                    let report: Report<Claim> = serde_json::from_slice(&bytes)?;
+                    self.verify_claim(&report)?;
+                    let stored_names = self.names(&report.statement)?;
+                    ensure!(name == stored_names[0], "wrong index filename");
+                    verified.insert(
+                        name.clone(),
+                        VerifiedIndex {
+                            bytes,
+                            report,
+                            names: stored_names,
+                        },
+                    );
+                }
+                let cached = &verified[&name];
+                let stored = &cached.report;
+                if stored.statement.root.dkg.keyset_id == claim.root.dkg.keyset_id {
                     next = next.max(stored.statement.index + 1);
                 }
-                if self
-                    .names(&stored.statement)?
-                    .iter()
-                    .any(|n| names.contains(n))
-                {
+                if cached.names.iter().any(|n| names.contains(n)) {
                     ensure!(
                         stored.statement == *claim,
                         "committed claim cannot be reassigned"
                     );
                     ensure!(
-                        previous.as_ref().is_none_or(|p| *p == stored),
+                        previous.as_ref().is_none_or(|p| p == stored),
                         "partial receipt conflict"
                     );
-                    previous = Some(stored);
+                    previous = Some(stored.clone());
                 }
+                seen.insert(name);
             }
         }
+        ensure!(
+            verified.keys().all(|name| seen.contains(name)),
+            "committed index disappeared since verification"
+        );
+        // All index entries share this directory: one fsync confirms the
+        // enumerated directory, including indices recovered after a lost reply.
+        confirm_parent_durability(&self.directory.join("inventory"))?;
         let report = match previous {
             Some(report) => report,
             None => {
@@ -424,7 +476,18 @@ impl Service {
                 self.report("claim", claim.clone())?
             }
         };
-        for name in &names {
+        // Record the authoritative index before aliases. A later alias failure
+        // must not remove the in-process missing-index fence.
+        self.pin(&names[0], &report)?;
+        verified.insert(
+            names[0].clone(),
+            VerifiedIndex {
+                bytes: serde_json::to_vec(&report)?,
+                report: report.clone(),
+                names: names.clone(),
+            },
+        );
+        for name in &names[1..] {
             self.pin(name, &report)?;
         }
         Ok(report)

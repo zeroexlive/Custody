@@ -179,6 +179,20 @@ def test_phase6gc_terminal_no_release_cold_manual_refresh_retry(tmp_path):
     run_close_unreleased(tmp_path, 2, custody_class="COLD")
 
 
+@pytest.mark.django_db(transaction=True)
+def test_phase6gc_genuine_native_wallet_publication_and_all_pair_spending(tmp_path):
+    from native_issuance_acceptance import run_native_issuance
+
+    run_native_issuance(tmp_path, 3)
+
+
+@pytest.mark.django_db(transaction=True)
+def test_phase6gc_genuine_one_thousand_native_wallets_actually_issued(tmp_path):
+    from native_issuance_acceptance import run_native_issuance
+
+    run_native_issuance(tmp_path, 1000)
+
+
 def test_phase6gc_seeded_authenticated_immutable_store_approvals(tmp_path):
     from seeded_enrollment import run_approvals
 

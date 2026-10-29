@@ -216,3 +216,14 @@ signer identities and canonical session-bound direct-peer envelopes. Controllers
 receive no private round packages. Original ceremony/session tombstones survive
 restart; report may recover an already completed encrypted generation's public
 Ready without repeating private work. See [refresh contract](PHASE6GC_SOLANA_REFRESH.md).
+
+
+### Phase6G-C native wallet publication (Draft PR #2 development)
+
+Privileged local `solana_wallet_publication request/complete` exports an original
+durable issuance UUID plus public witness query/action, then consumes the exact
+signed response to atomically create its original Claim-linked native wallet.
+The backend does not own the independent lifecycle approval key. No external
+API credential or generic signing authority follows. See
+[publication authority, migration and acceptance](PHASE6GC_NATIVE_ISSUANCE.md).
+SPL publication, protected financial sessions and lifecycle drain remain pending.

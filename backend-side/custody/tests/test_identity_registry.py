@@ -493,6 +493,9 @@ def test_migration_does_not_rewrite_history_and_refuses_populated_downgrade():
         registered = principal(row)
         with pytest.raises(RuntimeError, match="cannot downgrade registered identities"):
             MigrationExecutor(connection).migrate([("custody", "0032_signer_origin_receipts")])
+        # Later empty migrations may reverse before the populated registry
+        # refuses; restore current schema before current-model history checks.
+        MigrationExecutor(connection).migrate(final)
         assert resolve_principal(tenant_id=row.pk, principal_id=registered.pk).pk == registered.pk
         assert UserWallet.objects.values().get(pk=old.pk) == original
         for model, rows in financial.items():

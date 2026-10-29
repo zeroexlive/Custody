@@ -291,6 +291,10 @@ pub enum CommandAction {
     RegisterClaim {
         evidence: Box<Evidence<Claim>>,
     },
+    IssueNativeClaim {
+        reservation_id: Uuid,
+        issuance_id: Uuid,
+    },
     Freeze,
     CloseNoSignature {
         execution_id: Uuid,
@@ -395,6 +399,18 @@ pub struct QueryReply {
     pub claim: Option<Evidence<Claim>>,
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub lifecycle_key_id: Option<String>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub claim_issuance: Option<ClaimIssuance>,
+}
+
+/// Durable permission to publish one already registered native deposit claim.
+/// It is neither spending authority nor an initialization receipt for SPL.
+#[derive(Clone, Debug, Serialize, Deserialize, PartialEq, Eq)]
+#[serde(deny_unknown_fields)]
+pub struct ClaimIssuance {
+    pub reservation_id: Uuid,
+    pub issuance_id: Uuid,
+    pub command_id: Uuid,
 }
 #[derive(Clone, Debug, Serialize, Deserialize)]
 #[serde(deny_unknown_fields)]

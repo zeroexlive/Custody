@@ -558,3 +558,26 @@ Activated the existing fork CI workflow after the owner enabled Actions. Full di
 Added unconnected standard Solana seeded-address and native/SPL wire builders/typed validators, with 41 independent SDK/public-encoding cases and a separate 41-case review rerun. Included the source in existing Ruff CI checks. No issuance endpoint, signer authorization, on-chain activation, deposit/ledger change or dependency/lockfile change. These helpers do not complete 6G-C; all authenticated persistence, signer, validator, attribution and recovery gates remain outstanding in the same Draft PR #1.
 
 Seeded-wire checkpoint local validation completed: 663 PostgreSQL/backend tests passed (158.33s, four existing deprecation warnings), including 41 new wire/address tests; Django/migration/Ruff checks passed. The independent reviewer also passed all 41 helper tests, verified single-base-signer standard messages and reported no P0/P1 in that unconnected builder scope. This does not close the cryptographic dependency gate or establish account issuance, chain spending, financial attribution or complete 6G-C acceptance.
+
+
+## 2026-10-29 — unmerged native issuance development
+
+Added independent permanent native Claim issuance grants, backend public-query
+relay/completion and migration0035 for immutable Claim-linked UserWallet identity.
+Backend has no lifecycle private key; original all-three detached proofs and
+current witness pin/nonce/grant remain mandatory. No ledger journal or generic
+signing bypass is introduced. PostgreSQL identity/adoption/isolation/admin guards
+and SQLite schema compatibility remain distinct from genuine MPC acceptance.
+
+Expanded actual three-wallet publication passed111.00s, including unissued and
+UUID-collision refusals, witness ACK-loss/restart, exact backend retry, warm-cache
+history corruption/removal refusal and three signer restarts before all-pair
+finalized transfers. The first actual1000 run failed HTTP timeout after300+ at
+771.42s. Exact-byte inventory verification caching removes repeated cryptographic
+work while retaining original inventory reads/collision fences. The retry actually issued1000 wallets in627.149s; complete test passed737.59s,
+with three finalized pair transfers from issued indices0/500/999, unchanged
+original DKG ciphertexts and zero issuance journals. Independent fresh80-case
+PostgreSQL run passed97.01s and expanded genuine3 rerun passed113.42s, with no
+demonstrated P0/P1 in the bounded source review. Exact checkpoint/phase gates
+remain pending. See
+PHASE6GC_NATIVE_ISSUANCE.md. No merge, phase completion or production activation.

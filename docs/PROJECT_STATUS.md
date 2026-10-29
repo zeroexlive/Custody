@@ -69,10 +69,23 @@ from its own history; a durable partial or missing evidence keeps uncertainty.
 Five genuine scenarios cover one/two grantees, subsequent real refresh/retry,
 apply/cancel races, withheld partial refusal and COLD/manual flow. Expanded
 write-failure/late-grant cases and13 unit tests pass with independent review.
+Unmerged [native wallet publication](PHASE6GC_NATIVE_ISSUANCE.md) now adds
+original Claim-linked wallets only after a separate permanent witness issuance
+grant. Migration0035 preserves identity/history, blocks legacy adoption and
+retirement, and requires PostgreSQL serialization. Expanded genuine three-wallet
+restart/retry/collision/history-fault acceptance passed111.00s with all-pair
+finalized transfers. The first genuine1000 run timed out after more than300;
+an exact-byte signer verification cache retains full inventory checks and its
+retry passed737.59s, actually publishing1000 wallets in627.149s and finalizing
+all-pair transfers from indices0/500/999. Independent PostgreSQL tests
+passed80 cases in97.01s and the independent genuine three-wallet rerun passed
+113.42s; checkpoint gates remain pending. These are no whole-phase or settlement
+gates.
+
 Remaining6G-C includes explicit replacement provenance and share repair,
 rotation/drain/late-deposit rescue, issued
 wallet and finalized SPL initialization records, financial ledger integration,
-and 1000 actual issued Solana wallets. Manual COLD relay is not physical airgap
+and final whole-phase acceptance. Manual COLD relay is not physical airgap
 or production acceptance. Canonical tenant strings do not replace registry and
 financial authorization during backend integration.
 Each subsequent checkpoint requires its own independent review,

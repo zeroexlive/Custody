@@ -7,6 +7,7 @@ append-only audit trail. Registered read-mostly; sensitive state changes
 """
 
 from django.contrib import admin
+from django.core.exceptions import PermissionDenied
 
 from .models import (
     AdminActionLog,
@@ -22,6 +23,7 @@ from .models import (
     MpcKeyset,
     MpcSigningSession,
     MpcSolanaClaim,
+    MpcSolanaIssuance,
     MpcSolanaRoot,
     SweepJob,
     UserWallet,
@@ -47,6 +49,7 @@ admin.site.register(CustodyTenant, RegistryIdentityAdmin)
 admin.site.register(CustodyPrincipal, RegistryIdentityAdmin)
 admin.site.register(MpcSolanaRoot, RegistryIdentityAdmin)
 admin.site.register(MpcSolanaClaim, RegistryIdentityAdmin)
+admin.site.register(MpcSolanaIssuance, RegistryIdentityAdmin)
 
 
 @admin.register(MpcKeyset)
@@ -92,7 +95,27 @@ class UserWalletAdmin(admin.ModelAdmin):
     )
     list_filter = ("chain_id", "asset_key", "status")
     search_fields = ("user_id", "deposit_address", "derivation_path", "memo")
-    readonly_fields = ("derivation_path", "created_at")
+    readonly_fields = ("derivation_path", "created_at", "solana_claim")
+
+    def get_readonly_fields(self, request, obj=None):
+        if obj is not None and obj.solana_claim_id is not None:
+            return tuple(field.name for field in self.model._meta.fields)
+        return super().get_readonly_fields(request, obj)
+
+    def has_change_permission(self, request, obj=None):
+        if obj is not None and obj.solana_claim_id is not None:
+            return False
+        return super().has_change_permission(request, obj)
+
+    def has_delete_permission(self, request, obj=None):
+        if obj is not None and obj.solana_claim_id is not None:
+            return False
+        return super().has_delete_permission(request, obj)
+
+    def delete_queryset(self, request, queryset):
+        if queryset.filter(solana_claim__isnull=False).exists():
+            raise PermissionDenied("Seeded ownership requires its separately gated lifecycle")
+        return super().delete_queryset(request, queryset)
 
 
 @admin.register(Deposit)

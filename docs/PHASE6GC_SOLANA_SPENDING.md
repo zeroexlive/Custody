@@ -2,8 +2,10 @@
 
 Draft PR #2 starts from merged main `587e0969a216102879d17cadb6ffeee8dfb8b6c6`.
 It now contains a typed intent, an independent witness and a separate protected
-signer entrypoint. These are isolated development implementations. Phase 6G-C,
-customer wallet issuance and integration with the financial core remain unfinished.
+signer entrypoint. These are isolated development implementations. Subsequent
+[native issuance](PHASE6GC_NATIVE_ISSUANCE.md) actually publishes Claim-linked
+wallets after independent witness grants, including local1000 acceptance.
+Phase6G-C, finalized SPL issuance and financial integration remain unfinished.
 No production/mainnet/customer-fund activation flag changes.
 
 ## Exact intent and original approvals

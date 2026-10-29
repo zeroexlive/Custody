@@ -82,6 +82,8 @@ jobs:
       - run: ruff check custody/identity_registry.py custody/management/commands/custody_identity.py custody/migrations/0033_tenant_principal_registry.py
       - run: ruff format --check custody/solana_provisioning.py custody/management/commands/solana_provisioning.py custody/migrations/0034_solana_authoritative_claims.py custody/signer_adapter.py
       - run: ruff check custody/solana_provisioning.py custody/management/commands/solana_provisioning.py custody/migrations/0034_solana_authoritative_claims.py custody/signer_adapter.py
+      - run: ruff format --check custody/solana_issuance.py custody/management/commands/solana_wallet_publication.py custody/migrations/0035_solana_native_wallet_issuance.py
+      - run: ruff check custody/solana_issuance.py custody/management/commands/solana_wallet_publication.py custody/migrations/0035_solana_native_wallet_issuance.py
       - run: ruff format --check ../mpc-side/protocol/tests/fixtures/generate_solana_intent.py
       - run: ruff check ../mpc-side/protocol/tests/fixtures/generate_solana_intent.py
       - name: Verify independent public seeded intent SDK and canonical message fixtures

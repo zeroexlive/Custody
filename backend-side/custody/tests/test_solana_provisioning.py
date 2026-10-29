@@ -454,9 +454,15 @@ def test_claim_reservation_and_counter_rollback_together_on_audit_failure(contex
 def test_populated_migration_cannot_be_downgraded(context):
     enroll(context)
     executor = MigrationExecutor(connection)
-    with pytest.raises(RuntimeError, match="cannot downgrade"):
-        executor.migrate([("custody", "0033_tenant_principal_registry")])
-    assert MpcSolanaRoot.objects.count() == 1
+    final = executor.loader.graph.leaf_nodes()
+    try:
+        with pytest.raises(RuntimeError, match="cannot downgrade"):
+            executor.migrate([("custody", "0033_tenant_principal_registry")])
+        assert MpcSolanaRoot.objects.count() == 1
+    finally:
+        # A later empty migration can reverse before the populated0034 guard
+        # refuses. Restore the complete current schema for following tests.
+        MigrationExecutor(connection).migrate(final)
 
 
 def test_operator_command_reports_approval_separately_from_issuance(context):

@@ -74,6 +74,8 @@ pub struct Snapshot {
     pub claim_owners: BTreeMap<String, Uuid>,
     pub claim_retries: BTreeMap<String, Uuid>,
     pub wires: BTreeMap<String, String>,
+    pub claim_issuances: BTreeMap<Uuid, wallet_mpc_protocol::witness::ClaimIssuance>,
+    pub issuance_ids: BTreeMap<Uuid, Uuid>,
 }
 
 pub(crate) fn slot(party: &str, round: u16) -> String {
@@ -112,6 +114,8 @@ impl Snapshot {
             claim_owners: BTreeMap::new(),
             claim_retries: BTreeMap::new(),
             wires: BTreeMap::new(),
+            claim_issuances: BTreeMap::new(),
+            issuance_ids: BTreeMap::new(),
         })
     }
     fn advance(&mut self, root: &str) -> Result<()> {
@@ -185,6 +189,30 @@ impl Snapshot {
                 "stale lifecycle CAS revision"
             );
             match &command.action {
+                CommandAction::IssueNativeClaim {
+                    reservation_id,
+                    issuance_id,
+                } => {
+                    let claim = self
+                        .claims
+                        .get(reservation_id)
+                        .context("original registered claim required before issuance")?;
+                    ensure!(r.phase==Phase::Active && !issuance_id.is_nil()
+                        && claim.statement.root==r.evidence.statement
+                        && matches!(claim.statement.asset, wallet_mpc_protocol::solana_provisioning::Asset::Native)
+                        && !self.claim_issuances.contains_key(reservation_id)
+                        && !self.issuance_ids.contains_key(issuance_id),
+                        "one original native claim, active root and globally unique issuance identity required");
+                    self.claim_issuances.insert(
+                        *reservation_id,
+                        wallet_mpc_protocol::witness::ClaimIssuance {
+                            reservation_id: *reservation_id,
+                            issuance_id: *issuance_id,
+                            command_id: command.request_id,
+                        },
+                    );
+                    self.issuance_ids.insert(*issuance_id, *reservation_id);
+                }
                 CommandAction::RegisterClaim { evidence } => {
                     evidence.validate()?;
                     evidence.statement.validate()?;

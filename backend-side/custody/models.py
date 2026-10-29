@@ -321,6 +321,29 @@ class MpcSolanaClaim(models.Model):
         ]
 
 
+class MpcSolanaIssuance(models.Model):
+    """Original publication intent; independent witness permission is mandatory."""
+
+    issuance_id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
+    claim = models.OneToOneField(MpcSolanaClaim, on_delete=models.PROTECT)
+    witness_anchor_id = models.UUIDField()
+    witness_key_id = models.CharField(max_length=64)
+    query_challenge = models.CharField(max_length=64)
+    query_expires_at = models.DateTimeField()
+    status = models.CharField(max_length=16, default="PENDING")
+    evidence = models.JSONField(default=dict)
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        constraints = [
+            models.CheckConstraint(
+                condition=Q(status="PENDING", evidence={})
+                | (Q(status="WITNESSED") & ~Q(evidence={})),
+                name="sol_issuance_evidence_shape",
+            ),
+        ]
+
+
 class MpcProvisioningRoot(models.Model):
     """Immutable allocation namespace, not proof of HD capability or spendability.
 
@@ -477,6 +500,7 @@ class UserWallet(models.Model):
             ),
             models.UniqueConstraint(
                 fields=["user_id", "chain_id", "asset_key", "address_index"],
+                condition=Q(solana_claim__isnull=True),
                 name="uq_user_chain_asset_addrindex",
             ),
             models.UniqueConstraint(
@@ -491,7 +515,7 @@ class UserWallet(models.Model):
     deposit_address = models.CharField(max_length=128, db_index=True)
     # TON memo attribution (optional). For TON this binds the user on-chain.
     memo = models.CharField(max_length=128, null=True, blank=True)
-    address_index = models.PositiveIntegerField(default=0)
+    address_index = models.PositiveBigIntegerField(default=0)
     status = models.CharField(max_length=16, choices=STATUS, default="ACTIVE")
     created_at = models.DateTimeField(auto_now_add=True)
     # Indexer scan metadata
@@ -512,6 +536,13 @@ class UserWallet(models.Model):
         blank=True,
         on_delete=models.PROTECT,
         related_name="asset_wallets",
+    )
+    solana_claim = models.OneToOneField(
+        MpcSolanaClaim,
+        null=True,
+        blank=True,
+        on_delete=models.PROTECT,
+        related_name="issued_wallet",
     )
 
     def __str__(self) -> str:

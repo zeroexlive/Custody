@@ -316,7 +316,15 @@ class Group:
 
 
 @contextmanager
-def group(root_path, custody_class="HOT", *, delayed_rpc=False, lifecycle=False):
+def group(
+    root_path,
+    custody_class="HOT",
+    *,
+    delayed_rpc=False,
+    lifecycle=False,
+    bootstrap_only=False,
+    tenant_id=None,
+):
     validator = Validator(root_path / "validator")
     proxy = DelayedRpc(validator) if delayed_rpc else None
     net = Processes(root_path / "services")
@@ -350,7 +358,7 @@ def group(root_path, custody_class="HOT", *, delayed_rpc=False, lifecycle=False)
             "dkg": binding,
             "group_public_key": dkg["group_public_key"],
             "public_key_package": dkg["participant_agreement"][0]["public_key_package"],
-            "ownership_scope": str(uuid.uuid4()),
+            "ownership_scope": str(tenant_id or uuid.uuid4()),
             "chain_id": "SOL",
             "genesis_hash": validator.policy["genesis_hash"],
             "purpose": "DEPOSIT",
@@ -358,6 +366,13 @@ def group(root_path, custody_class="HOT", *, delayed_rpc=False, lifecycle=False)
             "derivation_version": "solana_seeded_v1",
             "generation": 0,
         }
+        if bootstrap_only:
+            # Backend acceptance must commit original root/claim intents before
+            # calling any enrollment endpoint. No pre-approved claim is made.
+            g.original_root, g.dkg_binding, g.dkg_report = root, binding, dkg
+            witness.root = root
+            yield g, None, None
+            return
         g.original_backups = {}
         for party in PARTIES:
             backup = root_path / f"pre-enrollment-{party}"

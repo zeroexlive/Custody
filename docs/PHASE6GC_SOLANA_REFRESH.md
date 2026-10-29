@@ -110,3 +110,15 @@ single-share repair followed by all-three refresh, root rotation/compromise and
 drain/retirement, old-address late-deposit rescue, issued-wallet and finalized SPL
 initialization records, single-ledger deposit/sweep/withdrawal integration,
 1000 actually issued wallets, independent final review and exact-final-SHA gates.
+
+## Verified ordinary-refresh checkpoint
+
+Commit `cc55cc606c5665fe311fe600f2caa05cfae13d1b` independently passed
+[Fast40805529721](https://github.com/zeroexlive/Custody/actions/runs/40805529721)
+and [selected Solana40805525701](https://github.com/zeroexlive/Custody/actions/runs/40805525701).
+The selected artifact12868533578 contains27 unique selected/called scenarios,
+zero scenario skips,27 JUnit passes in1190.729s and ten explicitly public files.
+Independent remote verification checked the exact head, job conclusions,
+inventory/JUnit equality and absence of private artifact markers. Other chain
+jobs were intentionally unselected. These are bounded checkpoint results;
+ALL and original-store compatibility still require the final whole-phase SHA.

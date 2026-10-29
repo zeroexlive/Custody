@@ -54,8 +54,9 @@ After separate genuine refresh/activation, a new explicitly authorized attempt
 may retain the same business identity. This is not chain settlement or a command
 to release financial reservations.
 
-Under the existing at-most-one-Byzantine-node assumption, if there is only one R2
-grantee, the ungranted honest participant cannot have released the other share.
+Under the existing at-most-one-Byzantine-node assumption, if the sole R2 grantee
+is honest, its truthful terminal certificate excludes its share. If that sole
+grantee is Byzantine, the other participant is honest and had no R2 grant.
 If both participants were granted, both certificates are required, so an honest
 grantee permanently withholds at least one necessary partial. This relies on the
 existing protected-runtime rule that a partial never leaves an honest node before
@@ -93,3 +94,15 @@ rotation/drain/retirement, issued wallets and finalized SPL initialization,
 single-ledger deposit/sweep/withdrawal integration and actual1000-wallet issuance
 remain unfinished. Final Fast/ALL and original-store compatibility gates remain
 mandatory, along with independent review and no blocking P0/P1.
+
+## Verified terminal-cancellation checkpoint
+
+Commit `fe67ee9a59aa16c0902d188ae8e32d7668d4fdbc` independently passed
+[Fast40807326269](https://github.com/zeroexlive/Custody/actions/runs/40807326269)
+and [selected Solana40807346419](https://github.com/zeroexlive/Custody/actions/runs/40807346419).
+Selected artifact12870505005 contains32 unique selected/called scenarios,
+zero scenario skips,32 JUnit passes in1379.875s and ten explicitly public files.
+All five cancellation scenarios, including manual COLD, actually executed.
+Independent verification checked exact SHA, public inventory/JUnit equality,
+job conclusions and private-marker absence. This does not cover later native
+issuance source or satisfy final ALL/original-store/whole-phase acceptance.

@@ -8,8 +8,19 @@
 
 PR #1 merged its verified development checkpoint as587e0969; final783 Fast/full
 passed14jobs/228calls/zero skips and main Fast40716836844 passed. Phase6G-C remains
-incomplete. The next branch begins a pure typed seeded intent/wire contract; live
-signing/witness/financial integration remains unfinished. See [current status](PROJECT_STATUS.md).
+incomplete. Draft PR #2 implements the typed seeded intent, independent witness,
+protected signing, ordinary refresh and terminal R2 cancellation foundations.
+Exact ordinary-refresh/cancellation checkpoints passed Fast and selected Solana
+CI; final ALL/original-store compatibility remain required. Native Claim-linked
+publication now passes local actual1000 issuance (627.149s; whole case737.59s)
+and three all-pair finalized transfers, plus separate restart/fault acceptance.
+See [native issuance evidence](PHASE6GC_NATIVE_ISSUANCE.md). Replacement provenance,
+share repair, fresh-root rotation/drain/late-deposit rescue, finalized SPL
+publication and protected backend financial integration remain unfinished.
+See [current status](PROJECT_STATUS.md).
+
+The intermediate checkpoint paragraphs below retain their historical scope;
+the current facts above and PROJECT_STATUS.md take precedence.
 
 The owner explicitly authorized merging the verified bounded PR #1 development
 checkpoint and continuing remaining 6G-C work; see the [2026-10-28 decision](DECISIONS.md).

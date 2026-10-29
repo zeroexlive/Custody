@@ -813,6 +813,72 @@ fn no_release_closure_uses_every_actual_grantee_and_fences_late_results() {
 }
 
 #[test]
+fn native_publication_requires_registered_claim_and_unique_active_grant() {
+    let (mut s, b) = setup();
+    let reservation = b.authorized.intent.claim.reservation_id;
+    let issuance = Uuid::new_v4();
+    let action = |reservation_id, issuance_id| CommandAction::IssueNativeClaim {
+        reservation_id,
+        issuance_id,
+    };
+    assert!(s
+        .clone()
+        .command(&command(&s, &b, action(Uuid::new_v4(), issuance)))
+        .is_err());
+    let first = command(&s, &b, action(reservation, issuance));
+    s.command(&first).unwrap();
+    assert_eq!(s.claim_issuances[&reservation].issuance_id, issuance);
+    assert_eq!(s.claim_issuances[&reservation].command_id, first.request_id);
+    assert!(!s.command(&first).unwrap());
+    assert!(s
+        .clone()
+        .command(&command(&s, &b, action(reservation, Uuid::new_v4())))
+        .is_err());
+    let mut other = b.clone();
+    other.authorized.intent.claim.reservation_id = Uuid::new_v4();
+    other.authorized.intent.claim.index = 1;
+    other.authorized.intent.claim.owner_ref = format!("p1:{}", Uuid::new_v4());
+    other.authorized.intent.claim.idempotency_key = "other-native".into();
+    register(&mut s, &other);
+    let second = other.authorized.intent.claim.reservation_id;
+    assert!(s
+        .clone()
+        .command(&command(&s, &b, action(second, issuance)))
+        .is_err());
+    let mut frozen = s.clone();
+    frozen
+        .command(&command(&frozen, &b, CommandAction::Freeze))
+        .unwrap();
+    assert!(frozen
+        .command(&command(&frozen, &b, action(second, Uuid::new_v4())))
+        .is_err());
+    assert_eq!(
+        frozen.claim_issuances[&reservation],
+        s.claim_issuances[&reservation]
+    );
+    s.command(&command(&s, &b, action(second, Uuid::new_v4())))
+        .unwrap();
+    let mut token = other.clone();
+    token.authorized.intent.claim.reservation_id = Uuid::new_v4();
+    token.authorized.intent.claim.index = 2;
+    token.authorized.intent.claim.idempotency_key = "token-not-yet-initialized".into();
+    token.authorized.intent.claim.asset =
+        wallet_mpc_protocol::solana_provisioning::Asset::ClassicToken {
+            mint: "So11111111111111111111111111111111111111112".into(),
+            decimals: 9,
+        };
+    register(&mut s, &token);
+    assert!(s
+        .clone()
+        .command(&command(
+            &s,
+            &b,
+            action(token.authorized.intent.claim.reservation_id, Uuid::new_v4())
+        ))
+        .is_err());
+}
+
+#[test]
 fn exact_signature_is_recovered_without_reopening_the_payout() {
     let (keys, public) = keys();
     let mut b = binding();

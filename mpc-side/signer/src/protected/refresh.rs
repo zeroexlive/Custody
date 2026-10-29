@@ -18,6 +18,7 @@ use wallet_mpc_protocol::{
     dkg::{identifier, PARTIES},
     sign::public_package,
     solana_generation::{RefreshPlan, RefreshStart},
+    solana_recovery::{ReplacementPlan, ReplacementStart},
     witness::{hash, GenerationReady, Query, QueryReply, Signed},
 };
 use wallet_mpc_transport::{PeerIdentity, SignerClient};
@@ -25,6 +26,7 @@ use zeroize::{Zeroize, Zeroizing};
 
 const DOMAIN: &str = "WITNESS_FROST_REFRESH_PLAN_V1";
 const PROTOCOL: &str = "FROST_ED25519_REFRESH_V1";
+const REPLACEMENT_PROTOCOL: &str = "FROST_ED25519_REPLACEMENT_REFRESH_V1";
 #[derive(Serialize, Deserialize)]
 #[serde(deny_unknown_fields)]
 struct Round2Wire {
@@ -46,6 +48,7 @@ struct Active {
     received2: BTreeMap<frost::Identifier, frost::keys::dkg::round2::Package>,
     sent1: bool,
     sent2: bool,
+    replacement: bool,
 }
 #[derive(Default)]
 struct Local {
@@ -104,10 +107,7 @@ impl Service {
     }
     pub async fn query(&self, plan: Signed<RefreshPlan>) -> Result<Signed<Query>> {
         self.authorize(&plan, true)?;
-        self.host
-            .provisioning
-            .require_root(&plan.value.root)
-            .await?;
+        self.host.require_root(&plan.value.root).await?;
         let mut random = [0u8; 32];
         rand_core::RngCore::fill_bytes(&mut rand_core::OsRng, &mut random);
         let value = Query {
@@ -138,10 +138,7 @@ impl Service {
         ensure!(!anchor.journal.poisoned, "protected history uncertain");
         if let Some(r) = anchor.journal.records.ready.get(&plan.ceremony_id) {
             ensure!(
-                anchor.journal.records.ceremonies[&plan.ceremony_id]
-                    .plan
-                    .value
-                    == *plan,
+                anchor.journal.records.refresh_plan(plan.ceremony_id)? == plan,
                 "original lifecycle plan cannot change"
             );
             // Verify the private artifact still exists before returning READY.
@@ -161,14 +158,8 @@ impl Service {
                 ready: Some(r.clone()),
             });
         }
-        let consumed = anchor
-            .journal
-            .records
-            .ceremonies
-            .get(&plan.ceremony_id)
-            .context("refresh not started")?;
         ensure!(
-            consumed.plan.value == *plan,
+            anchor.journal.records.refresh_plan(plan.ceremony_id)? == plan,
             "original refresh identity changed"
         );
         if let Some((generation, public)) = self.host.generation_store.finished(plan)? {
@@ -273,6 +264,8 @@ impl Service {
             )?;
         }
         // Tombstone commits before fresh upstream secret polynomial work.
+        let host = self.host.local.lock().await;
+        ensure!(!host.journal.poisoned, "refresh history uncertain");
         plan.validate(now()?)?;
         ensure!(
             now()? < deadline,
@@ -296,10 +289,141 @@ impl Service {
                 received2: BTreeMap::new(),
                 sent1: false,
                 sent2: false,
+                replacement: false,
             },
         );
+        drop(host);
         drop(local);
         self.status(plan).await
+    }
+    fn authorize_replacement(&self, plan: &Signed<ReplacementPlan>, live: bool) -> Result<()> {
+        journal::verify(
+            self.host
+                .lifecycle
+                .as_ref()
+                .context("lifecycle replacement disabled")?,
+            "WITNESS_FROST_REPLACEMENT_PLAN_V1",
+            plan,
+        )?;
+        if live {
+            plan.value.validate(now()?)?;
+        } else {
+            plan.value.validate_shape()?;
+        }
+        ensure!(
+            plan.value.refresh.anchor_id == self.host.profile.witness_anchor
+                && plan.value.refresh.root.wallet_class == self.host.profile.class
+                && plan
+                    .value
+                    .refresh
+                    .node_keys
+                    .get(&self.host.profile.signer.party_id)
+                    == Some(&self.host.own.key_id),
+            "exact replacement refresh identity/class/authority required"
+        );
+        Ok(())
+    }
+    pub(super) async fn start_replacement(
+        &self,
+        start: ReplacementStart,
+        key: frost::keys::KeyPackage,
+        deadline: u64,
+    ) -> Result<Report> {
+        self.authorize_replacement(&start.plan, true)?;
+        start.validate_shape()?;
+        self.host
+            .require_root(&start.plan.value.refresh.root)
+            .await?;
+        let plan = start.plan.value.refresh.clone();
+        let previous = public_package(
+            &plan.previous_public_key_package,
+            &plan.root.group_public_key,
+        )?;
+        ensure!(
+            *key.identifier()
+                == identifier(&self.host.profile.signer.party_id).context("own participant")?
+                && previous.verifying_shares().get(key.identifier()) == Some(key.verifying_share())
+                && key.verifying_key() == previous.verifying_key(),
+            "actual repaired/current private share required"
+        );
+        let mut local = self.local.lock().await;
+        ensure!(
+            local.active.len() < 8,
+            "too many private refresh ceremonies"
+        );
+        {
+            let mut host = self.host.local.lock().await;
+            ensure!(
+                !host
+                    .journal
+                    .records
+                    .replacement_refresh
+                    .contains_key(&plan.ceremony_id),
+                "replacement refresh already consumed; recover original public status only"
+            );
+            self.host.append(
+                &mut host,
+                journal::Change::ReplacementRefreshStart {
+                    start: Box::new(start),
+                },
+            )?;
+        }
+        let host = self.host.local.lock().await;
+        ensure!(!host.journal.poisoned, "refresh history uncertain");
+        plan.validate(now()?)?;
+        ensure!(
+            now()? < deadline,
+            "fresh replacement query expired before private refresh"
+        );
+        let (first, public) = frost::keys::refresh::refresh_dkg_part1(
+            identifier(&self.host.profile.signer.party_id).context("own participant")?,
+            3,
+            2,
+            rand_core::OsRng,
+        )?;
+        local.active.insert(
+            plan.ceremony_id,
+            Active {
+                plan: plan.clone(),
+                key,
+                first: Some(first),
+                public,
+                received1: BTreeMap::new(),
+                second: None,
+                received2: BTreeMap::new(),
+                sent1: false,
+                sent2: false,
+                replacement: true,
+            },
+        );
+        drop(host);
+        drop(local);
+        self.status(&plan).await
+    }
+    pub(super) async fn control_replacement(
+        &self,
+        action: &str,
+        signed: &Signed<ReplacementPlan>,
+    ) -> Result<Report> {
+        self.authorize_replacement(signed, action != "report" && action != "abort")?;
+        let plan = &signed.value.refresh;
+        {
+            let host = self.host.local.lock().await;
+            let start = host
+                .journal
+                .records
+                .replacement_refresh
+                .get(&plan.ceremony_id)
+                .context("original replacement refresh unavailable")?;
+            ensure!(
+                start.plan.value == signed.value,
+                "original replacement refresh plan cannot change"
+            );
+        }
+        if action == "report" {
+            return self.status(plan).await;
+        }
+        self.step(action, plan).await
     }
     pub async fn control(&self, action: &str, control: Control) -> Result<Report> {
         if action == "start" {
@@ -312,6 +436,9 @@ impl Service {
         if action == "report" {
             return self.status(plan).await;
         }
+        self.step(action, plan).await
+    }
+    async fn step(&self, action: &str, plan: &RefreshPlan) -> Result<Report> {
         let own = &self.host.profile.signer.party_id;
         let mut local = self.local.lock().await;
         let active = local
@@ -327,6 +454,8 @@ impl Service {
             drop(local);
             return self.status(plan).await;
         }
+        let host = self.host.local.lock().await;
+        ensure!(!host.journal.poisoned, "refresh history uncertain");
         if action == "finalize" {
             ensure!(
                 active.sent2 && active.received2.len() == 2,
@@ -354,6 +483,7 @@ impl Service {
                 "refresh cannot rotate the group key"
             );
             self.host.generation_store.persist(plan, &key, &public)?;
+            drop(host);
             drop(local);
             return self.status(plan).await;
         }
@@ -407,13 +537,19 @@ impl Service {
             }
             _ => anyhow::bail!("unsupported refresh action"),
         };
+        let protocol = if active.replacement {
+            REPLACEMENT_PROTOCOL
+        } else {
+            PROTOCOL
+        };
+        drop(host);
         drop(local);
         for (party, payload) in outgoing {
             let mut envelope = ProtocolEnvelope {
                 logical_session_id: plan.session_id,
                 crypto_execution_id: plan.ceremony_id,
                 keyset_id: plan.root.dkg.keyset_id,
-                protocol: PROTOCOL.into(),
+                protocol: protocol.into(),
                 sender: own.clone(),
                 recipient: party.clone(),
                 round,
@@ -423,12 +559,13 @@ impl Service {
             };
             envelope.payload_digest = envelope.transcript_digest();
             self.peers
-                .request_pinned(
+                .request_pinned_until(
                     &party,
                     &plan.node_keys[&party],
-                    "POST",
                     "/internal/v1/solana/generation/message",
                     serde_json::to_vec(&envelope)?,
+                    plan.expires_at,
+                    || self.host.private_release(),
                 )
                 .await?;
         }
@@ -436,6 +573,8 @@ impl Service {
     }
     async fn receive(&self, peer: &PeerIdentity, envelope: ProtocolEnvelope) -> Result<()> {
         let mut local = self.local.lock().await;
+        let host = self.host.local.lock().await;
+        ensure!(!host.journal.poisoned, "refresh history uncertain");
         let active = local
             .active
             .get_mut(&envelope.crypto_execution_id)
@@ -443,7 +582,12 @@ impl Service {
         let p = &active.plan;
         p.validate(now()?)?;
         ensure!(
-            envelope.protocol == PROTOCOL
+            envelope.protocol
+                == if active.replacement {
+                    REPLACEMENT_PROTOCOL
+                } else {
+                    PROTOCOL
+                }
                 && envelope.logical_session_id == p.session_id
                 && envelope.keyset_id == p.root.dkg.keyset_id
                 && [1, 2].contains(&envelope.round)

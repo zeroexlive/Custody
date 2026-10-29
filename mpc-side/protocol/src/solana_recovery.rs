@@ -292,3 +292,15 @@ impl ReplacementStart {
         Ok(())
     }
 }
+
+/// Public evidence that the replacement durably staged its one current share.
+/// This is not GenerationReady and never authorizes signing or activation.
+#[derive(Clone, Debug, Serialize, Deserialize, PartialEq, Eq)]
+#[serde(deny_unknown_fields)]
+pub struct RepairReady {
+    pub root_identity: String,
+    pub plan_identity: String,
+    pub generation: crate::solana_intent::Generation,
+    pub repair_ceremony_id: Uuid,
+    pub party_id: String,
+}

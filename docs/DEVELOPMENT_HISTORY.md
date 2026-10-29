@@ -600,3 +600,34 @@ strict rules for new admissions. Independent17Witnessunit and actual runtime
 archived-store upgrade/restart/tampering checks pass; archive signatures and
 original persisted bytes were independently checked. This is no private repair,
 profile migration or whole-phase completion. See PHASE6GC_RECOVERY.md.
+
+## 2026-10-29 — unmerged private single-share repair and replacement refresh
+
+Connected upstream RTS over exact pinned direct helper Delta and recipient Sigma
+channels. Fresh required-profile recipients bind original archival enrollment,
+new key/profile/anchor and durable repair history; encrypted one-share staging is
+separate from original DKG and active generations. All-three distributed refresh
+and witness activation precede private signing. Old profile mutation and epoch0
+fallback remain forbidden. Current original Claims remain supported; approval of
+new Claims with retired receipt identities is not enabled.
+
+Initial HOT all-pair finalized restart case passed84.85s after correcting a test
+amount below the validator's rent minimum. Staging-publication/restart and
+missing/corrupt/transplanted/symlink/profile-anchor faults plus COLD passed two
+cases165.03s. Actual Delta wrong-key/delayed-TLS-expiry tests observed zero HTTP
+bytes and interrupted/fresh-recipient retry passed two cases73.86s. Independent
+review identified an enqueue/write ordering gap; a mutex now covers the exact
+synchronous enqueue boundary with deadline recheck after lock acquisition,
+dropping before response await. Three deterministic production-dispatch tests
+cover both race orders and expiry while waiting. Upstream-DKG/RTS storage unit
+rejects forged canonical zero Sigmas, wrong participant and plan/AAD transplant.
+
+Environment disconnection interrupted the first final five-case/unit rerun;
+partial '..' output was not counted as success. After restoration all37 Rust
+library tests passed and independent genuine staging/provenance rerun passed
+76.81s, with independent three-dispatch/store-negative unit reruns. No demonstrated
+P0/P1 remains in bounded private review; complete current-source genuine/exact-head
+CI and whole-phase gates remain pending. Complete restored private run subsequently
+passed5 cases297.72s; ordinary-refresh regressions passed2 cases138.78s and final
+all-target Clippy passed5.69s. Public local evidence is
+`docs/evidence/phase6gc-private-repair-local.json`. No merge or production activation.

@@ -503,6 +503,45 @@ impl SignerClient {
         .await?
     }
 
+    /// Lifecycle-private output has a hard release deadline in addition to
+    /// the exact peer pin. Recheck time after the awaited TLS/HTTP handshakes,
+    /// immediately before any request body can leave this process.
+    pub async fn request_pinned_until<R>(
+        &self,
+        role: &str,
+        key_id: &str,
+        path: &str,
+        body: Vec<u8>,
+        expires_at: u64,
+        release: impl Fn() -> Result<R> + Send + Sync,
+    ) -> Result<Vec<u8>> {
+        ensure!(
+            key_id.len() == 64
+                && key_id
+                    .bytes()
+                    .all(|b| b.is_ascii_digit() || (b'a'..=b'f').contains(&b)),
+            "canonical peer key pin required"
+        );
+        let (_, addr, name) = self
+            .targets
+            .iter()
+            .find(|(r, _, _)| r == role)
+            .context("unconfigured pinned peer")?;
+        timeout(
+            Duration::from_secs(5),
+            exchange_to_until(
+                self.tls.clone(),
+                (role, *addr, name, &ROLES, Some(key_id)),
+                "POST",
+                path,
+                body,
+                Some(expires_at),
+                Some(&release),
+            ),
+        )
+        .await?
+    }
+
     async fn fetch(&self, role: &str, _addr: SocketAddr, _name: &str) -> Result<Capabilities> {
         let body = self
             .request(role, "GET", "/internal/v1/capabilities", vec![])
@@ -552,6 +591,18 @@ async fn exchange_to(
     path: &str,
     body: Vec<u8>,
 ) -> Result<Vec<u8>> {
+    exchange_to_until::<()>(tls, target, method, path, body, None, None).await
+}
+
+async fn exchange_to_until<R>(
+    tls: Arc<ClientConfig>,
+    target: (&str, SocketAddr, &str, &[&str], Option<&str>),
+    method: &str,
+    path: &str,
+    body: Vec<u8>,
+    expires_at: Option<u64>,
+    release: Option<&(dyn Fn() -> Result<R> + Sync)>,
+) -> Result<Vec<u8>> {
     let (role, addr, name, roles, pin) = target;
     // Auxiliary/signing proofs need more space than keygen controls. These RPCs
     // enqueue bounded messages; expensive crypto runs in asynchronous workers.
@@ -597,7 +648,20 @@ async fn exchange_to(
         .header("Host", name)
         .header("Content-Type", "application/json")
         .body(Full::new(Bytes::from(body)))?;
-    let response = sender.send_request(request).await?;
+    // Hyper dispatches synchronously in send_request. A caller's guard orders
+    // that exact release against its durable writes; never retain this guard
+    // across the peer response await (two peers may send concurrently).
+    let response = guarded_dispatch(
+        release,
+        expires_at,
+        || {
+            Ok(std::time::SystemTime::now()
+                .duration_since(std::time::UNIX_EPOCH)?
+                .as_secs())
+        },
+        || sender.send_request(request),
+    )?
+    .await?;
     if response.status() != StatusCode::OK {
         return Err(PeerHttpStatus(response.status()).into());
     }
@@ -607,6 +671,24 @@ async fn exchange_to(
         .map_err(|_| anyhow::anyhow!("invalid signer response"))?
         .to_bytes();
     Ok(body.to_vec())
+}
+
+/// Linearize enqueue with the caller's write guard, and drop it before polling
+/// the returned response future. Clock is injectable for deterministic races.
+fn guarded_dispatch<R, T>(
+    release: Option<&(dyn Fn() -> Result<R> + Sync)>,
+    expires_at: Option<u64>,
+    clock: impl FnOnce() -> Result<u64>,
+    dispatch: impl FnOnce() -> T,
+) -> Result<T> {
+    let _release = release.map(|f| f()).transpose()?;
+    if let Some(deadline) = expires_at {
+        ensure!(
+            clock()? < deadline,
+            "private lifecycle release expired before HTTP transmission"
+        );
+    }
+    Ok(dispatch())
 }
 
 /// A single operator-configured authority destination; never a request URL.
@@ -775,5 +857,109 @@ impl PinnedIdentity {
         )
         .verify(message, signature)
         .map_err(|_| anyhow::anyhow!("pinned signature mismatch"))
+    }
+}
+
+#[cfg(test)]
+mod release_tests {
+    use super::*;
+    use std::sync::{
+        atomic::{AtomicBool, AtomicU64, Ordering},
+        mpsc, Arc, Mutex, TryLockError,
+    };
+
+    #[tokio::test]
+    async fn release_wins_enqueue_precedes_append_and_guard_drops_before_response_poll() {
+        let serial = Arc::new(Mutex::new(()));
+        let enqueued = Arc::new(AtomicBool::new(false));
+        let (begin, started) = mpsc::channel();
+        let (attempt, attempted) = mpsc::channel();
+        let writer_serial = serial.clone();
+        let writer_enqueued = enqueued.clone();
+        let writer = std::thread::spawn(move || {
+            started.recv().unwrap();
+            assert!(matches!(
+                writer_serial.try_lock(),
+                Err(TryLockError::WouldBlock)
+            ));
+            attempt.send(()).unwrap();
+            let _append = writer_serial.lock().unwrap();
+            assert!(writer_enqueued.load(Ordering::SeqCst));
+        });
+        let release = || -> Result<_> { Ok(serial.lock().unwrap()) };
+        let response = guarded_dispatch(
+            Some(&release),
+            Some(10),
+            || Ok(9),
+            || {
+                begin.send(()).unwrap();
+                attempted.recv().unwrap();
+                enqueued.store(true, Ordering::SeqCst);
+                // Real send_request returns a future after synchronous enqueue.
+                // The future must be polled only once that release guard is gone.
+                async {
+                    assert!(serial.try_lock().is_ok());
+                }
+            },
+        )
+        .unwrap();
+        writer.join().unwrap();
+        response.await;
+    }
+
+    #[test]
+    fn append_wins_uncertain_history_never_enqueues() {
+        let serial = Arc::new(Mutex::new(()));
+        let uncertain = Arc::new(AtomicBool::new(false));
+        let append = serial.lock().unwrap();
+        let (entered, entry) = mpsc::channel();
+        let peer_serial = serial.clone();
+        let peer_uncertain = uncertain.clone();
+        let task = std::thread::spawn(move || {
+            let release = || -> Result<_> {
+                entered.send(()).unwrap();
+                let guard = peer_serial.lock().unwrap();
+                ensure!(!peer_uncertain.load(Ordering::SeqCst), "uncertain");
+                Ok(guard)
+            };
+            assert!(guarded_dispatch(
+                Some(&release),
+                Some(10),
+                || Ok(9),
+                || panic!("secret enqueued after uncertain append")
+            )
+            .is_err());
+        });
+        entry.recv().unwrap();
+        uncertain.store(true, Ordering::SeqCst);
+        drop(append);
+        task.join().unwrap();
+    }
+
+    #[test]
+    fn expiry_while_waiting_for_append_guard_never_enqueues() {
+        let serial = Arc::new(Mutex::new(()));
+        let clock = Arc::new(AtomicU64::new(9));
+        let append = serial.lock().unwrap();
+        let (entered, entry) = mpsc::channel();
+        let peer_serial = serial.clone();
+        let peer_clock = clock.clone();
+        let task = std::thread::spawn(move || {
+            let release = || -> Result<_> {
+                entered.send(()).unwrap();
+                Ok(peer_serial.lock().unwrap())
+            };
+            assert!(guarded_dispatch(
+                Some(&release),
+                Some(10),
+                || Ok(peer_clock.load(Ordering::SeqCst)),
+                || panic!("expired secret enqueued")
+            )
+            .is_err());
+        });
+        entry.recv().unwrap();
+        clock.store(10, Ordering::SeqCst);
+        drop(append);
+        task.join().unwrap();
     }
 }

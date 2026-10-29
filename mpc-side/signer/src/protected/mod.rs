@@ -5,6 +5,8 @@ mod journal;
 mod network;
 mod policy;
 pub mod refresh;
+pub mod repair;
+pub mod repair_store;
 use crate::{dkg::DkgService, solana_provisioning, SignerConfig};
 use anyhow::{ensure, Context, Result};
 use frost_ed25519 as frost;
@@ -15,7 +17,10 @@ use std::{
     fs,
     net::SocketAddr,
     path::{Path, PathBuf},
-    sync::Arc,
+    sync::{
+        atomic::{AtomicBool, Ordering},
+        Arc, OnceLock,
+    },
 };
 use tokio::sync::Mutex;
 use uuid::Uuid;
@@ -28,6 +33,13 @@ use wallet_mpc_transport::{
     solana_rpc::SolanaRpc, AuthorityClient, PinnedIdentity, ReceiptIdentity, TlsConfig,
     AUTHORITY_ROLES,
 };
+
+#[derive(Clone, Serialize, Deserialize)]
+#[serde(deny_unknown_fields)]
+pub struct ReplacementBootstrap {
+    pub root_identity: String,
+    pub anchor_id: Uuid,
+}
 
 #[derive(Clone, Serialize, Deserialize)]
 #[serde(deny_unknown_fields)]
@@ -48,6 +60,8 @@ pub struct Profile {
     pub policy: PolicyConfig,
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub lifecycle_certificate: Option<String>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub replacement_bootstrap: Option<ReplacementBootstrap>,
 }
 impl Profile {
     pub fn load(path: &Path) -> Result<(Self, String)> {
@@ -65,6 +79,16 @@ impl Profile {
             "isolated explicit protected profile required"
         );
         p.signer.validate()?;
+        if let Some(replacement) = &p.replacement_bootstrap {
+            ensure!(
+                p.lifecycle_certificate.is_some()
+                    && wallet_mpc_protocol::witness::hash_text(&replacement.root_identity)
+                    && replacement.root_identity != "00".repeat(32)
+                    && !replacement.anchor_id.is_nil()
+                    && replacement.anchor_id != p.witness_anchor,
+                "explicit replacement Root, fresh anchor and lifecycle authority required"
+            );
+        }
         ensure!(
             p.signer.certificate_identity == format!("spiffe://wallet-mpc/{}", p.signer.party_id),
             "protected certificate identity mismatch"
@@ -143,6 +167,10 @@ struct Local {
 }
 pub struct Service {
     profile: Profile,
+    fingerprint: String,
+    provenance: OnceLock<wallet_mpc_protocol::solana_recovery::ReplacementStart>,
+    private_uncertain: AtomicBool,
+    private_serial: std::sync::Mutex<()>,
     policy: policy::Policy,
     identity: ReceiptIdentity,
     own: PinnedIdentity,
@@ -212,19 +240,51 @@ impl Service {
         };
         let journal = journal::Journal::open(
             &profile.anchor_directory,
-            fingerprint,
+            fingerprint.clone(),
             &identity,
             journal::Authorities {
                 own: &own,
                 witness: &witness,
                 lifecycle: lifecycle.as_ref(),
                 party,
+                profile: &fingerprint,
             },
             initialize,
         )?;
+        let provenance = OnceLock::new();
+        if let Some(bootstrap) = &profile.replacement_bootstrap {
+            for start in journal.records.repairs.values() {
+                let plan = &start.plan.value;
+                if plan.party_id == *party {
+                    ensure!(
+                        plan.refresh.root.identity()? == bootstrap.root_identity
+                            && plan.recipient_anchor_id == bootstrap.anchor_id
+                            && plan.recipient_profile_sha256 == fingerprint
+                            && plan.refresh.node_keys[party] == own.key_id,
+                        "original replacement profile/Root/identity provenance required"
+                    );
+                    policy.verify_root(
+                        &start
+                            .frozen
+                            .value
+                            .replacement
+                            .as_ref()
+                            .context("replacement provenance missing")?
+                            .original_evidence,
+                    )?;
+                    provenance.set(start.clone()).map_err(|_| {
+                        anyhow::anyhow!("replacement identity cannot adopt another repair history")
+                    })?;
+                }
+            }
+        }
         let rpc = SolanaRpc::new(profile.rpc_address)?;
         Ok(Arc::new(Self {
             profile,
+            fingerprint,
+            private_uncertain: AtomicBool::new(false),
+            private_serial: std::sync::Mutex::new(()),
+            provenance,
             policy,
             identity,
             own,
@@ -242,7 +302,15 @@ impl Service {
         }))
     }
     fn append(&self, local: &mut Local, change: journal::Change) -> Result<()> {
-        local.journal.append(
+        let _serial = self
+            .private_serial
+            .lock()
+            .map_err(|_| anyhow::anyhow!("private release/write ordering uncertain"))?;
+        // Private lifecycle transport rechecks this after awaited handshakes.
+        // An in-progress public append conservatively fences release; a write
+        // error keeps the fence until verified journal replay on restart.
+        self.private_uncertain.store(true, Ordering::Release);
+        let result = local.journal.append(
             change,
             &self.identity,
             journal::Authorities {
@@ -250,11 +318,69 @@ impl Service {
                 witness: &self.witness,
                 lifecycle: self.lifecycle.as_ref(),
                 party: &self.profile.signer.party_id,
+                profile: &self.fingerprint,
             },
-        )
+        );
+        self.private_uncertain
+            .store(local.journal.poisoned, Ordering::Release);
+        result
+    }
+    fn private_release(&self) -> Result<std::sync::MutexGuard<'_, ()>> {
+        let serial = self
+            .private_serial
+            .lock()
+            .map_err(|_| anyhow::anyhow!("private release/write ordering uncertain"))?;
+        ensure!(
+            !self.private_uncertain.load(Ordering::Acquire),
+            "protected durability uncertain; no private lifecycle release"
+        );
+        Ok(serial)
+    }
+    async fn require_root(
+        &self,
+        root: &wallet_mpc_protocol::solana_provisioning::Root,
+    ) -> Result<()> {
+        if let Some(bootstrap) = &self.profile.replacement_bootstrap {
+            let original = self
+                .provenance
+                .get()
+                .context("explicit original replacement provenance required")?;
+            ensure!(
+                root.identity()? == bootstrap.root_identity
+                    && original.plan.value.refresh.root == *root,
+                "replacement profile is dedicated to its original Root"
+            );
+            return self.policy.verify_root(
+                &original
+                    .frozen
+                    .value
+                    .replacement
+                    .as_ref()
+                    .context("original enrollment evidence missing")?
+                    .original_evidence,
+            );
+        }
+        self.provisioning.require_root(root).await
+    }
+    async fn require_claim(
+        &self,
+        claim: &wallet_mpc_protocol::solana_provisioning::Claim,
+    ) -> Result<()> {
+        if self.profile.replacement_bootstrap.is_some() {
+            claim.validate()?;
+            // Independent Policy::verify checks every original Claim signature;
+            // the current witness permit separately requires its exact registry.
+            self.require_root(&claim.root).await
+        } else {
+            self.provisioning.require_approved(claim).await
+        }
     }
     async fn package(&self, b: &Binding) -> Result<Vec<u8>> {
         let i = &b.authorized.intent;
+        ensure!(
+            self.profile.replacement_bootstrap.is_none() || i.generation.epoch > 0,
+            "replacement staging cannot sign an original generation"
+        );
         if i.generation.epoch == 0 {
             return Ok(i.claim.root.public_key_package.clone());
         }
@@ -318,8 +444,7 @@ impl Service {
     pub async fn challenge(&self, c: Control) -> Result<Signed<PermitRequest>> {
         self.valid_control(&c)?;
         let package = self.package(&c.binding).await?;
-        self.provisioning
-            .require_approved(&c.binding.authorized.intent.claim)
+        self.require_claim(&c.binding.authorized.intent.claim)
             .await?;
         self.policy
             .verify(&self.profile.class, &c.binding.authorized, &package, now()?)?;
@@ -450,9 +575,7 @@ impl Service {
                 "protected active execution capacity reached"
             );
         }
-        self.provisioning
-            .require_approved(&b.authorized.intent.claim)
-            .await?;
+        self.require_claim(&b.authorized.intent.claim).await?;
         self.policy
             .verify(&self.profile.class, &b.authorized, &package, now()?)?;
         let payload = decode_hex(&b.authorized.payload_hex).context("payload encoding")?;

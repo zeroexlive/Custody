@@ -1,3 +1,15 @@
+> **Current unmerged continuation (2026-10-29):** Draft PR #2 now contains actual
+> protected seeded signing, ordinary refresh, terminal NoRelease and native
+> issuance. Private replacement repair adds independently reviewed upstream RTS
+> into one fresh recipient, immutable encrypted staging and all-three refresh;
+> original Root/Claim receipts remain authoritative. A repaired share alone
+> cannot sign or activate, new recipients cannot attest old-key NoRelease, and
+> same-key repair/refresh does not revoke an old compromised threshold. Exact
+> current-head gates and explicit old-profile migration, financial integration,
+> root rotation/drain/rescue and whole-phase acceptance remain open. The merged
+> baseline/older 'no signer route' descriptions below refer to earlier snapshots.
+> See [recovery authority and limits](PHASE6GC_RECOVERY.md).
+
 > **Merged development checkpoint (2026-10-28):** PR #1 merged as `587e0969`.
 > Its tree exactly matches final reviewed `78394fc`, with Fast/full14jobs/228calls/
 > zero skips and independently verified original-store compatibility665.205s.

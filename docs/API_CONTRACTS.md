@@ -237,5 +237,14 @@ history. Signed query replies optionally expose the pending plan, original
 command ID and original all-three Root receipt evidence. Prepare/Activate require
 the exact reserved next refresh and all3 readiness. Original ordinary refresh
 roster checks remain strict. New event rules do not rewrite old signed history.
-Private repair/profile migration is not yet available; see
+The protected signer additionally exposes strict
+`/internal/v1/solana/replacement/{query,start,round1,round2,finalize,report,abort}`
+controls with a separate Life-signed ReplacementPlan and mandatory `stage`
+(`repair` or `refresh`). Direct canonical private envelopes are accepted only at
+`/internal/v1/solana/replacement/message` from exact planned signer TLS keys.
+Controllers receive public status/RepairReady/GenerationReady, never private
+Delta or Sigma. COLD controls require courier identity; HOT/WARM coordinator.
+Fresh recipient profiles are dedicated to one original Root; generic DKG and
+original-generation signing are unavailable there. RepairReady cannot authorize
+activation. Explicit migration of old immutable profiles remains unfinished; see
 [implemented boundary and remaining acceptance](PHASE6GC_RECOVERY.md).

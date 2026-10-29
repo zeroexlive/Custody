@@ -64,6 +64,36 @@ def test_phase6gc_witness_replacement_reservation_and_original_signed_store_upgr
     run_reserved_upgrade(tmp_path)
 
 
+def test_phase6gc_private_replacement_repair_refresh_and_restart(tmp_path):
+    from repair_acceptance import run_repair
+
+    run_repair(tmp_path)
+
+
+def test_phase6gc_private_replacement_staging_failure_and_provenance_faults(tmp_path):
+    from repair_acceptance import run_repair
+
+    run_repair(tmp_path, faults=True)
+
+
+def test_phase6gc_private_replacement_cold_courier_repair_refresh(tmp_path):
+    from repair_acceptance import run_repair
+
+    run_repair(tmp_path, custody_class="COLD")
+
+
+def test_phase6gc_private_replacement_wrong_tls_peer_and_interrupted_retry(tmp_path):
+    from repair_acceptance import run_private_fences
+
+    run_private_fences(tmp_path)
+
+
+def test_phase6gc_private_replacement_expiry_after_tls_before_private_body(tmp_path):
+    from repair_acceptance import run_private_fences
+
+    run_private_fences(tmp_path, delay=True)
+
+
 def test_phase6gc_witness_independent_authorization_and_round_replay(tmp_path):
     from witness_acceptance import run_authorization
 

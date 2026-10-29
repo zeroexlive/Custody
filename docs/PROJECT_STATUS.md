@@ -89,9 +89,22 @@ A further unmerged [replacement authorization boundary](PHASE6GC_RECOVERY.md)
 now reserves one exact new identity/profile/anchor under Frozen authority, retains
 permanent failed-plan history and preserves old signed journal semantics while
 requiring strict rules for new admissions. Independent17-unit and actual public
-store upgrade/restart/tampering reruns pass. Private repair/profile migration and
-new-generation signing remain unfinished; these are public foundations only.
-Remaining6G-C includes explicit replacement provenance and share repair,
+store upgrade/restart/tampering reruns pass. Public checkpointa278953 passed exact
+Fast40857133396 and selectedSolana40857374994:35 actual calls/zero scenario skips,
+independently verified exact-head artifacts and original public-history evidence.
+Subsequent unmerged private recovery now uses upstream direct helper Delta/Sigma,
+one-share encrypted staging and a fresh immutable recipient profile, then requires
+all-three refresh/activation before signing existing original Claims. HOT all-pair
+finalized signing/restart, COLD/manual and storage/TLS/expiry/interruption cases
+pass bounded genuine runs. After environment restoration, all37 Rust library tests
+passed and independent current-source staging/provenance rerun passed76.81s,
+including all-pair finalized transfers. Independent review found no demonstrated
+P0/P1 in this layer. Complete current-source genuine run passed5 cases297.72s,
+with2 ordinary-refresh regression cases138.78s and all-target Clippy; exact-head
+CI remains open.
+Explicit old-profile migration, new Claim receipt identity rollover and complete
+recovery remain unfinished.
+Remaining6G-C includes explicit profile migration,
 rotation/drain/late-deposit rescue, issued
 wallet and finalized SPL initialization records, financial ledger integration,
 and final whole-phase acceptance. Manual COLD relay is not physical airgap

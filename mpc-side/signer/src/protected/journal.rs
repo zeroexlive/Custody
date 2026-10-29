@@ -23,6 +23,7 @@ pub(super) struct Authorities<'a> {
     pub witness: &'a PinnedIdentity,
     pub lifecycle: Option<&'a PinnedIdentity>,
     pub party: &'a str,
+    pub profile: &'a str,
 }
 
 pub(super) fn sign<T: Serialize>(
@@ -71,6 +72,15 @@ pub(super) enum Change {
     RefreshReady {
         report: Box<Signed<wallet_mpc_protocol::witness::GenerationReady>>,
     },
+    RepairStart {
+        start: Box<wallet_mpc_protocol::solana_recovery::ReplacementStart>,
+    },
+    RepairReady {
+        report: Box<Signed<wallet_mpc_protocol::solana_recovery::RepairReady>>,
+    },
+    ReplacementRefreshStart {
+        start: Box<wallet_mpc_protocol::solana_recovery::ReplacementStart>,
+    },
     Cancel {
         attestation: Box<Signed<wallet_mpc_protocol::witness::NoRelease>>,
     },
@@ -98,14 +108,57 @@ pub(super) struct Records {
     pub ceremonies: BTreeMap<Uuid, wallet_mpc_protocol::solana_generation::RefreshStart>,
     pub ready: BTreeMap<Uuid, Signed<wallet_mpc_protocol::witness::GenerationReady>>,
     pub cancelled: BTreeMap<Uuid, Signed<wallet_mpc_protocol::witness::NoRelease>>,
+    pub repairs: BTreeMap<Uuid, wallet_mpc_protocol::solana_recovery::ReplacementStart>,
+    pub repaired: BTreeMap<Uuid, Signed<wallet_mpc_protocol::solana_recovery::RepairReady>>,
+    pub replacement_refresh: BTreeMap<Uuid, wallet_mpc_protocol::solana_recovery::ReplacementStart>,
 }
 impl Records {
+    pub fn refresh_plan(
+        &self,
+        ceremony: Uuid,
+    ) -> Result<&wallet_mpc_protocol::solana_generation::RefreshPlan> {
+        if let Some(start) = self.ceremonies.get(&ceremony) {
+            return Ok(&start.plan.value);
+        }
+        Ok(&self
+            .replacement_refresh
+            .get(&ceremony)
+            .context("missing original refresh start")?
+            .plan
+            .value
+            .refresh)
+    }
+    fn repair_id_reserved(&self, id: Uuid) -> bool {
+        self.repairs.values().any(|start| {
+            let p = &start.plan.value;
+            [
+                p.repair_session_id,
+                p.repair_ceremony_id,
+                p.refresh.session_id,
+                p.refresh.ceremony_id,
+                p.recipient_anchor_id,
+            ]
+            .contains(&id)
+        })
+    }
+    fn private_id_reserved(&self, id: Uuid) -> bool {
+        self.repair_id_reserved(id)
+            || self
+                .ceremonies
+                .values()
+                .any(|c| c.plan.value.session_id == id || c.plan.value.ceremony_id == id)
+            || self.requests.values().any(|r| {
+                let i = &r.value.binding.authorized.intent;
+                i.session_id == id || i.crypto_execution_id == id
+            })
+    }
     fn apply(&mut self, change: &Change, authorities: Authorities<'_>) -> Result<()> {
         let Authorities {
             own,
             witness,
             lifecycle,
             party,
+            profile,
         } = authorities;
         match change {
             Change::Cancel { attestation } => {
@@ -130,6 +183,80 @@ impl Records {
                 );
                 self.cancelled.insert(id, (**attestation).clone());
             }
+            Change::RepairStart { start } => {
+                let life = lifecycle.context("lifecycle repair disabled")?;
+                verify(life, "WITNESS_FROST_REPLACEMENT_PLAN_V1", &start.plan)?;
+                verify(witness, "WITNESS_QUERY_REPLY_V1", &start.frozen)?;
+                start.validate_shape()?;
+                let p = &start.plan.value;
+                let expected_key = if p.party_id == party {
+                    ensure!(
+                        p.recipient_profile_sha256 == profile,
+                        "exact replacement profile required"
+                    );
+                    &p.refresh.node_keys[party]
+                } else {
+                    &p.previous_node_keys[party]
+                };
+                let ids = [
+                    p.repair_session_id,
+                    p.repair_ceremony_id,
+                    p.refresh.session_id,
+                    p.refresh.ceremony_id,
+                    p.recipient_anchor_id,
+                ];
+                ensure!(
+                    expected_key == &own.key_id
+                        && ids.iter().all(|id| !self.private_id_reserved(*id)),
+                    "original repair identity/ceremony already consumed or mismatched"
+                );
+                self.repairs.insert(p.repair_ceremony_id, (**start).clone());
+            }
+            Change::RepairReady { report } => {
+                verify(own, "WITNESS_FROST_REPAIR_READY_V1", report)?;
+                let r = &report.value;
+                let p = &self
+                    .repairs
+                    .get(&r.repair_ceremony_id)
+                    .context("missing original private repair start")?
+                    .plan
+                    .value;
+                ensure!(
+                    party == p.party_id
+                        && !self.repaired.contains_key(&p.repair_ceremony_id)
+                        && r.root_identity == p.refresh.root.identity()?
+                        && r.plan_identity == p.identity()?
+                        && r.generation == p.refresh.previous
+                        && r.party_id == party,
+                    "exact recipient one-share staging provenance required"
+                );
+                self.repaired
+                    .insert(p.repair_ceremony_id, (**report).clone());
+            }
+            Change::ReplacementRefreshStart { start } => {
+                let life = lifecycle.context("lifecycle repair disabled")?;
+                verify(life, "WITNESS_FROST_REPLACEMENT_PLAN_V1", &start.plan)?;
+                verify(witness, "WITNESS_QUERY_REPLY_V1", &start.frozen)?;
+                start.validate_shape()?;
+                let p = &start.plan.value;
+                let original = self
+                    .repairs
+                    .get(&p.repair_ceremony_id)
+                    .context("missing original repair ceremony")?;
+                ensure!(
+                    original.plan.value == *p
+                        && p.refresh.node_keys.get(party) == Some(&own.key_id)
+                        && !self.ceremonies.contains_key(&p.refresh.ceremony_id)
+                        && !self
+                            .replacement_refresh
+                            .contains_key(&p.refresh.ceremony_id)
+                        && (party != p.party_id
+                            || self.repaired.contains_key(&p.repair_ceremony_id)),
+                    "exact reserved repair then fresh replacement refresh required"
+                );
+                self.replacement_refresh
+                    .insert(p.refresh.ceremony_id, (**start).clone());
+            }
             Change::RefreshStart { start } => {
                 let life =
                     lifecycle.context("lifecycle mutation is disabled for this deployment")?;
@@ -137,6 +264,11 @@ impl Records {
                 verify(witness, "WITNESS_QUERY_REPLY_V1", &start.frozen)?;
                 start.validate_shape()?;
                 let plan = &start.plan.value;
+                ensure!(
+                    !self.repair_id_reserved(plan.ceremony_id)
+                        && !self.repair_id_reserved(plan.session_id),
+                    "ordinary refresh identifiers belong to a reserved replacement"
+                );
                 ensure!(
                     plan.node_keys.get(party) == Some(&own.key_id)
                         && !self.ceremonies.contains_key(&plan.ceremony_id)
@@ -159,11 +291,7 @@ impl Records {
             Change::RefreshReady { report } => {
                 verify(own, "WITNESS_GENERATION_READY_V1", report)?;
                 let r = &report.value;
-                let start = self
-                    .ceremonies
-                    .get(&r.generation.ceremony_id)
-                    .context("missing original refresh start")?;
-                let p = &start.plan.value;
+                let p = self.refresh_plan(r.generation.ceremony_id)?;
                 ensure!(
                     !self.ready.contains_key(&p.ceremony_id)
                         && r.party_id == party
@@ -178,13 +306,20 @@ impl Records {
                     &r.public_key_package,
                     &p.root.group_public_key,
                 )?;
-                self.ready.insert(p.ceremony_id, (**report).clone());
+                let ceremony = p.ceremony_id;
+                self.ready.insert(ceremony, (**report).clone());
             }
             Change::Initialize => ensure!(
                 self.requests.is_empty() && self.consumed.is_empty() && self.reports.is_empty(),
                 "invalid local genesis"
             ),
             Change::Request { request } => {
+                let intent = &request.value.binding.authorized.intent;
+                ensure!(
+                    !self.repair_id_reserved(intent.crypto_execution_id)
+                        && !self.repair_id_reserved(intent.session_id),
+                    "private signing identifiers belong to replacement history"
+                );
                 verify(own, "WITNESS_PERMIT_REQUEST_V1", request)?;
                 ensure!(request.value.party_id == party, "foreign private request");
                 ensure!(

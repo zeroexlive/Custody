@@ -79,6 +79,15 @@ async fn main() -> Result<()> {
     let tls = profile.tls.clone();
     let party = profile.signer.party_id.clone();
     let class = profile.class.clone();
+    let replacement = profile.replacement_bootstrap.is_some();
+    if replacement && !args.is_empty() {
+        ensure!(
+            std::fs::read_dir(&profile.signer.storage_directory)?
+                .next()
+                .is_none(),
+            "new replacement initialization requires fresh empty share storage"
+        );
+    }
     let store = SignerStore::open(profile.signer.clone())?;
     let executions =
         ExecutionTombstones::open(profile.signer.storage_directory.join("executions"))?;
@@ -108,7 +117,13 @@ async fn main() -> Result<()> {
         provisioning.clone(),
         !args.is_empty(),
     )?;
-    let refresh = wallet_mpc_signer::protected::refresh::Service::open(service.clone(), peers);
+    let refresh =
+        wallet_mpc_signer::protected::refresh::Service::open(service.clone(), peers.clone());
+    let repair = wallet_mpc_signer::protected::repair::Service::open(
+        service.clone(),
+        peers,
+        refresh.clone(),
+    )?;
     let capabilities = Capabilities {
         signer_identity: party,
         protocol_version: PROTOCOL_VERSION.into(),
@@ -184,9 +199,14 @@ async fn main() -> Result<()> {
                 async move { Json(metadata) }
             }),
         )
-        .merge(provisioning_and_dkg)
+        .merge(if replacement {
+            Router::new()
+        } else {
+            provisioning_and_dkg
+        })
         .merge(protected)
-        .merge(wallet_mpc_signer::protected::refresh::router(refresh));
+        .merge(wallet_mpc_signer::protected::refresh::router(refresh))
+        .merge(wallet_mpc_signer::protected::repair::router(repair));
     serve_roles_in(
         bind,
         server,

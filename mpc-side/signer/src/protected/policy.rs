@@ -113,6 +113,27 @@ impl Policy {
             receipts,
         })
     }
+    pub fn verify_root(
+        &self,
+        evidence: &wallet_mpc_protocol::solana_provisioning::Evidence<
+            wallet_mpc_protocol::solana_provisioning::Root,
+        >,
+    ) -> Result<()> {
+        evidence.validate()?;
+        evidence.statement.validate()?;
+        for (report, party) in evidence.participant_agreement.iter().zip(PARTIES) {
+            let message = receipt_message("root", &evidence.statement, party)?;
+            let signature =
+                decode_hex(&report.signer_signature).context("root receipt encoding")?;
+            ensure!(
+                self.receipts[party]
+                    .iter()
+                    .any(|pin| pin.verify(&message, &signature).is_ok()),
+                "original Root receipt unverifiable against archival pins"
+            );
+        }
+        Ok(())
+    }
     pub fn verify(
         &self,
         class: &str,

@@ -1,0 +1,108 @@
+{
+  "scope": "isolated development private one-share RTS/replacement refresh checkpoint; not whole-phase acceptance",
+  "source_base": "a27895390ac24df8aac6a5a0345114ba65ee5774",
+  "genuine_cases": [
+    {
+      "name": "test_phase6gc_private_replacement_repair_refresh_and_restart",
+      "seconds": 76.174
+    },
+    {
+      "name": "test_phase6gc_private_replacement_staging_failure_and_provenance_faults",
+      "seconds": 79.391
+    },
+    {
+      "name": "test_phase6gc_private_replacement_cold_courier_repair_refresh",
+      "seconds": 76.252
+    },
+    {
+      "name": "test_phase6gc_private_replacement_wrong_tls_peer_and_interrupted_retry",
+      "seconds": 31.144
+    },
+    {
+      "name": "test_phase6gc_private_replacement_expiry_after_tls_before_private_body",
+      "seconds": 34.451
+    }
+  ],
+  "public_reports": [
+    {
+      "case": "test_phase6gc_private_replacem0",
+      "report": {
+        "all_three_pairs_finalized_after_restart": true,
+        "changed_profile_anchor_restart_denied": false,
+        "custody_class": "HOT",
+        "missing_corrupt_transplanted_symlink_stage_denied": false,
+        "new_epoch": 1,
+        "original_dkg_ciphertexts_unchanged": 3,
+        "original_root_claim_receipts_unchanged": true,
+        "recipient_original_dkg_share_absent": true,
+        "scope": "genuine one-share RTS and all-three refresh, isolated development",
+        "staging_publication_failure_restart_recovered": false
+      }
+    },
+    {
+      "case": "test_phase6gc_private_replacem1",
+      "report": {
+        "all_three_pairs_finalized_after_restart": true,
+        "changed_profile_anchor_restart_denied": true,
+        "custody_class": "HOT",
+        "missing_corrupt_transplanted_symlink_stage_denied": true,
+        "new_epoch": 1,
+        "original_dkg_ciphertexts_unchanged": 3,
+        "original_root_claim_receipts_unchanged": true,
+        "recipient_original_dkg_share_absent": true,
+        "scope": "genuine one-share RTS and all-three refresh, isolated development",
+        "staging_publication_failure_restart_recovered": true
+      }
+    },
+    {
+      "case": "test_phase6gc_private_replacem2",
+      "report": {
+        "all_three_pairs_finalized_after_restart": true,
+        "changed_profile_anchor_restart_denied": false,
+        "custody_class": "COLD",
+        "missing_corrupt_transplanted_symlink_stage_denied": false,
+        "new_epoch": 1,
+        "original_dkg_ciphertexts_unchanged": 3,
+        "original_root_claim_receipts_unchanged": true,
+        "recipient_original_dkg_share_absent": true,
+        "scope": "genuine one-share RTS and all-three refresh, isolated development",
+        "staging_publication_failure_restart_recovered": false
+      }
+    },
+    {
+      "case": "test_phase6gc_private_replacem3",
+      "report": {
+        "all_restarted_ceremonies_remain_interrupted": true,
+        "explicit_abandon_and_fresh_recipient_repair_succeeded": true,
+        "new_generation_activated": false,
+        "post_tls_expiry_zero_http_bytes": false,
+        "scope": "actual upstream Delta release and interrupted repair",
+        "wrong_peer_pin_zero_http_bytes": true
+      }
+    },
+    {
+      "case": "test_phase6gc_private_replacem4",
+      "report": {
+        "all_restarted_ceremonies_remain_interrupted": true,
+        "explicit_abandon_and_fresh_recipient_repair_succeeded": true,
+        "new_generation_activated": false,
+        "post_tls_expiry_zero_http_bytes": true,
+        "scope": "actual upstream Delta release and interrupted repair",
+        "wrong_peer_pin_zero_http_bytes": false
+      }
+    }
+  ],
+  "interrupted_prior_final_run_counted": false,
+  "independent_staging_fault_case_seconds": 76.81,
+  "ordinary_refresh_regression_cases": 2,
+  "ordinary_refresh_regression_total_seconds": 138.78,
+  "rust_library_tests": {
+    "signer": 12,
+    "storage": 5,
+    "transport": 3,
+    "witness": 17
+  },
+  "exact_head_ci_pending": true,
+  "profile_migration_implemented": false,
+  "production_authorized": false
+}

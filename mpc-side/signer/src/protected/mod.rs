@@ -1,8 +1,10 @@
 //! Explicit protected deployment. Its independent public execution anchor and
 //! mandatory profile survive restoration of any private-share backup.
+pub mod generations;
 mod journal;
 mod network;
 mod policy;
+pub mod refresh;
 use crate::{dkg::DkgService, solana_provisioning, SignerConfig};
 use anyhow::{ensure, Context, Result};
 use frost_ed25519 as frost;
@@ -44,6 +46,8 @@ pub struct Profile {
     pub witness_certificate: String,
     pub rpc_address: SocketAddr,
     pub policy: PolicyConfig,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub lifecycle_certificate: Option<String>,
 }
 impl Profile {
     pub fn load(path: &Path) -> Result<(Self, String)> {
@@ -103,6 +107,7 @@ impl Profile {
         ]
         .into_iter()
         .chain(p.policy.receipt_certificates.values().flatten())
+        .chain(p.lifecycle_certificate.iter())
         {
             materials.insert(f.clone(), hash(&fs::read(f)?));
         }
@@ -136,6 +141,8 @@ pub struct Service {
     identity: ReceiptIdentity,
     own: PinnedIdentity,
     witness: PinnedIdentity,
+    lifecycle: Option<PinnedIdentity>,
+    generation_store: generations::Store,
     client: Option<AuthorityClient>,
     rpc: SolanaRpc,
     dkg: Arc<DkgService>,
@@ -166,6 +173,24 @@ impl Service {
             "separate witness and exact protected node identity required"
         );
         let policy = policy::Policy::new(&profile.class, &profile.policy)?;
+        let lifecycle = profile
+            .lifecycle_certificate
+            .as_ref()
+            .map(|p| PinnedIdentity::new(p, "lifecycle", &AUTHORITY_ROLES))
+            .transpose()?;
+        if let Some(pin) = &lifecycle {
+            ensure!(
+                pin.key_id != own.key_id
+                    && pin.key_id != witness.key_id
+                    && !policy.approval_key_ids().contains(&pin.key_id.as_str()),
+                "separate lifecycle key required"
+            );
+        }
+        let generation_store = generations::Store::open(
+            &profile.signer.storage_directory,
+            &profile.signer.wrapping_key_path,
+            party.clone(),
+        )?;
         // COLD only exports end-to-end signed challenges for manual courier;
         // this process never creates a witness network client in that class.
         let client = if profile.class == "COLD" {
@@ -183,9 +208,12 @@ impl Service {
             &profile.anchor_directory,
             fingerprint,
             &identity,
-            &own,
-            &witness,
-            party,
+            journal::Authorities {
+                own: &own,
+                witness: &witness,
+                lifecycle: lifecycle.as_ref(),
+                party,
+            },
             initialize,
         )?;
         let rpc = SolanaRpc::new(profile.rpc_address)?;
@@ -195,6 +223,8 @@ impl Service {
             identity,
             own,
             witness,
+            lifecycle,
+            generation_store,
             client,
             rpc,
             dkg,
@@ -209,19 +239,34 @@ impl Service {
         local.journal.append(
             change,
             &self.identity,
-            &self.own,
-            &self.witness,
-            &self.profile.signer.party_id,
+            journal::Authorities {
+                own: &self.own,
+                witness: &self.witness,
+                lifecycle: self.lifecycle.as_ref(),
+                party: &self.profile.signer.party_id,
+            },
         )
     }
-    fn package<'a>(&self, b: &'a Binding) -> Result<&'a [u8]> {
-        // Later refreshed generations are loaded from separate immutable
-        // encrypted generation records. Never reinterpret the original share.
+    async fn package(&self, b: &Binding) -> Result<Vec<u8>> {
+        let i = &b.authorized.intent;
+        if i.generation.epoch == 0 {
+            return Ok(i.claim.root.public_key_package.clone());
+        }
+        let local = self.local.lock().await;
+        ensure!(!local.journal.poisoned, "generation history uncertain");
+        let ready = local
+            .journal
+            .records
+            .ready
+            .get(&i.generation.ceremony_id)
+            .context("requested generation readiness missing; no original-share fallback")?;
         ensure!(
-            b.authorized.intent.generation.epoch == 0,
-            "refreshed generation loader is not integrated"
+            ready.value.generation == i.generation
+                && ready.value.root_identity == i.claim.root.identity()?
+                && ready.value.party_id == self.profile.signer.party_id,
+            "original root/generation readiness mismatch"
         );
-        Ok(&b.authorized.intent.claim.root.public_key_package)
+        Ok(ready.value.public_key_package.clone())
     }
     fn valid_control(&self, c: &Control) -> Result<()> {
         c.binding.identity()?;
@@ -257,12 +302,12 @@ impl Service {
     }
     pub async fn challenge(&self, c: Control) -> Result<Signed<PermitRequest>> {
         self.valid_control(&c)?;
-        let package = self.package(&c.binding)?;
+        let package = self.package(&c.binding).await?;
         self.provisioning
             .require_approved(&c.binding.authorized.intent.claim)
             .await?;
         self.policy
-            .verify(&self.profile.class, &c.binding.authorized, package, now()?)?;
+            .verify(&self.profile.class, &c.binding.authorized, &package, now()?)?;
         let mut local = self.local.lock().await;
         ensure!(!local.journal.poisoned, "protected history uncertain");
         let id = c.binding.authorized.intent.crypto_execution_id;
@@ -353,7 +398,7 @@ impl Service {
             "original witness/party mismatch"
         );
         let b = &request.binding;
-        let package = self.package(b)?;
+        let package = self.package(b).await?;
         let mut local = self.local.lock().await;
         ensure!(!local.journal.poisoned, "protected history uncertain");
         let id = b.authorized.intent.crypto_execution_id;
@@ -386,15 +431,25 @@ impl Service {
             .require_approved(&b.authorized.intent.claim)
             .await?;
         self.policy
-            .verify(&self.profile.class, &b.authorized, package, now()?)?;
+            .verify(&self.profile.class, &b.authorized, &package, now()?)?;
         let payload = decode_hex(&b.authorized.payload_hex).context("payload encoding")?;
         network::verify(&self.rpc, &b.authorized.intent, &payload).await?;
         let key_package = if request.round == 1 {
-            Some(
+            Some(if b.authorized.intent.generation.epoch == 0 {
                 self.dkg
                     .original_seeded_key(&b.authorized.intent.claim.root)
-                    .await?,
-            )
+                    .await?
+            } else {
+                let (key, public) = self.generation_store.load(
+                    &b.authorized.intent.claim.root,
+                    &b.authorized.intent.generation,
+                )?;
+                ensure!(
+                    public == package,
+                    "loaded private generation differs from approved public generation"
+                );
+                key
+            })
         } else {
             None
         };
@@ -418,7 +473,7 @@ impl Service {
         let time = now()?;
         request.validate(time)?;
         b.authorized
-            .validate_shape(package, time, &self.policy.limits)?;
+            .validate_shape(&package, time, &self.policy.limits)?;
         let mut active = None;
         let (commitments, signature_share) = if let Some(key) = key_package {
             let (nonces, commitments) =

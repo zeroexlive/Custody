@@ -1,3 +1,27 @@
+## 2026-10-29 — ordinary distributed FROST refresh (unmerged)
+
+Draft PR #2 now adds separately authorized all-three upstream same-key refresh,
+durable ceremony/session tombstones before private polynomial generation, direct
+peer key pins before HTTP bodies and immutable encrypted generation files. Own
+fresh Frozen witness replies and the exact current roster are mandatory. New
+generation signing verifies the actual private/public share, with no original-
+share fallback. Root/claim/original DKG identities stay unchanged. Public report
+recovery may append a missing Ready record without repeating private work.
+
+Genuine Gen1 all-pair/restart passed89.04s; COLD/manual and interrupted/missing-
+generation/Gen2 cases passed146.02s. Expanded actual wrong-peer private-R2 zero-
+HTTP, corrupt/transplanted share and durable-share-before-Ready filesystem-fault
+recovery passed61.81s, independently62.59s. Independent source review found no
+demonstrated P0/P1 in this bounded layer;12 witness units and local protocol/
+transport checks pass. Interrupted and initially ineffective chmod fault attempts
+are excluded from acceptance. See [evidence and limits](PHASE6GC_SOLANA_REFRESH.md).
+
+This is ordinary refresh under the same identities, not custody-key rotation or
+replacement-node repair. Optional lifecycle trust changes the immutable profile;
+explicit profile/provenance migration remains unfinished. Old threshold shares
+are not cryptographically revoked. Whole-phase financial/issuance/rotation/repair
+acceptance and exact-final-head gates remain open; PR #2 stays Draft/unmerged.
+
 ## 2026-10-29 — independent witness and protected signing (unmerged)
 
 Draft PR #2 now includes a separate isolated witness process and required-profile

@@ -41,11 +41,19 @@ pub const AUTHORITY_ROLES: [&str; 10] = [
 ];
 
 #[derive(Clone, Debug, PartialEq, Eq)]
-pub struct PeerIdentity(String);
+pub struct PeerIdentity {
+    role: String,
+    key_id: String,
+}
 
 impl PeerIdentity {
     pub fn role(&self) -> &str {
-        &self.0
+        &self.role
+    }
+    /// SHA-256 of the authenticated leaf's public-key bytes. A lifecycle plan
+    /// can fence a retired same-role certificate without changing legacy roles.
+    pub fn key_id(&self) -> &str {
+        &self.key_id
     }
 }
 
@@ -78,7 +86,18 @@ pub fn certificate_identity_in(cert: &CertificateDer<'_>, roles: &[&str]) -> Res
         .strip_prefix("spiffe://wallet-mpc/")
         .context("unknown identity domain")?;
     ensure!(roles.contains(&role), "unknown certificate role");
-    Ok(PeerIdentity(role.to_owned()))
+    let key_id = ring::digest::digest(
+        &ring::digest::SHA256,
+        cert.public_key().subject_public_key.data.as_ref(),
+    )
+    .as_ref()
+    .iter()
+    .map(|b| format!("{b:02x}"))
+    .collect();
+    Ok(PeerIdentity {
+        role: role.to_owned(),
+        key_id,
+    })
 }
 
 fn certificates(path: &str) -> Result<Vec<CertificateDer<'static>>> {
@@ -445,6 +464,41 @@ impl SignerClient {
                 },
             ),
             self.exchange(role, *addr, name, method, path, body),
+        )
+        .await?
+    }
+
+    /// Lifecycle private-round messages require the exact plan-approved peer
+    /// key BEFORE their body is sent, in addition to chain/hostname/role checks.
+    pub async fn request_pinned(
+        &self,
+        role: &str,
+        key_id: &str,
+        method: &str,
+        path: &str,
+        body: Vec<u8>,
+    ) -> Result<Vec<u8>> {
+        ensure!(
+            key_id.len() == 64
+                && key_id
+                    .bytes()
+                    .all(|b| b.is_ascii_digit() || (b'a'..=b'f').contains(&b)),
+            "canonical peer key pin required"
+        );
+        let (_, addr, name) = self
+            .targets
+            .iter()
+            .find(|(r, _, _)| r == role)
+            .context("unconfigured pinned peer")?;
+        timeout(
+            Duration::from_secs(5),
+            exchange_to(
+                self.tls.clone(),
+                (role, *addr, name, &ROLES, Some(key_id)),
+                method,
+                path,
+                body,
+            ),
         )
         .await?
     }

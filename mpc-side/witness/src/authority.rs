@@ -548,6 +548,7 @@ impl Authority {
                 execution,
                 abandoned,
                 claim,
+                lifecycle_key_id: Some(self.trust.lifecycle.key_id.clone()),
             },
         )
     }

@@ -136,6 +136,24 @@ def test_phase6gc_protected_full_nonce_queue_can_drain_round_two(tmp_path):
     run_full_queue_drain(tmp_path)
 
 
+def test_phase6gc_distributed_refresh_original_identity_all_pairs_restart(tmp_path):
+    from refresh_acceptance import run_refresh
+
+    run_refresh(tmp_path)
+
+
+def test_phase6gc_distributed_refresh_cold_manual_query_and_restart(tmp_path):
+    from refresh_acceptance import run_refresh
+
+    run_refresh(tmp_path, custody_class="COLD")
+
+
+def test_phase6gc_distributed_refresh_interrupted_missing_generation_and_second_epoch(tmp_path):
+    from refresh_acceptance import run_interrupted_refresh
+
+    run_interrupted_refresh(tmp_path)
+
+
 def test_phase6gc_seeded_authenticated_immutable_store_approvals(tmp_path):
     from seeded_enrollment import run_approvals
 

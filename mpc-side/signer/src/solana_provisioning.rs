@@ -348,6 +348,11 @@ impl Service {
         }
         Ok(())
     }
+    pub async fn require_root(&self, root: &Root) -> Result<()> {
+        self.original(root).await?;
+        let _guard = self.lock.lock().await;
+        self.enrolled(root)
+    }
     pub async fn approve(&self, approval: Approval<Claim>) -> Result<Report<Claim>> {
         approval.statement.validate()?;
         self.verify_authorization("claim", &approval)?;

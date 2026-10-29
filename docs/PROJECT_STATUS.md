@@ -57,8 +57,13 @@ expiry race; post-lock/final-private-work expiry regressions pass. These remain
 isolated, unmerged development additions requiring final-head CI/review.
 See [implemented boundary and evidence](PHASE6GC_SOLANA_SPENDING.md).
 
-Live protected signing currently supports original generation 0. Remaining6G-C
-includes distributed refresh/repair, rotation/drain/late-deposit rescue, issued
+Subsequent ordinary distributed refresh and encrypted generation loading now pass
+genuine Gen1 all-pair/restart and Gen2/COLD/interrupted-ceremony cases. Original
+root/claim identity and original DKG ciphertext stay unchanged; missing refreshed
+material fails closed. Further fault acceptance and exact-head gates remain open.
+See [refresh authority and limitations](PHASE6GC_SOLANA_REFRESH.md).
+Remaining6G-C includes explicit replacement provenance and share repair,
+rotation/drain/late-deposit rescue, issued
 wallet and finalized SPL initialization records, financial ledger integration,
 and 1000 actual issued Solana wallets. Manual COLD relay is not physical airgap
 or production acceptance. Canonical tenant strings do not replace registry and

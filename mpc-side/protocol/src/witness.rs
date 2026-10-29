@@ -341,6 +341,8 @@ pub struct QueryReply {
     pub execution: Option<ExecutionView>,
     pub abandoned: bool,
     pub claim: Option<Evidence<Claim>>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub lifecycle_key_id: Option<String>,
 }
 #[derive(Clone, Debug, Serialize, Deserialize)]
 #[serde(deny_unknown_fields)]

@@ -88,9 +88,10 @@ Freeze stops new private-round permissions. Prepare/activate contracts require a
 genuine changed public package with the same group key and all three matching
 signed generation-ready records. Original Root/DKG identity remains immutable.
 The state-machine tests exercise upstream three-participant refresh and roster
-replacement. Distributed refresh/repair endpoints and refreshed private-package
-loading are not yet integrated; the live protected signer currently accepts
-original generation 0 only.
+replacement. Subsequent distributed ordinary refresh and encrypted generation
+loading now have genuine-process Gen1 all-pair and Gen2/COLD/restart evidence.
+Ordinary refresh requires the exact frozen current roster; explicit replacement
+provenance and share repair remain unfinished. See [refresh scope and limits](PHASE6GC_SOLANA_REFRESH.md).
 
 Node detached permission keys use explicit configured pins plus the exact active
 root roster. Certificate expiry alone does not revoke such a detached key when
@@ -199,7 +200,8 @@ and zero HTTP bytes. An environment restart interrupted the combined run after
 six completed cases; the remaining five are rerun separately. An earlier missing
 validator-path environment variable was corrected without changing source gates.
 
-Remaining 6G-C: distributed refresh/share repair and genuine restart/recovery;
+Remaining 6G-C: final distributed-refresh fault acceptance, explicit replacement
+provenance and share repair/recovery;
 rotation, compromise response, obligation drain/retirement and late-deposit rescue;
 backend issued-wallet identity and finalized SPL initialization records; financial
 source/base fee/rent accounting with deposit/sweep/withdrawal integration;

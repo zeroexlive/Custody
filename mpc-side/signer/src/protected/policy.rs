@@ -51,6 +51,9 @@ fn proof(
     pin.verify(msg, &sig)
 }
 impl Policy {
+    pub(super) fn approval_key_ids(&self) -> [&str; 2] {
+        [&self.custody_key.key_id, &self.operator_key.key_id]
+    }
     pub fn new(class: &str, c: &PolicyConfig) -> Result<Self> {
         ensure!(
             ["HOT", "WARM", "COLD"].contains(&class)

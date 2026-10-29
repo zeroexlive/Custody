@@ -33,7 +33,11 @@ and automatic main Fast passed. Continue remaining 6G-C from this merged base.
 Draft PR #2 continues from this base with a typed intent, independent public
 witness and required-profile protected Solana signer. Local genuine original-
 generation signing, courier, restart, backup/partial and corruption cases pass;
-see docs/PHASE6GC_SOLANA_SPENDING.md. Distributed refresh/repair, issued wallets,
+see docs/PHASE6GC_SOLANA_SPENDING.md. Subsequent original-identity distributed
+same-key refresh and encrypted generation loading pass genuine Gen1 all-pair,
+COLD, interrupted/Gen2 and independently rerun private-peer/storage-fault cases;
+see docs/PHASE6GC_SOLANA_REFRESH.md. Explicit identity/provenance migration and
+share repair, issued wallets,
 financial integration and whole-phase acceptance remain incomplete. Current
 development source still needs its exact-final-head CI and final review.
 

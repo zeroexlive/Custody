@@ -76,7 +76,7 @@ async fn main() -> Result<()> {
     let executions =
         ExecutionTombstones::open(profile.signer.storage_directory.join("executions"))?;
     let peers = SignerClient::with_targets(&tls, &party, profile.peer_targets.clone())?;
-    let dkg = DkgService::open(store, executions, peers)?;
+    let dkg = DkgService::open(store, executions, peers.clone())?;
     let provisioning = solana_provisioning::Service::open(
         profile.signer.storage_directory.clone(),
         party.clone(),
@@ -101,6 +101,7 @@ async fn main() -> Result<()> {
         provisioning.clone(),
         !args.is_empty(),
     )?;
+    let refresh = wallet_mpc_signer::protected::refresh::Service::open(service.clone(), peers);
     let capabilities = Capabilities {
         signer_identity: party,
         protocol_version: PROTOCOL_VERSION.into(),
@@ -176,7 +177,8 @@ async fn main() -> Result<()> {
             }),
         )
         .merge(provisioning_and_dkg)
-        .merge(protected);
+        .merge(protected)
+        .merge(wallet_mpc_signer::protected::refresh::router(refresh));
     serve_roles_in(
         bind,
         server,

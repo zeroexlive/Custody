@@ -194,6 +194,17 @@ Replies use200 for accepted public results and409 for rejected/uncertain authori
 requests; unauthorized transport roles use403 and malformed/bounded inputs use
 appropriate4xx responses. Failure never authorizes a fresh payout, releases a
 financial reserve or proves non-inclusion. `SignedPending` is cryptographic
-completion only. Backend issuance/ledger integration, distributed generation
-refresh/repair and the public production API contract remain unfinished. See
+completion only. Backend issuance/ledger integration, explicit replacement/share
+repair and the public production API contract remain unfinished. See
 [implementation evidence and limits](PHASE6GC_SOLANA_SPENDING.md).
+
+The protected signer additionally accepts strict `RefreshPlan`/`refresh::Control`
+POSTs at `/internal/v1/solana/generation/{query,start,round1,round2,finalize,report,abort}`.
+Every plan needs the independently pinned lifecycle signature. Ordinary refresh
+requires each node's own fresh signed Frozen witness query and the exact current
+identity roster. COLD query responses use explicit courier relay. The bounded
+`/internal/v1/solana/generation/message` endpoint accepts only exact planned
+signer identities and canonical session-bound direct-peer envelopes. Controllers
+receive no private round packages. Original ceremony/session tombstones survive
+restart; report may recover an already completed encrypted generation's public
+Ready without repeating private work. See [refresh contract](PHASE6GC_SOLANA_REFRESH.md).

@@ -583,6 +583,93 @@ fn all_three_refresh_agreement_activates_without_rewriting_original_identity() {
         .permit(&request(&s, &b, PARTIES[0], 1), &roster[PARTIES[0]], 1000)
         .is_err());
     s.permit(&req, &roster[PARTIES[0]], 1000).unwrap();
+
+    // Public state-machine identity checks, with deliberately synthetic node
+    // signatures as elsewhere in this module. Reusing any older ceremony must
+    // fail even when its epoch and public package have been changed.
+    let mut history = s.clone();
+    history.executions.clear();
+    history
+        .command(&command(&history, &b, CommandAction::Freeze))
+        .unwrap();
+    let mut second: Vec<_> = PARTIES
+        .iter()
+        .map(|p| Signed {
+            key_id: roster[*p].clone(),
+            signature: "00".repeat(70),
+            value: GenerationReady {
+                root_identity: root_id.clone(),
+                previous_generation: history.roots[&root_id].generation.clone(),
+                generation: Generation {
+                    epoch: 2,
+                    ceremony_id: original.dkg.execution_id,
+                    public_key_package_sha256: hash(&original.public_key_package),
+                },
+                public_key_package: original.public_key_package.clone(),
+                party_id: (*p).into(),
+            },
+        })
+        .collect();
+    assert!(history
+        .clone()
+        .command(&command(
+            &history,
+            &b,
+            CommandAction::Prepare {
+                ready: second.clone(),
+                node_keys: roster.clone(),
+            },
+        ))
+        .is_err());
+    let ceremony = Uuid::new_v4();
+    for r in &mut second {
+        r.value.generation.ceremony_id = ceremony;
+    }
+    history
+        .command(&command(
+            &history,
+            &b,
+            CommandAction::Prepare {
+                ready: second,
+                node_keys: roster.clone(),
+            },
+        ))
+        .unwrap();
+    history
+        .command(&command(&history, &b, CommandAction::Activate))
+        .unwrap();
+    history
+        .command(&command(&history, &b, CommandAction::Freeze))
+        .unwrap();
+    let third: Vec<_> = PARTIES
+        .iter()
+        .map(|p| Signed {
+            key_id: roster[*p].clone(),
+            signature: "00".repeat(70),
+            value: GenerationReady {
+                root_identity: root_id.clone(),
+                previous_generation: history.roots[&root_id].generation.clone(),
+                generation: Generation {
+                    epoch: 3,
+                    ceremony_id: s.roots[&root_id].generation.ceremony_id,
+                    public_key_package_sha256: hash(&next.serialize().unwrap()),
+                },
+                public_key_package: next.serialize().unwrap(),
+                party_id: (*p).into(),
+            },
+        })
+        .collect();
+    assert!(history
+        .clone()
+        .command(&command(
+            &history,
+            &b,
+            CommandAction::Prepare {
+                ready: third,
+                node_keys: roster,
+            },
+        ))
+        .is_err());
 }
 
 #[test]

@@ -282,6 +282,13 @@ impl Snapshot {
                                 .context("epoch exhausted")?
                             && !next.generation.ceremony_id.is_nil()
                             && next.generation.ceremony_id != r.generation.ceremony_id
+                            && next.generation.ceremony_id != r.evidence.statement.dkg.execution_id
+                            && next.generation.ceremony_id != r.evidence.statement.dkg.session_id
+                            && !self.commands.values().any(|c| {
+                                matches!(&c.action, CommandAction::Prepare { ready, .. }
+                                    if ready.iter().any(|r| r.value.generation.ceremony_id
+                                        == next.generation.ceremony_id))
+                            })
                             && next.public_key_package.len() <= 4096
                             && next.public_key_package != r.public_key_package
                             && next.generation.public_key_package_sha256

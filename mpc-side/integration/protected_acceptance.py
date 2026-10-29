@@ -86,7 +86,9 @@ class DelayedRpc:
 
 
 class Group:
-    def __init__(self, net, witness, validator, custody_class, rpc_address=None):
+    def __init__(
+        self, net, witness, validator, custody_class, rpc_address=None, *, lifecycle=False
+    ):
         self.net, self.w, self.validator, self.custody_class = (
             net,
             witness,
@@ -132,6 +134,8 @@ class Group:
                 "rpc_address": rpc_address or f"127.0.0.1:{validator.port}",
                 "policy": policy,
             }
+            if lifecycle:
+                self.profiles[party]["lifecycle_certificate"] = str(witness.life / "tls.crt")
             self.save(party)
 
     def save(self, party):
@@ -169,6 +173,7 @@ class Group:
     def binding(self, c, receipts, operation=1, pair=PARTIES[:2], *, amount=1000000):
         binding = self.w.binding(c, receipts)
         i = binding["authorized"]["intent"]
+        i["generation"] = self.w.query()["root"]["generation"]
         block = self.validator.rpc("getLatestBlockhash", [{"commitment": "finalized"}])["value"]
         i["recent_blockhash"] = block["blockhash"]
         i["last_valid_block_height"] = block["lastValidBlockHeight"]
@@ -193,6 +198,7 @@ class Group:
     ):
         authorized = self.w.binding(c, receipts)["authorized"]
         i = authorized["intent"]
+        i["generation"] = self.w.query()["root"]["generation"]
         block = self.validator.rpc("getLatestBlockhash", [{"commitment": "finalized"}])["value"]
         base, mint = i["fee_payer"], c["asset"]["mint"]
         rent = self.validator.rpc("getMinimumBalanceForRentExemption", [165])
@@ -310,7 +316,7 @@ class Group:
 
 
 @contextmanager
-def group(root_path, custody_class="HOT", *, delayed_rpc=False):
+def group(root_path, custody_class="HOT", *, delayed_rpc=False, lifecycle=False):
     validator = Validator(root_path / "validator")
     proxy = DelayedRpc(validator) if delayed_rpc else None
     net = Processes(root_path / "services")
@@ -324,7 +330,14 @@ def group(root_path, custody_class="HOT", *, delayed_rpc=False):
         witness.config["profiles"][custody_class]["genesis_artifact_sha256"] = validator.policy[
             "genesis_artifact_sha256"
         ]
-        g = Group(net, witness, validator, custody_class, proxy.address if proxy else None)
+        g = Group(
+            net,
+            witness,
+            validator,
+            custody_class,
+            proxy.address if proxy else None,
+            lifecycle=lifecycle,
+        )
         g.proxy = proxy
         net.start("coordinator")
         for party in PARTIES:

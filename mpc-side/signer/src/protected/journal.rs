@@ -17,6 +17,14 @@ use wallet_mpc_protocol::witness::{hash, Permit, PermitRequest, PublicRound, Sig
 use wallet_mpc_storage::{atomic_create_secret, atomic_replace_state, confirm_parent_durability};
 use wallet_mpc_transport::{PinnedIdentity, ReceiptIdentity};
 
+#[derive(Clone, Copy)]
+pub(super) struct Authorities<'a> {
+    pub own: &'a PinnedIdentity,
+    pub witness: &'a PinnedIdentity,
+    pub lifecycle: Option<&'a PinnedIdentity>,
+    pub party: &'a str,
+}
+
 pub(super) fn sign<T: Serialize>(
     identity: &ReceiptIdentity,
     domain: &str,
@@ -48,9 +56,21 @@ pub(super) fn slot(id: Uuid, round: u16) -> String {
 #[serde(tag = "kind", deny_unknown_fields)]
 pub(super) enum Change {
     Initialize,
-    Request { request: Box<Signed<PermitRequest>> },
-    Consume { permit: Box<Signed<Permit>> },
-    Result { report: Box<Signed<PublicRound>> },
+    Request {
+        request: Box<Signed<PermitRequest>>,
+    },
+    Consume {
+        permit: Box<Signed<Permit>>,
+    },
+    Result {
+        report: Box<Signed<PublicRound>>,
+    },
+    RefreshStart {
+        start: Box<wallet_mpc_protocol::solana_generation::RefreshStart>,
+    },
+    RefreshReady {
+        report: Box<Signed<wallet_mpc_protocol::witness::GenerationReady>>,
+    },
 }
 #[derive(Serialize, Deserialize)]
 #[serde(deny_unknown_fields)]
@@ -67,21 +87,73 @@ struct Head {
     sequence: u64,
     event_hash: String,
 }
-#[derive(Default)]
+#[derive(Clone, Default)]
 pub(super) struct Records {
     pub requests: BTreeMap<String, Signed<PermitRequest>>,
     pub consumed: BTreeMap<String, Signed<Permit>>,
     pub reports: BTreeMap<String, Signed<PublicRound>>,
+    pub ceremonies: BTreeMap<Uuid, wallet_mpc_protocol::solana_generation::RefreshStart>,
+    pub ready: BTreeMap<Uuid, Signed<wallet_mpc_protocol::witness::GenerationReady>>,
 }
 impl Records {
-    fn apply(
-        &mut self,
-        change: &Change,
-        own: &PinnedIdentity,
-        witness: &PinnedIdentity,
-        party: &str,
-    ) -> Result<()> {
+    fn apply(&mut self, change: &Change, authorities: Authorities<'_>) -> Result<()> {
+        let Authorities {
+            own,
+            witness,
+            lifecycle,
+            party,
+        } = authorities;
         match change {
+            Change::RefreshStart { start } => {
+                let life =
+                    lifecycle.context("lifecycle mutation is disabled for this deployment")?;
+                verify(life, "WITNESS_FROST_REFRESH_PLAN_V1", &start.plan)?;
+                verify(witness, "WITNESS_QUERY_REPLY_V1", &start.frozen)?;
+                start.validate_shape()?;
+                let plan = &start.plan.value;
+                ensure!(
+                    plan.node_keys.get(party) == Some(&own.key_id)
+                        && !self.ceremonies.contains_key(&plan.ceremony_id)
+                        && !self
+                            .ceremonies
+                            .values()
+                            .any(|c| c.plan.value.session_id == plan.session_id)
+                        && !self.requests.values().any(|r| r
+                            .value
+                            .binding
+                            .authorized
+                            .intent
+                            .crypto_execution_id
+                            == plan.ceremony_id
+                            || r.value.binding.authorized.intent.session_id == plan.session_id),
+                    "ceremony/identity already consumed or disagrees"
+                );
+                self.ceremonies.insert(plan.ceremony_id, (**start).clone());
+            }
+            Change::RefreshReady { report } => {
+                verify(own, "WITNESS_GENERATION_READY_V1", report)?;
+                let r = &report.value;
+                let start = self
+                    .ceremonies
+                    .get(&r.generation.ceremony_id)
+                    .context("missing original refresh start")?;
+                let p = &start.plan.value;
+                ensure!(
+                    !self.ready.contains_key(&p.ceremony_id)
+                        && r.party_id == party
+                        && r.root_identity == p.root.identity()?
+                        && r.previous_generation == p.previous
+                        && r.generation.epoch == p.next_epoch
+                        && r.generation.public_key_package_sha256 == hash(&r.public_key_package)
+                        && r.public_key_package != p.previous_public_key_package,
+                    "original durable refresh agreement mismatch"
+                );
+                wallet_mpc_protocol::sign::public_package(
+                    &r.public_key_package,
+                    &p.root.group_public_key,
+                )?;
+                self.ready.insert(p.ceremony_id, (**report).clone());
+            }
             Change::Initialize => ensure!(
                 self.requests.is_empty() && self.consumed.is_empty() && self.reports.is_empty(),
                 "invalid local genesis"
@@ -89,6 +161,14 @@ impl Records {
             Change::Request { request } => {
                 verify(own, "WITNESS_PERMIT_REQUEST_V1", request)?;
                 ensure!(request.value.party_id == party, "foreign private request");
+                ensure!(
+                    !self
+                        .ceremonies
+                        .contains_key(&request.value.binding.authorized.intent.crypto_execution_id)
+                        && !self.ceremonies.values().any(|c| c.plan.value.session_id
+                            == request.value.binding.authorized.intent.session_id),
+                    "signing identifiers belong to a lifecycle ceremony"
+                );
                 let key = slot(
                     request.value.binding.authorized.intent.crypto_execution_id,
                     request.value.round,
@@ -150,11 +230,10 @@ impl Journal {
         directory: &Path,
         profile: String,
         identity: &ReceiptIdentity,
-        own: &PinnedIdentity,
-        witness: &PinnedIdentity,
-        party: &str,
+        authorities: Authorities<'_>,
         initialize: bool,
     ) -> Result<Self> {
+        let Authorities { own, .. } = authorities;
         fs::create_dir_all(directory)?;
         ensure!(
             fs::symlink_metadata(directory)?.file_type().is_dir(),
@@ -258,7 +337,7 @@ impl Journal {
                     && (index == 0 || !matches!(e.change, Change::Initialize)),
                 "protected journal identity/sequence"
             );
-            records.apply(&e.change, own, witness, party)?;
+            records.apply(&e.change, authorities)?;
             last_hash = hash(&serde_json::to_vec(&serde_json::to_value(&event)?)?);
             sequence = e.sequence;
             if sequence == head.value.sequence {
@@ -296,11 +375,11 @@ impl Journal {
         &mut self,
         change: Change,
         identity: &ReceiptIdentity,
-        own: &PinnedIdentity,
-        witness: &PinnedIdentity,
-        party: &str,
+        authorities: Authorities<'_>,
     ) -> Result<()> {
         ensure!(!self.poisoned, "protected durability uncertain");
+        let mut candidate = self.records.clone();
+        candidate.apply(&change, authorities)?;
         let sequence = self
             .sequence
             .checked_add(1)
@@ -341,8 +420,7 @@ impl Journal {
             &self.directory.join("initialized.json"),
             &serde_json::to_vec(&head)?,
         )?;
-        self.records
-            .apply(&event.value.change, own, witness, party)?;
+        self.records = candidate;
         self.sequence = sequence;
         self.last_hash = last_hash;
         self.poisoned = false;

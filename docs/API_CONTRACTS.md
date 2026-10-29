@@ -227,3 +227,15 @@ The backend does not own the independent lifecycle approval key. No external
 API credential or generic signing authority follows. See
 [publication authority, migration and acceptance](PHASE6GC_NATIVE_ISSUANCE.md).
 SPL publication, protected financial sessions and lifecycle drain remain pending.
+
+
+### Phase6G-C public replacement reservation (unmerged development)
+
+Separate Lifecycle `ReserveReplacement` and `AbandonReplacement` commands bind
+one exact Frozen original Root/generation and never release failed-plan identity
+history. Signed query replies optionally expose the pending plan, original
+command ID and original all-three Root receipt evidence. Prepare/Activate require
+the exact reserved next refresh and all3 readiness. Original ordinary refresh
+roster checks remain strict. New event rules do not rewrite old signed history.
+Private repair/profile migration is not yet available; see
+[implemented boundary and remaining acceptance](PHASE6GC_RECOVERY.md).

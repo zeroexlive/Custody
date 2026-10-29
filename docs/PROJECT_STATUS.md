@@ -79,9 +79,18 @@ an exact-byte signer verification cache retains full inventory checks and its
 retry passed737.59s, actually publishing1000 wallets in627.149s and finalizing
 all-pair transfers from indices0/500/999. Independent PostgreSQL tests
 passed80 cases in97.01s and the independent genuine three-wallet rerun passed
-113.42s; checkpoint gates remain pending. These are no whole-phase or settlement
-gates.
+113.42s. Native checkpoint6e2bcee passed exact Fast40851236750; complete local
+backend rerun passed790 cases in431.17s. Selected Solana40851260306 passed34
+actual calls/zero scenario skips with independently verified exact-head public
+artifacts and actual1000 issuance evidence. This is no whole-phase or financial-
+settlement gate; ALL/original-store compatibility remains required.
 
+A further unmerged [replacement authorization boundary](PHASE6GC_RECOVERY.md)
+now reserves one exact new identity/profile/anchor under Frozen authority, retains
+permanent failed-plan history and preserves old signed journal semantics while
+requiring strict rules for new admissions. Independent17-unit and actual public
+store upgrade/restart/tampering reruns pass. Private repair/profile migration and
+new-generation signing remain unfinished; these are public foundations only.
 Remaining6G-C includes explicit replacement provenance and share repair,
 rotation/drain/late-deposit rescue, issued
 wallet and finalized SPL initialization records, financial ledger integration,

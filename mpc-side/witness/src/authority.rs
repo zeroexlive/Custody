@@ -35,6 +35,8 @@ struct Event {
     sequence: u64,
     previous_hash: String,
     time: u64,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    rules: Option<u16>,
     transition: Transition,
 }
 #[derive(Clone, Debug, Serialize, Deserialize)]
@@ -79,6 +81,15 @@ fn event_hash(event: &Signed<Event>) -> Result<String> {
     Ok(hash(&serde_json::to_vec(&serde_json::to_value(event)?)?))
 }
 fn replay(state: &mut Snapshot, event: &Event) -> Result<()> {
+    ensure!(
+        event.rules.is_none() || event.rules == Some(1),
+        "unsupported authority event rules"
+    );
+    ensure!(
+        event.rules.unwrap_or(0) >= state.journal_rules,
+        "authority event rules cannot downgrade"
+    );
+    state.journal_rules = event.rules.unwrap_or(0);
     match &event.transition {
         Transition::Initialize => ensure!(
             event.sequence == 0 && state.sequence == 0 && state.roots.is_empty(),
@@ -87,7 +98,11 @@ fn replay(state: &mut Snapshot, event: &Event) -> Result<()> {
         Transition::Command { command } => {
             command.value.validate(event.time)?;
             ensure!(
-                state.command(&command.value)?,
+                if event.rules.is_none() {
+                    state.command_legacy(&command.value)?
+                } else {
+                    state.command(&command.value)?
+                },
                 "duplicate lifecycle journal event"
             );
         }
@@ -147,6 +162,7 @@ impl Authority {
                 sequence: 0,
                 previous_hash: "00".repeat(32),
                 time: now()?,
+                rules: Some(1),
                 transition: Transition::Initialize,
             };
             let signed = trust.sign("WITNESS_EVENT_V1", genesis)?;
@@ -267,7 +283,7 @@ impl Authority {
     fn commit(
         &self,
         j: &mut Journal,
-        candidate: Snapshot,
+        mut candidate: Snapshot,
         time: u64,
         transition: Transition,
     ) -> Result<()> {
@@ -285,6 +301,7 @@ impl Authority {
             sequence: candidate.sequence,
             previous_hash: j.last_hash.clone(),
             time,
+            rules: Some(1),
             transition,
         };
         let signed = self.trust.sign("WITNESS_EVENT_V1", event)?;
@@ -323,6 +340,7 @@ impl Authority {
             j.poisoned = true;
             return Err(error.into());
         }
+        candidate.journal_rules = 1;
         j.last_hash = next_hash;
         j.state = candidate;
         Ok(())
@@ -347,6 +365,15 @@ impl Authority {
                             .get(party)
                             .is_some_and(|id| p.nodes[party].contains_key(id)),
                         "unenrolled class node identity"
+                    );
+                }
+            }
+            CommandAction::ReserveReplacement { plan } => {
+                let profile = self.trust.profile(&plan.refresh.root.wallet_class)?;
+                for party in PARTIES {
+                    ensure!(
+                        profile.nodes[party].contains_key(&plan.refresh.node_keys[party]),
+                        "replacement roster requires independently installed node pins"
                     );
                 }
             }
@@ -580,6 +607,11 @@ impl Authority {
                 claim,
                 lifecycle_key_id: Some(self.trust.lifecycle.key_id.clone()),
                 claim_issuance,
+                replacement: j
+                    .state
+                    .replacements
+                    .get(&r.evidence.statement.identity()?)
+                    .cloned(),
             },
         )
     }
@@ -592,6 +624,115 @@ mod tests {
         atomic::{AtomicU64, Ordering},
         Arc,
     };
+
+    #[test]
+    fn original_signed_journal_messages_survive_new_optional_rules() {
+        use wallet_mpc_transport::{PinnedIdentity, AUTHORITY_ROLES};
+        let original: serde_json::Value = serde_json::from_str(include_str!(
+            "../tests/fixtures/pre-replacement-journal.json"
+        ))
+        .unwrap();
+        let directory =
+            std::env::temp_dir().join(format!("witness-public-archive-{}", Uuid::new_v4()));
+        fs::create_dir(&directory).unwrap();
+        let mut pins = std::collections::BTreeMap::new();
+        for (role, pem) in original["certificates"].as_object().unwrap() {
+            let path = directory.join(format!("{role}.crt"));
+            fs::write(&path, pem.as_str().unwrap()).unwrap();
+            pins.insert(
+                role.clone(),
+                PinnedIdentity::new(path.to_str().unwrap(), role, &AUTHORITY_ROLES).unwrap(),
+            );
+        }
+        let values = original["events"].as_array().unwrap();
+        for (index, value) in values.iter().enumerate() {
+            let raw: serde_json::Value =
+                serde_json::from_str(original["original_event_json"][index].as_str().unwrap())
+                    .unwrap();
+            assert_eq!(raw, *value);
+        }
+        assert_eq!(
+            serde_json::from_str::<serde_json::Value>(
+                original["original_head_json"].as_str().unwrap()
+            )
+            .unwrap(),
+            original["head"]
+        );
+        let first: Signed<Event> = serde_json::from_value(values[0].clone()).unwrap();
+        let mut state = Snapshot::empty(first.value.anchor_id).unwrap();
+        let mut previous = None;
+        for (index, value) in values.iter().enumerate() {
+            let event: Signed<Event> = serde_json::from_value(value.clone()).unwrap();
+            assert!(event.value.rules.is_none());
+            assert_eq!(serde_json::to_value(&event).unwrap(), *value);
+            let message = event.signing_message("WITNESS_EVENT_V1").unwrap();
+            assert_eq!(hash(&message), original["event_message_sha256"][index]);
+            assert_eq!(event.key_id, pins["witness"].key_id);
+            pins["witness"]
+                .verify(&message, &event.signature_bytes().unwrap())
+                .unwrap();
+            let mut tampered = Signed::<Event> {
+                key_id: event.key_id.clone(),
+                value: serde_json::from_value(value["value"].clone()).unwrap(),
+                signature: event.signature.clone(),
+            };
+            tampered.value.rules = Some(1);
+            assert!(pins["witness"]
+                .verify(
+                    &tampered.signing_message("WITNESS_EVENT_V1").unwrap(),
+                    &tampered.signature_bytes().unwrap()
+                )
+                .is_err());
+            if let Some(hash) = previous {
+                assert_eq!(event.value.previous_hash, hash);
+            }
+            if let Transition::Command { command } = &event.value.transition {
+                assert_eq!(command.key_id, pins["lifecycle"].key_id);
+                pins["lifecycle"]
+                    .verify(
+                        &command.signing_message("WITNESS_COMMAND_V1").unwrap(),
+                        &command.signature_bytes().unwrap(),
+                    )
+                    .unwrap();
+                if let CommandAction::Enroll { evidence, .. } = &command.value.action {
+                    for report in &evidence.participant_agreement {
+                        pins[&report.party_id]
+                            .verify(
+                                &wallet_mpc_protocol::solana_provisioning::receipt_message(
+                                    "root",
+                                    &report.statement,
+                                    &report.party_id,
+                                )
+                                .unwrap(),
+                                &wallet_mpc_protocol::sign::decode_hex(&report.signer_signature)
+                                    .unwrap(),
+                            )
+                            .unwrap();
+                    }
+                }
+            }
+            replay(&mut state, &event.value).unwrap();
+            previous = Some(event_hash(&event).unwrap());
+        }
+        let head: Signed<Head> = serde_json::from_value(original["head"].clone()).unwrap();
+        pins["witness"]
+            .verify(
+                &head.signing_message("WITNESS_HEAD_V1").unwrap(),
+                &head.signature_bytes().unwrap(),
+            )
+            .unwrap();
+        assert_eq!(head.value.event_hash, previous.unwrap());
+        assert_eq!(state.sequence, head.value.sequence);
+        assert_eq!(state.anchor_id, head.value.anchor_id);
+        assert_eq!(state.roots.len(), 2);
+        assert_eq!(state.claims.len(), 1);
+        state.journal_rules = 1;
+        assert!(replay(&mut state, &first.value)
+            .unwrap_err()
+            .to_string()
+            .contains("downgrade"));
+        fs::remove_dir_all(directory).unwrap();
+    }
 
     async fn expired_while_queued(validate: impl FnOnce(u64) -> Result<()> + Send + 'static) {
         let mutex = Arc::new(Mutex::new(()));

@@ -58,6 +58,12 @@ CAPS = {
 }
 
 
+def test_phase6gc_witness_replacement_reservation_and_original_signed_store_upgrade(tmp_path):
+    from replacement_acceptance import run_reserved_upgrade
+
+    run_reserved_upgrade(tmp_path)
+
+
 def test_phase6gc_witness_independent_authorization_and_round_replay(tmp_path):
     from witness_acceptance import run_authorization
 

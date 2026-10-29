@@ -511,11 +511,8 @@ fn all_three_refresh_agreement_activates_without_rewriting_original_identity() {
         ceremony_id: Uuid::new_v4(),
         public_key_package_sha256: hash(&next.serialize().unwrap()),
     };
-    let roster: BTreeMap<String, String> = PARTIES
-        .iter()
-        .enumerate()
-        .map(|(n, p)| ((*p).into(), format!("{:064x}", n + 4)))
-        .collect();
+    let mut roster = node_keys();
+    roster.insert(PARTIES[0].into(), format!("{:064x}", 4));
     let ready: Vec<_> = PARTIES
         .iter()
         .map(|p| Signed {
@@ -530,6 +527,45 @@ fn all_three_refresh_agreement_activates_without_rewriting_original_identity() {
             },
         })
         .collect();
+    let implicit = command(
+        &s,
+        &b,
+        CommandAction::Prepare {
+            ready: ready.clone(),
+            node_keys: roster.clone(),
+        },
+    );
+    assert!(s.clone().command(&implicit).is_err());
+    // A historical journal may already contain this earlier accepted rule.
+    // Replay preserves its original meaning; HTTP admission cannot select it.
+    assert!(s.clone().command_legacy(&implicit).is_ok());
+    let replacement = wallet_mpc_protocol::solana_recovery::ReplacementPlan {
+        refresh: wallet_mpc_protocol::solana_generation::RefreshPlan {
+            anchor_id: s.anchor_id,
+            root: original.clone(),
+            previous: s.roots[&root_id].generation.clone(),
+            previous_public_key_package: public.serialize().unwrap(),
+            session_id: Uuid::new_v4(),
+            ceremony_id: generation.ceremony_id,
+            next_epoch: 1,
+            node_keys: roster.clone(),
+            expires_at: 1010,
+        },
+        previous_node_keys: node_keys(),
+        party_id: PARTIES[0].into(),
+        recipient_anchor_id: Uuid::new_v4(),
+        recipient_profile_sha256: hash(b"synthetic-state-test-profile"),
+        repair_session_id: Uuid::new_v4(),
+        repair_ceremony_id: Uuid::new_v4(),
+    };
+    s.command(&command(
+        &s,
+        &b,
+        CommandAction::ReserveReplacement {
+            plan: Box::new(replacement),
+        },
+    ))
+    .unwrap();
     for kind in 0..4 {
         let mut bad = ready.clone();
         match kind {
@@ -981,4 +1017,208 @@ fn exact_signature_is_recovered_without_reopening_the_payout() {
         s.executions[&b.authorized.intent.crypto_execution_id].status,
         ExecutionStatus::SignedPending
     );
+}
+
+fn replacement_plan(
+    s: &Snapshot,
+    b: &Binding,
+    key: u64,
+) -> wallet_mpc_protocol::solana_recovery::ReplacementPlan {
+    use wallet_mpc_protocol::{solana_generation::RefreshPlan, solana_recovery::ReplacementPlan};
+    let r = &s.roots[&b.authorized.intent.claim.root.identity().unwrap()];
+    let mut roster = r.node_keys.clone();
+    roster.insert(PARTIES[0].into(), format!("{key:064x}"));
+    ReplacementPlan {
+        refresh: RefreshPlan {
+            anchor_id: s.anchor_id,
+            root: r.evidence.statement.clone(),
+            previous: r.generation.clone(),
+            previous_public_key_package: r.public_key_package.clone(),
+            session_id: Uuid::new_v4(),
+            ceremony_id: Uuid::new_v4(),
+            next_epoch: r.generation.epoch + 1,
+            node_keys: roster,
+            expires_at: 1010,
+        },
+        previous_node_keys: r.node_keys.clone(),
+        party_id: PARTIES[0].into(),
+        recipient_anchor_id: Uuid::new_v4(),
+        recipient_profile_sha256: hash(b"state-profile"),
+        repair_session_id: Uuid::new_v4(),
+        repair_ceremony_id: Uuid::new_v4(),
+    }
+}
+
+#[test]
+fn replacement_reservation_requires_frozen_exact_current_history_and_drained_executions() {
+    let (mut s, b) = setup();
+    let plan = replacement_plan(&s, &b, 17);
+    assert!(s
+        .clone()
+        .command(&command(
+            &s,
+            &b,
+            CommandAction::ReserveReplacement {
+                plan: Box::new(plan.clone()),
+            }
+        ))
+        .is_err());
+    grant(&mut s, &b, PARTIES[0]);
+    s.command(&command(&s, &b, CommandAction::Freeze)).unwrap();
+    assert!(s
+        .clone()
+        .command(&command(
+            &s,
+            &b,
+            CommandAction::ReserveReplacement {
+                plan: Box::new(plan.clone()),
+            }
+        ))
+        .is_err());
+    s.command(&command(
+        &s,
+        &b,
+        CommandAction::CloseNoSignature {
+            execution_id: b.authorized.intent.crypto_execution_id,
+        },
+    ))
+    .unwrap();
+    for variant in 0..5 {
+        let mut changed = plan.clone();
+        match variant {
+            0 => changed.refresh.root.ownership_scope = "another-owner".into(),
+            1 => changed.refresh.previous.epoch += 1,
+            2 => {
+                changed
+                    .previous_node_keys
+                    .insert(PARTIES[1].into(), hash(b"wrong-helper"));
+            }
+            3 => changed.refresh.anchor_id = Uuid::new_v4(),
+            _ => changed.refresh.previous_public_key_package.push(0),
+        }
+        assert!(s
+            .clone()
+            .command(&command(
+                &s,
+                &b,
+                CommandAction::ReserveReplacement {
+                    plan: Box::new(changed),
+                }
+            ))
+            .is_err());
+    }
+    let original = command(
+        &s,
+        &b,
+        CommandAction::ReserveReplacement {
+            plan: Box::new(plan.clone()),
+        },
+    );
+    assert!(s.command(&original).unwrap());
+    assert!(!s.command(&original).unwrap());
+    let id = b.authorized.intent.claim.root.identity().unwrap();
+    assert_eq!(s.roots[&id].phase, Phase::Frozen);
+    assert_eq!(s.roots[&id].node_keys, plan.previous_node_keys);
+    assert_eq!(s.replacements[&id].command_id, original.request_id);
+    assert_eq!(s.replacements[&id].plan, plan);
+    assert_eq!(
+        s.claims[&b.authorized.intent.claim.reservation_id].statement,
+        b.authorized.intent.claim
+    );
+}
+
+#[test]
+fn abandoned_replacement_never_releases_identity_or_resurrects_from_old_ack() {
+    let (mut s, b) = setup();
+    s.command(&command(&s, &b, CommandAction::Freeze)).unwrap();
+    let plan = replacement_plan(&s, &b, 17);
+    let reserve = command(
+        &s,
+        &b,
+        CommandAction::ReserveReplacement {
+            plan: Box::new(plan.clone()),
+        },
+    );
+    s.command(&reserve).unwrap();
+    assert!(s
+        .clone()
+        .command(&command(
+            &s,
+            &b,
+            CommandAction::AbandonReplacement {
+                repair_ceremony_id: Uuid::new_v4(),
+            }
+        ))
+        .is_err());
+    s.command(&command(
+        &s,
+        &b,
+        CommandAction::AbandonReplacement {
+            repair_ceremony_id: plan.repair_ceremony_id,
+        },
+    ))
+    .unwrap();
+    assert!(s.replacements.is_empty());
+    assert!(!s.command(&reserve).unwrap());
+    assert!(s.replacements.is_empty()); // An old ACK is never current authority.
+    let ids = [
+        plan.repair_session_id,
+        plan.repair_ceremony_id,
+        plan.refresh.session_id,
+        plan.refresh.ceremony_id,
+        plan.recipient_anchor_id,
+    ];
+    for id in ids {
+        let mut new = replacement_plan(&s, &b, 18);
+        new.repair_session_id = id;
+        assert!(s
+            .clone()
+            .command(&command(
+                &s,
+                &b,
+                CommandAction::ReserveReplacement {
+                    plan: Box::new(new),
+                }
+            ))
+            .is_err());
+        let mut retry = retry(&b);
+        retry.authorized.intent.crypto_execution_id = id;
+        let error = s
+            .clone()
+            .permit(
+                &request(&s, &retry, PARTIES[0], 1),
+                &node_keys()[PARTIES[0]],
+                1000,
+            )
+            .unwrap_err();
+        assert!(error.to_string().contains("replacement identities"));
+    }
+    for field in 0..2 {
+        let mut new = replacement_plan(&s, &b, 18);
+        if field == 0 {
+            new.refresh.node_keys = plan.refresh.node_keys.clone();
+        } else {
+            new.recipient_anchor_id = plan.recipient_anchor_id;
+        }
+        assert!(s
+            .clone()
+            .command(&command(
+                &s,
+                &b,
+                CommandAction::ReserveReplacement {
+                    plan: Box::new(new),
+                }
+            ))
+            .is_err());
+    }
+    let fresh = replacement_plan(&s, &b, 18);
+    s.command(&command(
+        &s,
+        &b,
+        CommandAction::ReserveReplacement {
+            plan: Box::new(fresh.clone()),
+        },
+    ))
+    .unwrap();
+    assert_eq!(s.replacements.values().next().unwrap().plan, fresh);
 }

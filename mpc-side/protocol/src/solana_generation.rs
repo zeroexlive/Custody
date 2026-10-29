@@ -51,6 +51,7 @@ impl RefreshStart {
                 && view.root.public_key_package == plan.previous_public_key_package
                 && view.root.node_keys == plan.node_keys
                 && view.root.phase == Phase::Frozen
+                && view.replacement.is_none()
                 && view.sequence > 0
                 && view.root.revision > 0
                 && view.lifecycle_key_id.as_ref() == Some(&self.plan.key_id),

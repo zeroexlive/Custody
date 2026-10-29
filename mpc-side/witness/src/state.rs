@@ -61,6 +61,7 @@ pub struct LogicalOperation {
 pub struct Snapshot {
     pub anchor_id: Uuid,
     pub sequence: u64,
+    pub journal_rules: u16,
     pub roots: BTreeMap<String, RootState>,
     pub executions: BTreeMap<Uuid, Execution>,
     pub operations: BTreeMap<String, LogicalOperation>,
@@ -76,6 +77,8 @@ pub struct Snapshot {
     pub wires: BTreeMap<String, String>,
     pub claim_issuances: BTreeMap<Uuid, wallet_mpc_protocol::witness::ClaimIssuance>,
     pub issuance_ids: BTreeMap<Uuid, Uuid>,
+    pub replacements:
+        BTreeMap<String, wallet_mpc_protocol::solana_recovery::ReplacementReservation>,
 }
 
 pub(crate) fn slot(party: &str, round: u16) -> String {
@@ -101,6 +104,7 @@ impl Snapshot {
         Ok(Self {
             anchor_id,
             sequence: 0,
+            journal_rules: 0,
             roots: BTreeMap::new(),
             executions: BTreeMap::new(),
             operations: BTreeMap::new(),
@@ -116,6 +120,7 @@ impl Snapshot {
             wires: BTreeMap::new(),
             claim_issuances: BTreeMap::new(),
             issuance_ids: BTreeMap::new(),
+            replacements: BTreeMap::new(),
         })
     }
     fn advance(&mut self, root: &str) -> Result<()> {
@@ -130,7 +135,28 @@ impl Snapshot {
             .context("root revision exhausted")?;
         Ok(())
     }
+    fn replacement_id_reserved(&self, id: Uuid) -> bool {
+        self.commands.values().any(|command| match &command.action {
+            CommandAction::ReserveReplacement { plan } => [
+                plan.repair_session_id,
+                plan.repair_ceremony_id,
+                plan.refresh.session_id,
+                plan.refresh.ceremony_id,
+                plan.recipient_anchor_id,
+            ]
+            .contains(&id),
+            _ => false,
+        })
+    }
     pub(crate) fn command(&mut self, command: &Command) -> Result<bool> {
+        self.command_with_rules(command, false)
+    }
+    /// Only journal replay may retain the previously accepted implicit roster
+    /// rule. Fresh admissions always require an explicit replacement reservation.
+    pub(crate) fn command_legacy(&mut self, command: &Command) -> Result<bool> {
+        self.command_with_rules(command, true)
+    }
+    fn command_with_rules(&mut self, command: &Command, legacy_roster: bool) -> Result<bool> {
         ensure!(
             command.anchor_id == self.anchor_id,
             "wrong authority anchor"
@@ -142,6 +168,10 @@ impl Snapshot {
             );
             return Ok(false);
         }
+        ensure!(
+            !self.replacement_id_reserved(command.request_id),
+            "replacement identities remain permanently reserved"
+        );
         let id = &command.root_identity;
         if let CommandAction::Enroll {
             evidence,
@@ -151,6 +181,11 @@ impl Snapshot {
             evidence.validate()?;
             let root = &evidence.statement;
             root.validate()?;
+            ensure!(
+                !self.replacement_id_reserved(root.dkg.session_id)
+                    && !self.replacement_id_reserved(root.dkg.execution_id),
+                "replacement identities cannot become new original DKG identities"
+            );
             roster(node_keys)?;
             ensure!(
                 root.identity()? == *id && command.expected_revision == 0,
@@ -189,6 +224,97 @@ impl Snapshot {
                 "stale lifecycle CAS revision"
             );
             match &command.action {
+                CommandAction::ReserveReplacement { plan } => {
+                    plan.validate_shape()?;
+                    ensure!(r.phase == Phase::Frozen && r.prepared.is_none()
+                        && !self.replacements.contains_key(id)
+                        && plan.refresh.anchor_id == self.anchor_id
+                        && plan.refresh.root == r.evidence.statement
+                        && plan.refresh.previous == r.generation
+                        && plan.refresh.previous_public_key_package == r.public_key_package
+                        && plan.previous_node_keys == r.node_keys
+                        && !self.executions.values().any(|e| e.root_identity == *id
+                            && e.status == ExecutionStatus::Open),
+                        "exact frozen current generation/roster required; unresolved executions cannot be erased");
+                    let new_key = &plan.refresh.node_keys[&plan.party_id];
+                    let new_ids = [
+                        plan.repair_session_id,
+                        plan.repair_ceremony_id,
+                        plan.refresh.session_id,
+                        plan.refresh.ceremony_id,
+                        plan.recipient_anchor_id,
+                    ];
+                    ensure!(
+                        !new_ids.contains(&command.request_id),
+                        "replacement identities cannot alias their approval command"
+                    );
+                    ensure!(
+                        new_ids.iter().all(|id| !self.replacement_id_reserved(*id)),
+                        "replacement identities remain permanently reserved"
+                    );
+                    ensure!(
+                        !self.commands.values().any(|c| {
+                            if new_ids.contains(&c.request_id) {
+                                return true;
+                            }
+                            match &c.action {
+                                CommandAction::Enroll {
+                                    evidence,
+                                    node_keys,
+                                } => {
+                                    node_keys.values().any(|v| v == new_key)
+                                        || new_ids.contains(&evidence.statement.dkg.session_id)
+                                        || new_ids.contains(&evidence.statement.dkg.execution_id)
+                                }
+                                CommandAction::Prepare { ready, node_keys } => {
+                                    node_keys.values().any(|v| v == new_key)
+                                        || ready.iter().any(|r| {
+                                            new_ids.contains(&r.value.generation.ceremony_id)
+                                        })
+                                }
+                                CommandAction::ReserveReplacement { plan: prior } => {
+                                    prior.refresh.node_keys[&prior.party_id] == *new_key
+                                        || prior.recipient_anchor_id == plan.recipient_anchor_id
+                                        || [
+                                            prior.repair_session_id,
+                                            prior.repair_ceremony_id,
+                                            prior.refresh.session_id,
+                                            prior.refresh.ceremony_id,
+                                        ]
+                                        .iter()
+                                        .any(|v| new_ids.contains(v))
+                                }
+                                _ => false,
+                            }
+                        }) && new_ids.iter().all(|id| !self.executions.contains_key(id)
+                            && !self.sessions.contains_key(id)
+                            && !self.abandoned.contains_key(id)),
+                        "original or previously reserved identity/anchor/ceremony cannot be reused"
+                    );
+                    self.replacements.insert(
+                        id.clone(),
+                        wallet_mpc_protocol::solana_recovery::ReplacementReservation {
+                            command_id: command.request_id,
+                            plan: (**plan).clone(),
+                            original_evidence: r.evidence.clone(),
+                        },
+                    );
+                }
+                CommandAction::AbandonReplacement { repair_ceremony_id } => {
+                    let original = self
+                        .replacements
+                        .get(id)
+                        .context("no pending replacement to abandon")?;
+                    ensure!(
+                        r.phase == Phase::Frozen
+                            && r.prepared.is_none()
+                            && original.plan.repair_ceremony_id == *repair_ceremony_id,
+                        "only the exact frozen unprepared replacement may be abandoned"
+                    );
+                    // Original command remains forever: no key, anchor or UUID
+                    // is released. Old partial work cannot prepare a new plan.
+                    self.replacements.remove(id);
+                }
                 CommandAction::IssueNativeClaim {
                     reservation_id,
                     issuance_id,
@@ -350,6 +476,26 @@ impl Snapshot {
                         "all three durable generation agreements required"
                     );
                     let next = &ready[0].value;
+                    if let Some(reservation) = self.replacements.get(id) {
+                        let plan = &reservation.plan.refresh;
+                        ensure!(
+                            node_keys == &plan.node_keys
+                                && next.previous_generation == plan.previous
+                                && next.generation.epoch == plan.next_epoch
+                                && next.generation.ceremony_id == plan.ceremony_id,
+                            "preparation must complete the exact reserved replacement refresh"
+                        );
+                    } else {
+                        ensure!(
+                            legacy_roster
+                                || !self.replacement_id_reserved(next.generation.ceremony_id),
+                            "ordinary refresh cannot reuse a replacement identity"
+                        );
+                        ensure!(
+                            legacy_roster || node_keys == &r.node_keys,
+                            "new identity requires an explicit frozen replacement reservation"
+                        );
+                    }
                     ensure!(
                         next.generation.epoch
                             == r.generation
@@ -414,6 +560,7 @@ impl Snapshot {
                     r.public_key_package = next.public_key_package;
                     r.node_keys = next.node_keys;
                     r.phase = Phase::Active;
+                    self.replacements.remove(id);
                 }
                 CommandAction::Enroll { .. } => unreachable!(),
             }
@@ -432,6 +579,11 @@ impl Snapshot {
         req.validate(now)?;
         ensure!(req.anchor_id == self.anchor_id, "wrong anchor");
         let i = &req.binding.authorized.intent;
+        ensure!(
+            !self.replacement_id_reserved(i.crypto_execution_id)
+                && !self.replacement_id_reserved(i.session_id),
+            "replacement identities cannot become private signing executions or sessions"
+        );
         let root = i.claim.root.identity()?;
         let r = self
             .roots

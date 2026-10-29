@@ -296,6 +296,12 @@ pub enum CommandAction {
         issuance_id: Uuid,
     },
     Freeze,
+    ReserveReplacement {
+        plan: Box<crate::solana_recovery::ReplacementPlan>,
+    },
+    AbandonReplacement {
+        repair_ceremony_id: Uuid,
+    },
     CloseNoSignature {
         execution_id: Uuid,
     },
@@ -329,6 +335,9 @@ impl Command {
                 && self.expires_at - now <= 300,
             "lifecycle command bounds"
         );
+        if let CommandAction::ReserveReplacement { plan } = &self.action {
+            plan.validate(now)?;
+        }
         Ok(())
     }
 }
@@ -401,6 +410,8 @@ pub struct QueryReply {
     pub lifecycle_key_id: Option<String>,
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub claim_issuance: Option<ClaimIssuance>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub replacement: Option<crate::solana_recovery::ReplacementReservation>,
 }
 
 /// Durable permission to publish one already registered native deposit claim.

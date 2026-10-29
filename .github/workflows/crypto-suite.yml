@@ -164,6 +164,7 @@ jobs:
             work/crypto/fixtures/**/solana-seeded-primitive-evidence.json
             work/crypto/fixtures/**/solana-registry-public-evidence.json
             work/crypto/fixtures/**/solana-native-issuance-public-evidence.json
+            work/crypto/fixtures/**/solana-replacement-witness-public-evidence.json
             work/ton-review/mpc-tvm-evidence.json
             work/ton-review/validator-network-evidence.json
             work/ton-review/django-validator-evidence.json

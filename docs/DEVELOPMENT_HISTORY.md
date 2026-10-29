@@ -581,3 +581,22 @@ PostgreSQL run passed97.01s and expanded genuine3 rerun passed113.42s, with no
 demonstrated P0/P1 in the bounded source review. Exact checkpoint/phase gates
 remain pending. See
 PHASE6GC_NATIVE_ISSUANCE.md. No merge, phase completion or production activation.
+
+
+## 2026-10-29 — unmerged replacement authorization and original witness-store replay
+
+Native6e2bcee passed exact Fast40851236750, including remote790 backend tests
+(218.58s); local corrected full backend rerun passed790 cases431.17s. Selected
+Solana40851260306 passed exact6e2 with34 actual calls/zero scenario skips,
+independently verified artifact12889217392 and remote actual1000 issuance
+(307.076s issuance;402.073s whole case). ALL/original-store compatibility was
+unselected and remains mandatory for final whole-phase acceptance.
+
+Further public replacement foundations bind exact current Frozen generation,
+one fresh key/profile/anchor and repair+refresh identities, with permanent
+abandonment tombstones and exact next-generation readiness. Signed event rules
+preserve original authenticated historical semantics and enforce monotonic
+strict rules for new admissions. Independent17Witnessunit and actual runtime
+archived-store upgrade/restart/tampering checks pass; archive signatures and
+original persisted bytes were independently checked. This is no private repair,
+profile migration or whole-phase completion. See PHASE6GC_RECOVERY.md.

@@ -141,6 +141,23 @@ failures (548.49s). The failures were exact expected new-nullable-field defaults
 and a current-model query after a partly completed refused downgrade. Narrow
 compatibility corrections preserve every old wallet/account/journal field and
 the original balance assertions. All three corrected cases passed12.55s;
-the complete backend rerun is pending. The development database, with no issuance
+the complete backend rerun passed all790 cases in431.17s. The development database, with no issuance
 intents/seeded wallets/expanded indexes, also successfully reversed empty0035 and
 reapplied the current guards without resetting legacy data.
+
+
+Native checkpoint `6e2bcee111fd8cb72d5747aec2e599f21b10127f` passed
+[Fast40851236750](https://github.com/zeroexlive/Custody/actions/runs/40851236750)
+(all four executed jobs; expected crypto skips). Its
+[selected Solana40851260306](https://github.com/zeroexlive/Custody/actions/runs/40851260306)
+passed at that exact SHA. Independent verification of artifact12889217392
+confirmed34 unique selected/called scenarios, zero scenario skips and34 JUnit
+passes in1856.780s. Its inventory251/hash
+`c765bb1558a9b73cec5b5eec01f55ac08ca6fc54e36f24613be9fbad803293b1`
+matched preflight. Fourteen allowlisted public files include pytest current-path
+duplicates; no private key/store markers were present. Actual remote native3 took
+96.202s and native1000 took402.073s, with307.076s actual1000 issuance. All counted
+wallet/issuance rows, unchanged original ciphertexts, zero issuance journals and
+all-pair finalized transfers were verified. The selected run explicitly skipped
+original-store compatibility and other chains, so it does not satisfy final
+ALL/original-store or whole-phase acceptance.

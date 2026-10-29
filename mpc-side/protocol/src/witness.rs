@@ -223,6 +223,54 @@ pub struct PublicRound {
     pub signing_package: Option<Vec<u8>>,
 }
 
+/// Independent lifecycle approval to permanently cancel an original R2 request.
+/// This authorizes no private operation and is never evidence of chain failure.
+#[derive(Clone, Debug, Serialize, Deserialize, PartialEq, Eq)]
+#[serde(deny_unknown_fields)]
+pub struct Cancellation {
+    pub anchor_id: Uuid,
+    pub root_identity: String,
+    pub execution_id: Uuid,
+    pub binding_fingerprint: String,
+    pub request_fingerprint: String,
+    pub expires_at: u64,
+}
+impl Cancellation {
+    pub fn matches(&self, request: &Signed<PermitRequest>) -> Result<()> {
+        let r = &request.value;
+        ensure!(
+            r.round == 2
+                && !self.anchor_id.is_nil()
+                && !self.execution_id.is_nil()
+                && self.anchor_id == r.anchor_id
+                && self.root_identity == r.binding.authorized.intent.claim.root.identity()?
+                && self.execution_id == r.binding.authorized.intent.crypto_execution_id
+                && self.binding_fingerprint == r.binding.identity()?
+                && self.request_fingerprint
+                    == hash(&request.signing_message("WITNESS_PERMIT_REQUEST_V1")?)
+                && self.expires_at > 0,
+            "cancellation requires the exact original R2 request"
+        );
+        Ok(())
+    }
+    pub fn validate(&self, now: u64) -> Result<()> {
+        ensure!(
+            now < self.expires_at && self.expires_at - now <= 300,
+            "live cancellation authority required"
+        );
+        Ok(())
+    }
+}
+
+/// A node's durable terminal statement: no durable R2 result exists and the
+/// original permission can never be applied. Absence of a request is not proof.
+#[derive(Clone, Debug, Serialize, Deserialize, PartialEq, Eq)]
+#[serde(deny_unknown_fields)]
+pub struct NoRelease {
+    pub request: Signed<PermitRequest>,
+    pub authorization: Signed<Cancellation>,
+}
+
 #[derive(Clone, Debug, Serialize, Deserialize, PartialEq, Eq)]
 #[serde(deny_unknown_fields)]
 pub struct GenerationReady {
@@ -246,6 +294,10 @@ pub enum CommandAction {
     Freeze,
     CloseNoSignature {
         execution_id: Uuid,
+    },
+    CloseUnreleased {
+        execution_id: Uuid,
+        attestations: Vec<Signed<NoRelease>>,
     },
     Prepare {
         ready: Vec<Signed<GenerationReady>>,

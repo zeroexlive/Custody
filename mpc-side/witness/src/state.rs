@@ -256,6 +256,54 @@ impl Snapshot {
                         self.abandoned.insert(*execution_id, id.clone());
                     }
                 }
+                CommandAction::CloseUnreleased {
+                    execution_id,
+                    attestations,
+                } => {
+                    ensure!(
+                        r.phase == Phase::Frozen,
+                        "freeze required for terminal R2 closure"
+                    );
+                    let e = self
+                        .executions
+                        .get_mut(execution_id)
+                        .context("original execution missing")?;
+                    ensure!(
+                        e.root_identity == *id && e.status == ExecutionStatus::Open,
+                        "original open execution required"
+                    );
+                    let grantees: BTreeMap<_, _> = e
+                        .grants
+                        .values()
+                        .filter(|g| g.round == 2)
+                        .map(|g| (g.party_id.as_str(), g))
+                        .collect();
+                    ensure!(
+                        !grantees.is_empty()
+                            && grantees.len() == attestations.len()
+                            && !e.reports.values().any(|p| p.value.round == 2),
+                        "every actual R2 grantee must attest with no contradictory result"
+                    );
+                    let mut seen = BTreeSet::new();
+                    for a in attestations {
+                        let proof = &a.value;
+                        let request = &proof.request;
+                        let party = request.value.party_id.as_str();
+                        proof.authorization.value.matches(request)?;
+                        ensure!(
+                            seen.insert(party)
+                                && grantees.get(party).is_some_and(|g| **g == request.value)
+                                && e.node_keys.get(party) == Some(&a.key_id)
+                                && a.key_id == request.key_id
+                                && request.value.binding == e.binding
+                                && request.value.signing_package == e.signing_package,
+                            "original grantee/key/request/package mismatch or duplicate"
+                        );
+                    }
+                    // This CAS shares the permission/result mutex. After commit
+                    // no original late R2 report or permission may revive it.
+                    e.status = ExecutionStatus::NoSignature;
+                }
                 CommandAction::Prepare { ready, node_keys } => {
                     ensure!(
                         r.phase == Phase::Frozen && r.prepared.is_none(),

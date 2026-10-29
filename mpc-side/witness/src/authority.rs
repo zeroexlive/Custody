@@ -365,6 +365,32 @@ impl Authority {
                     )?;
                 }
             }
+            CommandAction::CloseUnreleased { attestations, .. } => {
+                let root = j
+                    .state
+                    .roots
+                    .get(&command.value.root_identity)
+                    .context("unknown original root")?;
+                for a in attestations {
+                    self.trust.check_node(
+                        &root.evidence.statement.wallet_class,
+                        &a.value.request.value.party_id,
+                        a,
+                        "WITNESS_NO_RELEASE_V1",
+                    )?;
+                    self.trust.check_node(
+                        &root.evidence.statement.wallet_class,
+                        &a.value.request.value.party_id,
+                        &a.value.request,
+                        "WITNESS_PERMIT_REQUEST_V1",
+                    )?;
+                    self.trust.check_signed(
+                        &a.value.authorization,
+                        "WITNESS_CANCELLATION_V1",
+                        &self.trust.lifecycle,
+                    )?;
+                }
+            }
             _ => {}
         }
         let fingerprint = hash(&command.signing_message("WITNESS_COMMAND_V1")?);

@@ -17,7 +17,7 @@ use wallet_mpc_protocol::{
 };
 use wallet_mpc_signer::{
     dkg::DkgService,
-    protected::{Control, Profile, Service},
+    protected::{CancelControl, Control, Profile, Service},
     solana_provisioning, ExecutionTombstones, SignerStore, PROTOCOL_VERSION,
 };
 use wallet_mpc_transport::{
@@ -58,6 +58,13 @@ async fn recover(
 ) -> Result<Json<impl serde::Serialize>, (StatusCode, Json<serde_json::Value>)> {
     let control: Control = serde_json::from_slice(&body).map_err(|e| reject(e.into()))?;
     s.recover(&control).await.map(Json).map_err(reject)
+}
+async fn cancel(
+    State(s): State<Arc<Service>>,
+    body: Bytes,
+) -> Result<Json<impl serde::Serialize>, (StatusCode, Json<serde_json::Value>)> {
+    let control: CancelControl = serde_json::from_slice(&body).map_err(|e| reject(e.into()))?;
+    s.cancel(control).await.map(Json).map_err(reject)
 }
 
 #[tokio::main]
@@ -114,6 +121,7 @@ async fn main() -> Result<()> {
         .route("/internal/v1/solana/protected/challenge", post(challenge))
         .route("/internal/v1/solana/protected/apply", post(apply))
         .route("/internal/v1/solana/protected/recover", post(recover))
+        .route("/internal/v1/solana/protected/cancel", post(cancel))
         .route_layer(middleware::from_fn(
             move |Extension(peer): Extension<PeerIdentity>,
                   request: axum::extract::Request,

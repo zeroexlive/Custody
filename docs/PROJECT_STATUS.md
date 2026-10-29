@@ -62,6 +62,13 @@ genuine Gen1 all-pair/restart and Gen2/COLD/interrupted-ceremony cases. Original
 root/claim identity and original DKG ciphertext stay unchanged; missing refreshed
 material fails closed. Further fault acceptance and exact-head gates remain open.
 See [refresh authority and limitations](PHASE6GC_SOLANA_REFRESH.md).
+Further [terminal R2 cancellation](PHASE6GC_NO_RELEASE.md) now requires original
+signed requests, separate lifecycle approval and durable node cancellation before
+returning certificates. Frozen witness closure derives every actual R2 grantee
+from its own history; a durable partial or missing evidence keeps uncertainty.
+Five genuine scenarios cover one/two grantees, subsequent real refresh/retry,
+apply/cancel races, withheld partial refusal and COLD/manual flow. Expanded
+write-failure/late-grant cases and13 unit tests pass with independent review.
 Remaining6G-C includes explicit replacement provenance and share repair,
 rotation/drain/late-deposit rescue, issued
 wallet and finalized SPL initialization records, financial ledger integration,

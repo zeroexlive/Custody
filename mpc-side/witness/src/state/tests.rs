@@ -673,6 +673,146 @@ fn all_three_refresh_agreement_activates_without_rewriting_original_identity() {
 }
 
 #[test]
+fn no_release_closure_uses_every_actual_grantee_and_fences_late_results() {
+    use wallet_mpc_protocol::witness::{Cancellation, NoRelease};
+    let (keys, public) = keys();
+    let mut b = binding();
+    b.authorized.intent.claim.root.group_public_key =
+        hex(&public.verifying_key().serialize().unwrap());
+    b.authorized.intent.claim.root.public_key_package = public.serialize().unwrap();
+    b.authorized.intent.generation.public_key_package_sha256 = hash(&public.serialize().unwrap());
+    let mut base = Snapshot::empty(Uuid::new_v4()).unwrap();
+    base.command(&command(
+        &base,
+        &b,
+        CommandAction::Enroll {
+            evidence: Box::new(evidence(b.authorized.intent.claim.root.clone())),
+            node_keys: node_keys(),
+        },
+    ))
+    .unwrap();
+    register(&mut base, &b);
+    let mut commitments = BTreeMap::new();
+    let mut nonces = BTreeMap::new();
+    for p in &b.selected_signers {
+        grant(&mut base, &b, p);
+        let id = identifier(p).unwrap();
+        let (n, c) = frost::round1::commit(keys[&id].signing_share(), &mut rand_core::OsRng);
+        base.record(&signed(
+            p,
+            PublicRound {
+                anchor_id: base.anchor_id,
+                execution_id: b.authorized.intent.crypto_execution_id,
+                binding_fingerprint: b.identity().unwrap(),
+                party_id: p.clone(),
+                round: 1,
+                commitments: Some(c.serialize().unwrap()),
+                signature_share: None,
+                signing_package: None,
+            },
+        ))
+        .unwrap();
+        commitments.insert(id, c);
+        nonces.insert(id, n);
+    }
+    let package =
+        frost::SigningPackage::new(commitments, &decode_hex(&b.authorized.payload_hex).unwrap());
+    let execution_id = b.authorized.intent.crypto_execution_id;
+    let party = PARTIES[0];
+    let id = identifier(party).unwrap();
+    let late = signed(
+        party,
+        PublicRound {
+            anchor_id: base.anchor_id,
+            execution_id,
+            binding_fingerprint: b.identity().unwrap(),
+            party_id: party.into(),
+            round: 2,
+            commitments: None,
+            signature_share: Some(
+                frost::round2::sign(&package, &nonces[&id], &keys[&id])
+                    .unwrap()
+                    .serialize(),
+            ),
+            signing_package: Some(package.serialize().unwrap()),
+        },
+    );
+    for count in 1..=2 {
+        let mut s = base.clone();
+        let mut proofs = Vec::new();
+        for p in &b.selected_signers[..count] {
+            let mut req = request(&s, &b, p, 2);
+            req.signing_package = Some(package.serialize().unwrap());
+            s.permit(&req, &node_keys()[p], 1000).unwrap();
+            let original = signed(p, req);
+            let auth = Cancellation {
+                anchor_id: s.anchor_id,
+                root_identity: b.authorized.intent.claim.root.identity().unwrap(),
+                execution_id,
+                binding_fingerprint: b.identity().unwrap(),
+                request_fingerprint: hash(
+                    &original
+                        .signing_message("WITNESS_PERMIT_REQUEST_V1")
+                        .unwrap(),
+                ),
+                expires_at: 1010,
+            };
+            // This state-only test uses synthetic detached signatures; genuine
+            // process tests verify both independent lifecycle and node keys.
+            proofs.push(signed(
+                p,
+                NoRelease {
+                    request: original,
+                    authorization: signed(p, auth),
+                },
+            ));
+        }
+        let action = |proofs| CommandAction::CloseUnreleased {
+            execution_id,
+            attestations: proofs,
+        };
+        assert!(s
+            .clone()
+            .command(&command(&s, &b, action(proofs.clone())))
+            .is_err());
+        s.command(&command(&s, &b, CommandAction::Freeze)).unwrap();
+        assert!(s
+            .clone()
+            .command(&command(
+                &s,
+                &b,
+                CommandAction::CloseNoSignature { execution_id }
+            ))
+            .is_err());
+        let mut bad_key = proofs.clone();
+        bad_key[0].key_id = "ab".repeat(32);
+        let mut wrong_request = proofs.clone();
+        wrong_request[0].value.request.value.challenge = "cd".repeat(32);
+        for bad in [
+            vec![],
+            proofs[..count - 1].to_vec(),
+            vec![proofs[0].clone(); count + 1],
+            bad_key,
+            wrong_request,
+        ] {
+            assert!(s.clone().command(&command(&s, &b, action(bad))).is_err());
+        }
+        let mut contradicted = s.clone();
+        contradicted.record(&late).unwrap();
+        assert!(contradicted
+            .clone()
+            .command(&command(&contradicted, &b, action(proofs.clone())))
+            .is_err());
+        s.command(&command(&s, &b, action(proofs))).unwrap();
+        assert_eq!(
+            s.executions[&execution_id].status,
+            ExecutionStatus::NoSignature
+        );
+        assert!(s.record(&late).is_err());
+    }
+}
+
+#[test]
 fn exact_signature_is_recovered_without_reopening_the_payout() {
     let (keys, public) = keys();
     let mut b = binding();

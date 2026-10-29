@@ -171,6 +171,14 @@ signed witness `Permit`. Challenge/result types are signer-signed. Coordinator
 mTLS is required; COLD also permits its explicit courier role. COLD has no
 automatic witness client. Original result recovery never repeats private work.
 The generic `/internal/v1/sign/*` router is absent from this entrypoint.
+The subsequent `/internal/v1/solana/protected/cancel` accepts `CancelControl`:
+original R2 control plus independently lifecycle-signed `Cancellation` binding the
+exact durable signed request. It returns a durable terminal `NoRelease` only if
+no durable R2 result exists. This removes local authority and may occur while
+ACTIVE; all future old private work is forbidden. Witness `CloseUnreleased`
+separately requires Frozen state and original-key certificates from every actual
+R2 grantee. Neither timeout nor absent history closes a permission. See
+[cancellation semantics and assumptions](PHASE6GC_NO_RELEASE.md).
 
 The separate witness exposes `/v1/witness/{command,permit,record,query}`. Strict
 public Rust contracts are in `protocol::witness`. Lifecycle commands require a

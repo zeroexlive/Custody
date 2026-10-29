@@ -125,6 +125,12 @@ pub struct Control {
     pub round: u16,
     pub signing_package: Option<Vec<u8>>,
 }
+#[derive(Clone, Serialize, Deserialize)]
+#[serde(deny_unknown_fields)]
+pub struct CancelControl {
+    pub control: Control,
+    pub authorization: Signed<wallet_mpc_protocol::witness::Cancellation>,
+}
 struct Active {
     key: frost::keys::KeyPackage,
     nonces: frost::round1::SigningNonces,
@@ -288,6 +294,15 @@ impl Service {
         self.valid_control(c)?;
         let local = self.local.lock().await;
         ensure!(!local.journal.poisoned, "protected history uncertain");
+        ensure!(
+            c.round != 2
+                || !local
+                    .journal
+                    .records
+                    .cancelled
+                    .contains_key(&c.binding.authorized.intent.crypto_execution_id),
+            "execution permanently cancelled"
+        );
         let key = journal::slot(c.binding.authorized.intent.crypto_execution_id, c.round);
         if let Some(r) = local.journal.records.reports.get(&key) {
             let request = &local.journal.records.requests[&key].value;
@@ -311,6 +326,10 @@ impl Service {
         let mut local = self.local.lock().await;
         ensure!(!local.journal.poisoned, "protected history uncertain");
         let id = c.binding.authorized.intent.crypto_execution_id;
+        ensure!(
+            !local.journal.records.cancelled.contains_key(&id),
+            "execution permanently cancelled"
+        );
         let key = journal::slot(id, c.round);
         if let Some(original) = local.journal.records.requests.get(&key) {
             ensure!(
@@ -402,6 +421,10 @@ impl Service {
         let mut local = self.local.lock().await;
         ensure!(!local.journal.poisoned, "protected history uncertain");
         let id = b.authorized.intent.crypto_execution_id;
+        ensure!(
+            !local.journal.records.cancelled.contains_key(&id),
+            "execution permanently cancelled"
+        );
         let key = journal::slot(id, request.round);
         ensure!(
             local
@@ -522,6 +545,70 @@ impl Service {
             local.active.insert(id, active);
         }
         Ok(report)
+    }
+    pub async fn cancel(
+        &self,
+        c: CancelControl,
+    ) -> Result<Signed<wallet_mpc_protocol::witness::NoRelease>> {
+        self.valid_control(&c.control)?;
+        ensure!(
+            c.control.round == 2,
+            "only an original R2 request may attest no release"
+        );
+        let id = c.control.binding.authorized.intent.crypto_execution_id;
+        let mut local = self.local.lock().await;
+        ensure!(!local.journal.poisoned, "protected history uncertain");
+        if let Some(original) = local.journal.records.cancelled.get(&id) {
+            ensure!(
+                original.value.request.value.binding == c.control.binding
+                    && original.value.request.value.signing_package == c.control.signing_package
+                    && original.value.authorization == c.authorization,
+                "original terminal cancellation cannot change"
+            );
+            return Ok(original.clone());
+        }
+        journal::verify(
+            self.lifecycle
+                .as_ref()
+                .context("lifecycle cancellation disabled")?,
+            "WITNESS_CANCELLATION_V1",
+            &c.authorization,
+        )?;
+        let key = journal::slot(id, 2);
+        let request = local
+            .journal
+            .records
+            .requests
+            .get(&key)
+            .context("original R2 request missing; absence is not proof")?
+            .clone();
+        ensure!(
+            request.value.binding == c.control.binding
+                && request.value.signing_package == c.control.signing_package
+                && !local.journal.records.reports.contains_key(&key),
+            "original request mismatch or durable R2 result already exists"
+        );
+        c.authorization.value.matches(&request)?;
+        c.authorization.value.validate(now()?)?;
+        let attestation = journal::sign(
+            &self.identity,
+            "WITNESS_NO_RELEASE_V1",
+            wallet_mpc_protocol::witness::NoRelease {
+                request,
+                authorization: c.authorization,
+            },
+        )?;
+        self.append(
+            &mut local,
+            journal::Change::Cancel {
+                attestation: Box::new(attestation.clone()),
+            },
+        )?;
+        // The same mutex serializes cancellation with EVERY private apply.
+        // Fsync precedes publication and nonce disposal. Write uncertainty
+        // poisons the journal; restart cannot recreate the old private state.
+        local.active.remove(&id);
+        Ok(attestation)
     }
     pub async fn automatic(&self, c: Control) -> Result<Signed<PublicRound>> {
         let client = self

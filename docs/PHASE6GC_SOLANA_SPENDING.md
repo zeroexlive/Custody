@@ -84,6 +84,11 @@ financial settlement or permits another attempt. Financial reconciliation is
 still pending integration. No timeout, old backup or missing result proves
 non-inclusion or absence of a signature.
 
+The subsequent [terminal cancellation extension](PHASE6GC_NO_RELEASE.md) adds a
+separate Frozen-only closure requiring durable original-key NoRelease certificates
+from every actual R2 grantee, with no contradictory R2 result. The zero-R2 rule
+above is unchanged; timeout, absent history or a lost key never supplies proof.
+
 Freeze stops new private-round permissions. Prepare/activate contracts require a
 genuine changed public package with the same group key and all three matching
 signed generation-ready records. Original Root/DKG identity remains immutable.

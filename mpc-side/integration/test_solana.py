@@ -154,6 +154,31 @@ def test_phase6gc_distributed_refresh_interrupted_missing_generation_and_second_
     run_interrupted_refresh(tmp_path)
 
 
+@pytest.mark.parametrize("grantees", [1, 2])
+def test_phase6gc_terminal_no_release_all_actual_grantees_refresh_retry(tmp_path, grantees):
+    from no_release_acceptance import run_close_unreleased
+
+    run_close_unreleased(tmp_path, grantees)
+
+
+def test_phase6gc_terminal_no_release_apply_cancellation_race(tmp_path):
+    from no_release_acceptance import run_cancel_apply_race
+
+    run_cancel_apply_race(tmp_path)
+
+
+def test_phase6gc_terminal_no_release_rejects_withheld_durable_partial(tmp_path):
+    from no_release_acceptance import run_durable_partial_cannot_cancel
+
+    run_durable_partial_cannot_cancel(tmp_path)
+
+
+def test_phase6gc_terminal_no_release_cold_manual_refresh_retry(tmp_path):
+    from no_release_acceptance import run_close_unreleased
+
+    run_close_unreleased(tmp_path, 2, custody_class="COLD")
+
+
 def test_phase6gc_seeded_authenticated_immutable_store_approvals(tmp_path):
     from seeded_enrollment import run_approvals
 

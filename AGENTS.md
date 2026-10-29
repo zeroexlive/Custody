@@ -36,7 +36,12 @@ generation signing, courier, restart, backup/partial and corruption cases pass;
 see docs/PHASE6GC_SOLANA_SPENDING.md. Subsequent original-identity distributed
 same-key refresh and encrypted generation loading pass genuine Gen1 all-pair,
 COLD, interrupted/Gen2 and independently rerun private-peer/storage-fault cases;
-see docs/PHASE6GC_SOLANA_REFRESH.md. Explicit identity/provenance migration and
+see docs/PHASE6GC_SOLANA_REFRESH.md. Terminal R2 NoRelease now requires original
+signed requests, separate lifecycle approval, durable local cancellation and
+Frozen witness proof from every actual grantee. Any durable partial or missing
+evidence remains unresolved; see docs/PHASE6GC_NO_RELEASE.md. Genuine restart,
+write-failure, late-permission, race, COLD and refresh/retry cases pass, including
+independent review/reruns. Explicit identity/provenance migration and
 share repair, issued wallets,
 financial integration and whole-phase acceptance remain incomplete. Current
 development source still needs its exact-final-head CI and final review.

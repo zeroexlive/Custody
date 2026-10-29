@@ -1,3 +1,21 @@
+## 2026-10-29 — terminal original-key R2 cancellation (unmerged)
+
+Protected nodes now require original durable R2 requests and independent
+lifecycle approval before fsyncing an irreversible cancellation. The same mutex
+serializes cancellation with private apply; a durable partial, even withheld,
+cannot be cancelled. Frozen witness closure recomputes the exact actual grantee
+set, verifies every original key/request/package and rejects contradictory
+results. Existing zero-R2 closure and conservative unknown-outcome rules remain.
+
+Four genuine cases passed165.76s; expanded grantee/write-failure/late-permission
+cases passed97.98s, independently96.04s. Independent apply/cancel race passed30.40s,
+all13 witness units pass, and COLD/manual refresh/retry passed51.64s. Independent
+review found no demonstrated P0/P1 in the bounded component. Current lifecycle
+and intact independent-journal assumptions, including the coherent rollback
+exclusion, remain explicit. See [scope and remaining work](PHASE6GC_NO_RELEASE.md).
+Final-head Fast/ALL and whole-phase financial/issuance/repair/rotation acceptance
+remain open; this does not authorize merging Draft PR #2.
+
 ## 2026-10-29 — ordinary distributed FROST refresh (unmerged)
 
 Draft PR #2 now adds separately authorized all-three upstream same-key refresh,

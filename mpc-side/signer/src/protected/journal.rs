@@ -71,6 +71,9 @@ pub(super) enum Change {
     RefreshReady {
         report: Box<Signed<wallet_mpc_protocol::witness::GenerationReady>>,
     },
+    Cancel {
+        attestation: Box<Signed<wallet_mpc_protocol::witness::NoRelease>>,
+    },
 }
 #[derive(Serialize, Deserialize)]
 #[serde(deny_unknown_fields)]
@@ -94,6 +97,7 @@ pub(super) struct Records {
     pub reports: BTreeMap<String, Signed<PublicRound>>,
     pub ceremonies: BTreeMap<Uuid, wallet_mpc_protocol::solana_generation::RefreshStart>,
     pub ready: BTreeMap<Uuid, Signed<wallet_mpc_protocol::witness::GenerationReady>>,
+    pub cancelled: BTreeMap<Uuid, Signed<wallet_mpc_protocol::witness::NoRelease>>,
 }
 impl Records {
     fn apply(&mut self, change: &Change, authorities: Authorities<'_>) -> Result<()> {
@@ -104,6 +108,28 @@ impl Records {
             party,
         } = authorities;
         match change {
+            Change::Cancel { attestation } => {
+                let proof = &attestation.value;
+                let request = &proof.request;
+                verify(own, "WITNESS_NO_RELEASE_V1", attestation)?;
+                verify(own, "WITNESS_PERMIT_REQUEST_V1", request)?;
+                verify(
+                    lifecycle.context("lifecycle cancellation disabled")?,
+                    "WITNESS_CANCELLATION_V1",
+                    &proof.authorization,
+                )?;
+                proof.authorization.value.matches(request)?;
+                let id = request.value.binding.authorized.intent.crypto_execution_id;
+                let key = slot(id, 2);
+                ensure!(
+                    request.value.party_id == party
+                        && self.requests.get(&key) == Some(request)
+                        && !self.reports.contains_key(&key)
+                        && !self.cancelled.contains_key(&id),
+                    "original R2 request required; a durable result can never attest no release"
+                );
+                self.cancelled.insert(id, (**attestation).clone());
+            }
             Change::RefreshStart { start } => {
                 let life =
                     lifecycle.context("lifecycle mutation is disabled for this deployment")?;
@@ -163,6 +189,12 @@ impl Records {
                 ensure!(request.value.party_id == party, "foreign private request");
                 ensure!(
                     !self
+                        .cancelled
+                        .contains_key(&request.value.binding.authorized.intent.crypto_execution_id),
+                    "execution permanently cancelled"
+                );
+                ensure!(
+                    !self
                         .ceremonies
                         .contains_key(&request.value.binding.authorized.intent.crypto_execution_id)
                         && !self.ceremonies.values().any(|c| c.plan.value.session_id
@@ -182,6 +214,12 @@ impl Records {
             Change::Consume { permit } => {
                 verify(witness, "WITNESS_PERMIT_V1", permit)?;
                 let request = &permit.value.request;
+                ensure!(
+                    !self
+                        .cancelled
+                        .contains_key(&request.binding.authorized.intent.crypto_execution_id),
+                    "execution permanently cancelled"
+                );
                 let key = slot(
                     request.binding.authorized.intent.crypto_execution_id,
                     request.round,
@@ -196,6 +234,10 @@ impl Records {
             Change::Result { report } => {
                 verify(own, "WITNESS_PUBLIC_ROUND_V1", report)?;
                 let p = &report.value;
+                ensure!(
+                    !self.cancelled.contains_key(&p.execution_id),
+                    "execution permanently cancelled"
+                );
                 let key = slot(p.execution_id, p.round);
                 let request = &self
                     .consumed

@@ -188,6 +188,16 @@ jobs:
             work/crypto/fixtures/**/solana-refresh-historical-ids-public-evidence.json
             work/crypto/fixtures/**/solana-custody-read-query-public-evidence.json
             work/crypto/fixtures/**/solana-financial-mode-public-evidence.json
+            work/crypto/fixtures/**/solana-protected-coordinator-public-evidence.json
+            work/crypto/fixtures/**/solana-protected-coordinator-last_r2-public-evidence.json
+            work/crypto/fixtures/**/solana-protected-coordinator-before_record-public-evidence.json
+            work/crypto/fixtures/**/solana-protected-coordinator-first_r2-public-evidence.json
+            work/crypto/fixtures/**/solana-protected-coordinator-round1-public-evidence.json
+            work/crypto/fixtures/**/solana-protected-coordinator-client_disconnect-public-evidence.json
+            work/crypto/fixtures/**/solana-protected-coordinator-coordinator_restart-public-evidence.json
+            work/crypto/fixtures/**/solana-protected-coordinator-write_failure-public-evidence.json
+            work/crypto/fixtures/**/solana-protected-coordinator-invalid_share-public-evidence.json
+            work/crypto/fixtures/**/solana-financial-root-import-public-evidence.json
             work/ton-review/mpc-tvm-evidence.json
             work/ton-review/validator-network-evidence.json
             work/ton-review/django-validator-evidence.json

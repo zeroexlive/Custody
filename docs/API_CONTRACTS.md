@@ -228,6 +228,25 @@ API credential or generic signing authority follows. See
 [publication authority, migration and acceptance](PHASE6GC_NATIVE_ISSUANCE.md).
 SPL publication, protected financial sessions and lifecycle drain remain pending.
 
+Optional isolated HOT profile adds Custody-mTLS `/v1/solana-protected-sessions`
+POST create, `/{session_id}` GET and `/{session_id}/execute|reconcile` POST. Create
+persists exact Binding and supplied signed W view. Created is intent, not authority;
+backend must own its fresh query lease and original nodes verify live permissions.
+Completed is a verified original FROST aggregate, not W delivery, ledger settlement
+or reserve release. Reconcile invokes public node recovery only; missing reports
+must be relayed by the existing courier to W before backend financial consumption.
+Unknown never allocates new IDs or authorizes private retry. Generic routes retain
+their dedicated-Root fence. See PHASE6GC_FINANCIAL_INTEGRATION.md for limits.
+
+Standalone operator `financial_mode_request`/`complete_financial_mode` functions
+commit expected mode and Lifecycle-command IDs plus a15s public-query lease, then
+import independently enabled W mode for a clean original HOT Root. No external
+route or Lifecycle/Policy key is added. An absent optional Claim query field is
+omitted canonically, not signed as null. VERIFIED is immutable historical mode
+evidence, not current generation/phase or financial wallet activation. Pending
+import fences new Claims, and every new Claim admission re-verifies stored mode
+proof. Direct seeded credit remains closed pending the financial wallet contract.
+
 
 ### Phase6G-C public replacement reservation (unmerged development)
 

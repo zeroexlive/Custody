@@ -286,6 +286,30 @@ class MpcSolanaRoot(models.Model):
         ]
 
 
+class MpcSolanaFinancialRoot(models.Model):
+    """Durable clean-Root mode import; neither a wallet nor financial authority."""
+
+    root = models.OneToOneField(MpcSolanaRoot, on_delete=models.PROTECT, primary_key=True)
+    witness_anchor_id = models.UUIDField()
+    witness_key_id = models.CharField(max_length=64)
+    query_challenge = models.CharField(max_length=64)
+    query_expires_at = models.DateTimeField()
+    status = models.CharField(max_length=16, default="PENDING")
+    activation_id = models.UUIDField(default=uuid.uuid4, unique=True, editable=False)
+    command_id = models.UUIDField(default=uuid.uuid4, unique=True, editable=False)
+    evidence = models.JSONField(default=dict)
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        constraints = [
+            models.CheckConstraint(
+                condition=Q(status="PENDING", evidence={})
+                | (Q(status="VERIFIED") & ~Q(evidence={})),
+                name="sol_financial_root_evidence_shape",
+            ),
+        ]
+
+
 class MpcSolanaClaim(models.Model):
     """Immutable owner/asset/index reservation, never an issued UserWallet."""
 

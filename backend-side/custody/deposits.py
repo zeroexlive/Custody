@@ -6,12 +6,16 @@ from django.db import transaction
 
 from .config import get_confirmation_threshold, validate_chain_asset
 from .ledger import credit_deposit, reverse_deposit_posting
-from .models import Asset, Deposit
+from .models import Asset, Deposit, UserWallet
 
 
 @transaction.atomic
 def ingest_event(user_wallet, event) -> tuple[Deposit, bool]:
     """Persist/update one concrete indexer event and credit at finality exactly once."""
+    # Caller/related-object caches are not authoritative financial identity.
+    user_wallet = UserWallet.objects.select_for_update().get(pk=user_wallet.pk)
+    if user_wallet.solana_claim_id:
+        raise ValueError("seeded wallet requires unfinished financial activation and provenance")
     if user_wallet.custody_account_id:
         from .mpc_issuance import validate_child_wallet
 

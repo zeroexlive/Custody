@@ -375,6 +375,30 @@ def test_published_claim_does_not_enable_generic_root_signing_or_deposit_path(is
         _wallet_root_keyset(wallet, "SOL", wallet.deposit_address)
 
 
+def test_published_nonfinancial_claim_cannot_bypass_indexer_via_direct_credit(issuance):
+    from decimal import Decimal
+
+    from custody.deposits import ingest_event
+    from custody.indexer.base import DepositEvent
+    from custody.ledger import credit_deposit
+    from custody.models import Deposit
+
+    c = issuance
+    request = begin(c)
+    wallet = complete(c, request, reply(c, request))
+    ledger_count = LedgerTransaction.objects.count()
+    event = DepositEvent("nonfinancial-event", Decimal("1"), 10, 100, asset_key="SOL")
+    with pytest.raises(ValueError, match="financial activation"):
+        ingest_event(wallet, event)
+    assert not Deposit.objects.filter(user_wallet=wallet).exists()
+    deposit = Deposit.objects.create(
+        user_wallet=wallet, asset_key="SOL", tx_hash="direct-credit", amount=Decimal("1")
+    )
+    with pytest.raises(ValueError, match="financial activation"):
+        credit_deposit(deposit)
+    assert LedgerTransaction.objects.count() == ledger_count
+
+
 @pytest.mark.parametrize("custody_class", [None, "WARM", "COLD", "hot", "UNKNOWN"])
 def test_backend_import_does_not_relabel_unsupported_dkg_birth_classes(issuance, custody_class):
     import copy

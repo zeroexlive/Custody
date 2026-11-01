@@ -671,3 +671,26 @@ versioned FinancialBinding and explicit clean irreversible financialRoot activat
 with original dual authority+Life. Local23W/8protocol and actualGen0/Gen1 transfer
 mode-maintenance58.04s passed; independent57.613s. Synthetic reservationrefs only;
 no DBfinancialwallet/ledger activation. See PHASE6GC_FINANCIAL_INTEGRATION.md.
+
+2026-11-01 (Asia/Tehran): subsequent unmerged typed protected HOT coordinator
+passed9 genuine local calls362.45s/zero skips after operation/attempt alias,
+individual FROST share validation and explicit outgoing-loopback review fixes.
+Durable original R1/package and public-only Unknown recovery now have real response
+loss, missing-W-record, disconnect/concurrency, restart, write-failure and invalid
+node-signed-share acceptance. All pairs finalized. This remains signature-only
+completion with synthetic reservationrefs; financial wallet/ledger integration
+and independent runtime/exact-head phase gates remain pending. Public reports only
+in evidence/phase6gc-protected-coordinator-local.json; private fixtures ignored.
+
+Independent current coordinator rerun passed3 cases157.614s/stable binaries, with
+no bounded P0/P1 finding. Subsequent backend0036 clean-Root mode import passed54 PG
+cases74.51s and actual original-node/Rust W/PG import6.25s. Immutable mode+Life-command
+IDs precede query; pending imports fence Claims and expiry is checked after locks.
+Independent review caught an absent-vs-null Rust query canonicalization bug before
+acceptance; fixed and covered by the genuine roundtrip. The first unit batch also
+exposed an oversized audit action name; corrected. A lock-observation test initially
+read PG's cached statistics snapshot; explicit snapshot refresh now observes actual
+waits, with both race orders/post-lock expiry passing. New deposit-credit guards
+keep seeded wallets nonfinancial. No wallet/ledger activation or phase completion;
+independent54 PG cases passed76.12s and actual Rust/PG import8.39s/stable binaries,
+with no bounded P0/P1 finding. Broader backend/current-source CI remain pending.

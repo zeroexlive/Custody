@@ -409,3 +409,23 @@ other chains were unselected, not ALL. Subsequent uncommitted financial-mode/que
 boundaries have bounded local and independent evidence only; protected coordinator,
 ledger integration, treasury roles, finalized SPL and whole-phase recovery remain
 incomplete. See PHASE6GC_FINANCIAL_INTEGRATION.md.
+
+Subsequent unmerged typed HOT coordinator now passes9 genuine local cases362.45s
+with all-pair finalized transfers, durable original R1/first R2 package, isolated
+public store, original signature recovery and actual response/write/restart faults.
+Created records intent; Completed verifies only the aggregate, with public witness
+redelivery/reconciliation still required before backend financial consumption.
+Independent coordinator3-case runtime passed157.614s with stable binaries and no
+bounded P0/P1 finding. Current-source CI is pending. Financial references are
+synthetic; DB treasury/customer roles, protected financial sessions, actual ledger
+integration, SPL and lifecycle completion remain unfinished. See
+PHASE6GC_FINANCIAL_INTEGRATION.md. This does not complete the phase or merge gate.
+
+Backend migration0036 now commits immutable expected mode/command IDs and a15s
+query before importing a clean Root's independent financial mode.54 PG cases
+passed74.51s and genuine PG/original protected nodes/Rust W import passed6.25s;
+mode import itself activates no wallet or ledger. Direct seeded deposit ingestion
+and credit stay closed until financial wallet activation/provenance is implemented.
+Independent54 PG cases passed76.12s and genuine import8.39s/stable binaries, with
+no bounded P0/P1 finding. Broader backend/current-head CI remain pending; whole-phase acceptance
+and Draft PR2 merge remain incomplete.

@@ -125,6 +125,38 @@ def test_phase6gc_irreversible_financial_root_mode_and_explicit_reservation_cryp
     run_financial_mode(tmp_path)
 
 
+def test_phase6gc_protected_coordinator_all_pairs_and_durable_public_recovery(tmp_path):
+    from protected_coordinator_acceptance import run_coordinator
+
+    run_coordinator(tmp_path)
+
+
+@pytest.mark.django_db(transaction=True)
+def test_phase6gc_financial_root_mode_import_before_claims_with_actual_witness(tmp_path):
+    from financial_root_acceptance import run_financial_mode_import
+
+    run_financial_mode_import(tmp_path)
+
+
+@pytest.mark.parametrize(
+    "fault",
+    (
+        "last_r2",
+        "before_record",
+        "first_r2",
+        "round1",
+        "client_disconnect",
+        "coordinator_restart",
+        "write_failure",
+        "invalid_share",
+    ),
+)
+def test_phase6gc_protected_coordinator_ambiguous_private_outcomes(tmp_path, fault):
+    from protected_coordinator_acceptance import run_coordinator_fault
+
+    run_coordinator_fault(tmp_path, fault)
+
+
 def test_phase6gc_private_replacement_repair_refresh_and_restart(tmp_path):
     from repair_acceptance import run_repair
 

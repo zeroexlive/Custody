@@ -62,6 +62,7 @@ mod cggmp_sign;
 mod dkg;
 mod hd;
 mod sign;
+pub mod solana_protected;
 mod solana_provisioning;
 
 #[derive(Clone, Debug, Serialize, Deserialize, PartialEq, Eq)]

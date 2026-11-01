@@ -1,4 +1,22 @@
 {
+  "checkpoint_ci": {
+    "allowlisted_public_files_including_materialized_pytest_current_aliases": 39,
+    "applies_to_subsequent_coordinator_or_backend_source": false,
+    "executed_jobs": 6,
+    "fast_run": 41290861686,
+    "fixed_original_3d32_compatibility_gate": "unselected, not executed",
+    "full_all_gate": false,
+    "head_sha": "4971fd70cc8c7a35db35abfdb0a2d88d41feac5e",
+    "inventory": 264,
+    "inventory_sha256": "167d5dc0611be6dbf4d77cb44d72a8ed62935e913ab84d3f2f7e362584ffa4fb",
+    "preflight_artifact": 13077306773,
+    "public_artifact": 13078274703,
+    "scenario_skips": 0,
+    "selected_called_scenarios": 47,
+    "selected_solana_run": 41290881147,
+    "unselected_skipped_jobs": 8,
+    "xml_seconds": 2812.07
+  },
   "database_ledger_integration_executed": false,
   "expanded_mode_case": [
     {

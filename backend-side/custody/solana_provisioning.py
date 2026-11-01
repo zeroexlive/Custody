@@ -12,7 +12,15 @@ from django.db import transaction
 from solders.pubkey import Pubkey
 
 from .identity_registry import _standalone, _text, _uuid, resolve_principal
-from .models import AdminActionLog, Asset, CustodyTenant, MpcKeyset, MpcSolanaClaim, MpcSolanaRoot
+from .models import (
+    AdminActionLog,
+    Asset,
+    CustodyTenant,
+    MpcKeyset,
+    MpcSolanaClaim,
+    MpcSolanaFinancialRoot,
+    MpcSolanaRoot,
+)
 from .mpc_binding import MpcBindingError, _freeze_root_network, verify_coordinator_keyset
 from .mpc_receipts import verify_receipts
 from .mpc_solana_network import (
@@ -210,6 +218,13 @@ def reserve_claim(*, keyset_id, tenant_id, principal_id, asset_key, idempotency_
         if root.status != "APPROVED":
             raise MpcBindingError("root has not obtained three independent approvals")
         _verify("root", root.statement, root.evidence)
+        mode = MpcSolanaFinancialRoot.objects.filter(root=root).first()
+        if mode is not None:
+            if mode.status != "VERIFIED":
+                raise MpcBindingError("financial Root mode import must finish before any Claim")
+            from .solana_financial_root import verify_financial_mode
+
+            verify_financial_mode(mode)
         asset = Asset.objects.select_for_update().get(asset_key=asset_key)
         original = MpcSolanaClaim.objects.filter(root=root, idempotency_key=idempotency_key).first()
         if original:

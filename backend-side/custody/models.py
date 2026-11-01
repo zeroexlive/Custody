@@ -385,6 +385,48 @@ class MpcSolanaIssuance(models.Model):
         ]
 
 
+class MpcSolanaFinancialWallet(models.Model):
+    """Typed native publication membership, not a balance or signing grant."""
+
+    claim = models.OneToOneField(MpcSolanaClaim, on_delete=models.PROTECT, primary_key=True)
+    mode = models.ForeignKey(MpcSolanaFinancialRoot, on_delete=models.PROTECT)
+    issuance = models.OneToOneField(MpcSolanaIssuance, on_delete=models.PROTECT)
+    role = models.CharField(
+        max_length=24,
+        choices=[("CUSTOMER_DEPOSIT", "CUSTOMER_DEPOSIT"), ("TENANT_TREASURY", "TENANT_TREASURY")],
+    )
+    user_wallet = models.OneToOneField(
+        "UserWallet",
+        null=True,
+        blank=True,
+        on_delete=models.PROTECT,
+        related_name="solana_financial_membership",
+    )
+    status = models.CharField(max_length=16, default="PENDING")
+    evidence = models.JSONField(default=dict)
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        constraints = [
+            models.CheckConstraint(
+                condition=Q(status="PENDING", user_wallet__isnull=True, evidence={})
+                | (
+                    Q(status="ACTIVE")
+                    & ~Q(evidence={})
+                    & (
+                        Q(role="CUSTOMER_DEPOSIT", user_wallet__isnull=False)
+                        | Q(role="TENANT_TREASURY", user_wallet__isnull=True)
+                    )
+                ),
+                name="sol_financial_wallet_state",
+            ),
+            models.CheckConstraint(
+                condition=Q(role__in=["CUSTOMER_DEPOSIT", "TENANT_TREASURY"]),
+                name="sol_financial_wallet_role",
+            ),
+        ]
+
+
 class MpcProvisioningRoot(models.Model):
     """Immutable allocation namespace, not proof of HD capability or spendability.
 

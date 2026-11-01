@@ -72,8 +72,11 @@ import has54 PG cases and a genuine Rust W roundtrip; it activates no wallet/led
 Direct seeded credit remains closed. Subsequent uncommitted immutable principal
 roles have bounded source/49-targeted/genuine-import evidence plus840 backend tests
 and independent49-case/genuine reruns; current-source CI remains pending.
-Dedicated treasury publication, financial-wallet
-activation and actual ledger integration remain unfinished.
+Separate0038 native customer/treasury membership now has39 PG and genuine
+publication/independent evidence plus879 backend tests. Treasury creates no
+UserWallet; ACTIVE is membership only. Protected financial sessions, seeded
+credit/provenance and actual ledger integration remain unfinished; current-source
+CI is required.
 See docs/PHASE6GC_FINANCIAL_INTEGRATION.md. No phase completion is implied.
 
 Phase 6G-B is merged as **development** at `3d32b763ff777347f77eae7a8a7936d85dc2d770`. Phase 6G-C (Solana provisioning, key lifecycle/rotation/recovery and Hot/Warm/Cold foundations) remains incomplete. On 2026-10-28 the owner explicitly authorized merging the verified bounded development checkpoint in PR #1 and continuing the next implementation step. See the dated decision in docs/DECISIONS.md: this supersedes keeping all remaining 6G-C work in that one Draft PR; it does not complete 6G-C or authorize Phase 7 or production. Keep original Phase 7A/7B/7C, 8A/8B/8C/8D and 9. TON public network, arbitrary shards and real USDT work are **deferred**; preserve existing TON code and open audit blocker, do not activate or widen it unless owner explicitly changes scope. Bitcoin, bridging, swaps, exchange matching engine and trading order book are out of current scope.

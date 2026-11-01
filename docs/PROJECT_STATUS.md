@@ -440,3 +440,12 @@ independent49 PG cases53.586s and genuine import5.912s/stable binaries passed,
 with no bounded P0/P1 finding. Current-source CI remains pending. Dedicated treasury
 publication, financial-wallet activation and actual
 protected ledger integration remain unfinished.
+
+Role checkpointd5ab520 passed exactFast41331691016. Subsequent uncommitted0038
+native financial membership atomically links original Root mode, Claim role and
+W issuance; treasury never becomes a customer UserWallet.39 PG cases70.55s and
+genuine customer+treasury publication6.68s pass; independent39 cases71.763s and
+actual publication7.283s/stable binaries found no bounded P0/P1. Full backend879
+tests360.44s pass. ACTIVE membership enables no credit/signing/settlement; seeded
+credit stays closed. Protected financial sessions/ledger integration, SPL and
+whole-phase lifecycle acceptance remain unfinished. Current-source CI is pending.

@@ -2,8 +2,9 @@
 
 The first implementation boundary adds a versioned financial identity and an
 explicit irreversible witness Root mode. A subsequent typed HOT coordinator has
-bounded genuine fault/recovery evidence. PostgreSQL operation/session bindings,
-wallet roles and existing ledger integration are still unfinished.
+bounded genuine fault/recovery evidence. Native membership and explicit principal
+roles have separate bounded evidence below. Protected PostgreSQL operation/session
+bindings and existing ledger integration are still unfinished.
 No financial wallet activation or production/customer-fund approval follows from
 these cryptographic development cases.
 
@@ -189,7 +190,7 @@ Financial-Root Claims require a declared role; treasury Claims require a verifie
 financial Root. Root/Claim ownership and the separate original W issuance grant
 remain unchanged. Existing customer publication rejects a treasury Claim before
 reserving an issuance intent; SQL independently blocks a treasury UserWallet.
-Dedicated treasury publication/financial-wallet activation remain unfinished.
+Dedicated treasury publication uses the separate membership contract below.
 No synthetic `FinancialBinding.source_role` assertion substitutes for this DB role.
 
 Current targeted49 cases passed54.37s, with existing-owner balance preservation,
@@ -202,6 +203,51 @@ Full backend passed840 tests291.17s, zero failures/skips. Current-source CI rema
 required; the earlier600fcfe selected run does not cover this role layer.
 No financial wallet or ledger activation follows from these classification tests.
 See [bounded evidence](evidence/phase6gc-financial-principal-roles-local.json).
+
+## Native customer and treasury membership (subsequent development)
+
+Migration0038 adds one financial publication record per original Claim, with exact
+verified Root mode, derived owner role and original native issuance UUID. Begin
+atomically commits both intents and a15s query before exporting any grant action.
+Existing wallet/address/issuer history cannot be adopted; forward preflight and
+reverse guards refuse populated incompatible history. Mode-off native foundation
+wallets remain nonfinancial. Legacy customer APIs reject every financial Root
+before allocating an issuance intent.
+
+Completion authenticates the current nonce, original W signature/issuance grant,
+irreversible mode IDs and all-three archival Root/Claim proofs under existing
+locks. Issuer WITNESSED, optional new customer UserWallet, ACTIVE membership and
+mandatory audit commit together. Deferred constraints reject partial commits.
+Customer linkage preserves the exact original owner/source/asset; treasury creates
+no UserWallet. Source role and identity cannot change. HotWallet reference races
+serialize through NOWAIT table locks; no legacy HotWallet adoption or fallback.
+Multiple tenant/asset treasuries remain possible for later root rotation; actual
+operations must choose an explicit immutable same-tenant/asset source/destination.
+
+Previously granted publication may complete after Freeze/Prepare or a generation
+advance. Historical validation reloads DB rows and re-verifies original proofs,
+allowing a retired keyset in read-only identity checks. This is not unconditional
+archival availability across policy/key rotation: current asset/deposit policy and
+installed W pin still apply. Original ledger reversals do not call this validator.
+ACTIVE is publication membership only. Both seeded ingestion and dedicated credit
+remain closed until verified indexing and protected financial-session integration
+are implemented. No new crypto grant, customer liability or ledger balance follows.
+
+Local39 PostgreSQL cases passed70.55s, including real post-lock expiry, expired
+query renewal, no adoption, SQL forward/reverse guards, deferred issuer/customer
+partial commits, atomic audit rollback, immutable identity and both HotWallet race
+orders. Genuine PG/three original nodes/Rust W customer+treasury publication passed
+6.68s: original grants recovered after W restart, completion while Frozen, actual
+DB failure after remote grant then exact-ID retry, no treasury UserWallet, no
+ledger journals and unchanged three DKG ciphertexts. Initial genuine ACK comparison
+incorrectly expected identical signatures/sequence; W intentionally re-signs ACKs
+at its current sequence. The corrected check verifies the original command digest,
+authentic signature and no journal advance. No authority source change was needed.
+
+Independent39 PG cases passed71.763s and genuine publication7.283s with unchanged
+binaries, with no bounded source/runtime P0/P1 finding. Full backend passed879
+tests360.44s, zero failures/skips. Current-source CI and whole-phase gates remain
+required. See [public evidence](evidence/phase6gc-financial-wallet-local.json).
 
 ## Local evidence and remaining implementation
 
@@ -222,7 +268,7 @@ entries. Named public reports contain no private shares/keys.
 
 Remaining work includes current-source CI/review, immutable backend session/attempt
 and business reservation identity, independent Policy approval for each exact wire,
-tenant/asset treasury publication separate from customer deposit wallets, and
+explicit tenant/asset treasury selection separate from customer deposit sources, and
 canonical message AND signature ownership bound before broadcast. Preserve Unknown
 and existing reserves; signature completion alone is not settlement. Source amount
 and base-paid fee/rent need separate verified effects and exactly-once accounting.

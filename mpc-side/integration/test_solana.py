@@ -138,6 +138,15 @@ def test_phase6gc_financial_root_mode_import_before_claims_with_actual_witness(t
     run_financial_mode_import(tmp_path)
 
 
+@pytest.mark.django_db(transaction=True)
+def test_phase6gc_native_financial_customer_treasury_publication_and_unknown_grant_recovery(
+    tmp_path,
+):
+    from financial_wallet_acceptance import run_financial_wallets
+
+    run_financial_wallets(tmp_path)
+
+
 @pytest.mark.parametrize(
     "fault",
     (

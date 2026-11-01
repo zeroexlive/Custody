@@ -88,6 +88,8 @@ jobs:
       - run: ruff check custody/solana_financial_root.py custody/migrations/0036_solana_financial_root.py
       - run: ruff format --check custody/financial_identity.py custody/migrations/0037_principal_financial_roles.py
       - run: ruff check custody/financial_identity.py custody/migrations/0037_principal_financial_roles.py
+      - run: ruff format --check custody/solana_financial_wallet.py custody/migrations/0038_solana_financial_wallets.py
+      - run: ruff check custody/solana_financial_wallet.py custody/migrations/0038_solana_financial_wallets.py
       - run: ruff format --check ../mpc-side/protocol/tests/fixtures/generate_solana_intent.py
       - run: ruff check ../mpc-side/protocol/tests/fixtures/generate_solana_intent.py
       - name: Verify independent public seeded intent SDK and canonical message fixtures

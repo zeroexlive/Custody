@@ -715,3 +715,14 @@ customer-declared mode import6.02s pass. Bounded source review found no P0/P1;
 full backend840 tests291.17s passed. Independent49 PG cases53.586s and genuine
 import5.912s/stable binaries passed, with no bounded P0/P1 finding. Current-source
 CI remains pending, with no wallet/ledger activation.
+
+d5ab520 exactFast41331691016 passed. Next0038 native customer/treasury membership
+adds atomic original intent/issuer publication, no old-wallet adoption, deferred
+complete-link consistency and treasury-without-UserWallet.39 PG cases70.55s and
+genuine publication6.68s passed; independent39 cases71.763s and genuine7.283s/stable
+binaries found no bounded P0/P1. Full backend879 cases360.44s passed. W restart,
+Frozen grant recovery and actual after-remote DB rollback retain original IDs;
+no ledger journals or seeded credit are enabled. Initial ACK-equality harness
+assumption was corrected to verify original digest/current sequence and no state
+advance. Protected financial sessions, ledger/finality integration and whole-phase
+SPL/lifecycle work remain incomplete; current-source CI still required.

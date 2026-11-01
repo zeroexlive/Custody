@@ -20,7 +20,7 @@ from test_network import settings_for
 from witness_acceptance import sign, verify
 
 
-def run_financial_mode_import(root_path):
+def run_financial_mode_import(root_path, *, after_mode=None):
     from test_solana import import_root
 
     tenant = register_tenant(reference="genuine-financial-mode-import", operator_ref="integration")
@@ -136,6 +136,9 @@ def run_financial_mode_import(root_path):
             root.refresh_from_db()
             assert root.evidence == original_root
             assert LedgerTransaction.objects.count() == original_ledger
+            if after_mode is not None:
+                after_mode(g, root_path, tenant, claim, arguments)
+                return
             private_file(
                 root_path / "solana-financial-root-import-public-evidence.json",
                 json.dumps(

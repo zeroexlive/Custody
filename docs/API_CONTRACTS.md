@@ -254,8 +254,18 @@ neither role can later change or disappear. Customer wallet, USER-liability,
 withdrawal and HD reference guards reject treasury owners across chains. These
 declarations add no external authentication or signing permission. Financial-Root
 Claims require an explicit role; treasury Claims require verified Root mode and
-cannot enter the customer-publication API. Dedicated treasury publication and
-financial-wallet activation remain separate, unfinished contracts.
+cannot enter the customer-publication API. Dedicated treasury publication uses
+the separate financial membership contract below.
+
+Standalone native `financial_wallet_request`/`complete_financial_wallet` now link
+one exact original Claim, verified Root mode, derived customer/treasury role and
+permanent W issuance. Begin commits both intents before query/grant export.
+Completion atomically publishes a customer UserWallet only for CUSTOMER_DEPOSIT;
+TENANT_TREASURY remains an internal custody membership with no UserWallet. Both
+paths retain original IDs after remote/DB uncertainty, with deferred consistency
+and no old-wallet adoption. No new external route or Life/Policy key is introduced.
+ACTIVE membership is not private signing, deposit credit or ledger settlement;
+those paths remain unfinished and seeded credit stays closed.
 
 
 ### Phase6G-C public replacement reservation (unmerged development)

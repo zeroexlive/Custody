@@ -198,6 +198,7 @@ jobs:
             work/crypto/fixtures/**/solana-protected-coordinator-write_failure-public-evidence.json
             work/crypto/fixtures/**/solana-protected-coordinator-invalid_share-public-evidence.json
             work/crypto/fixtures/**/solana-financial-root-import-public-evidence.json
+            work/crypto/fixtures/**/solana-financial-wallet-public-evidence.json
             work/ton-review/mpc-tvm-evidence.json
             work/ton-review/validator-network-evidence.json
             work/ton-review/django-validator-evidence.json

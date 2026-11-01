@@ -27,6 +27,7 @@ from .models import (
     CustodyPrincipalRole,
     MpcKeyset,
     MpcSolanaClaim,
+    MpcSolanaFinancialRoot,
     MpcSolanaIssuance,
     MpcSolanaRoot,
     UserWallet,
@@ -95,7 +96,7 @@ def _query(row):
     }
 
 
-def _claim(claim, tenant_id):
+def _claim(claim, tenant_id, *, historical=False):
     root = claim.root
     _validate_root(root)
     _verify("root", root.statement, root.evidence)
@@ -115,7 +116,7 @@ def _claim(claim, tenant_id):
         or root.network_identity != network_identity("SOL")
         or root.status != "APPROVED"
         or claim.status != "APPROVED"
-        or root.keyset.status != "ACTIVE"
+        or root.keyset.status not in ({"ACTIVE", "RETIRED"} if historical else {"ACTIVE"})
         or asset != {"kind": "Native"}
         or namespace != claim.asset_namespace
         or expected != claim.statement
@@ -129,6 +130,8 @@ def _customer_publication(claim):
         principal_id=claim.principal_id, role="TREASURY"
     ).exists():
         raise MpcBindingError("treasury Claim requires its dedicated treasury publication contract")
+    if MpcSolanaFinancialRoot.objects.filter(root_id=claim.root_id).exists():
+        raise MpcBindingError("financial Root requires dedicated financial wallet publication")
 
 
 def _locked_claim(reservation_id, tenant_id):

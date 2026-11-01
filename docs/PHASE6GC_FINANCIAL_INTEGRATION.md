@@ -152,6 +152,14 @@ source/runtime review found no demonstrated P0/P1. Broader backend/current-head 
 and whole-phase gates remain separate. See
 [public evidence](evidence/phase6gc-financial-root-import-local.json).
 
+Checkpoint `9d93320` Fast41329232311 and selected dispatch41329251940 failed the
+broader backend gate: an existing TON precision test used a synthetic object with
+no stored-wallet FK. Its crypto preflight/suites did not execute. The subsequent
+fix uses real stored UserWallet/Deposit fixtures while preserving the original
+full-precision assertion, and the credit service reads the stored owner/asset.
+Targeted precision plus seeded-credit denial passed2 cases3.88s. New exact-head
+broader backend/crypto gates remain required; this failure is not a green gate.
+
 ## Local evidence and remaining implementation
 
 Current protocol8 and witness23 tests pass, independently rerun. Tests preserve

@@ -694,3 +694,11 @@ waits, with both race orders/post-lock expiry passing. New deposit-credit guards
 keep seeded wallets nonfinancial. No wallet/ledger activation or phase completion;
 independent54 PG cases passed76.12s and actual Rust/PG import8.39s/stable binaries,
 with no bounded P0/P1 finding. Broader backend/current-source CI remain pending.
+
+Checkpoint9d93320 broad CI (41329232311/41329251940) failed one existing TON
+precision fixture that lacked the stored-wallet FK now required by dedicated
+deposit credit. Crypto preflight/suites therefore did not run. Replaced the
+synthetic deposit with real stored wallet/deposit fixtures without weakening its
+precision assertions; credit now also consumes the stored owner and exact asset.
+Targeted precision/seeded-denial2 cases passed3.88s. Fresh exact-head CI is required;
+the checkpoint is not accepted as a passing broad gate.

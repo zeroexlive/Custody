@@ -195,9 +195,12 @@ def _require_withdrawal_reservation(req, accounts):
 
 @financial_precision()
 def credit_deposit(deposit):
-    if UserWallet.objects.filter(pk=deposit.user_wallet_id, solana_claim__isnull=False).exists():
+    wallet = UserWallet.objects.get(pk=deposit.user_wallet_id)
+    if wallet.solana_claim_id:
         raise ValueError("seeded wallet requires unfinished financial activation and provenance")
-    accounts = lock_user_accounts(deposit.user_wallet.user_id, deposit.asset_key)
+    if wallet.asset_key != deposit.asset_key:
+        raise ValueError("deposit asset differs from its stored wallet")
+    accounts = lock_user_accounts(wallet.user_id, deposit.asset_key)
     return post_transaction(
         event_key=f"deposit:{deposit.pk}:credit",
         event_type="DEPOSIT_CREDIT",

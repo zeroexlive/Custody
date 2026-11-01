@@ -315,5 +315,17 @@ preflight passed45.06s and refuses a known pending refresh until explicit abando
 and fresh proof, without resetting source history. Subsequent local historical
 cross-field ID tightening preserves old None-start replay and passed a genuine
 original4a old-writer/new-reader recovery case72.77s. Independent historical rerun
-and exact-head CI remain pending. See the explicit scope/delta notes in
+passed72.366s with unchanged binaries. Exact-head CI remained separate. See the explicit scope/delta notes in
 [public local evidence](evidence/phase6gc-profile-migration-local.json).
+
+Checkpoint39ad4f51872303371cbd4ad65a64f9255a3037be, tree
+00e55be4b25584c9abfb00b92d61170f9fce64f9, passed exact
+[Fast41269720532](https://github.com/zeroexlive/Custody/actions/runs/41269720532)
+and [selectedSolana41269752763](https://github.com/zeroexlive/Custody/actions/runs/41269752763).
+Independent artifact13070282539/preflight13068897326 verification matched45 unique
+selected/actualcalls,0errors/failures/skips, XML2768.421s; inventory262 with hash
+0f7198209d9d43874b425f7905e8f90cc84ab281f267e6b8e0ff009cb7474cc7.
+All35 files match the exact public allowlist. Actual fixed4a original-profile
+services built and ran; fixed3d32 original-store gate and other chains were
+unselected. This is not ALL or phase completion and does not validate subsequent
+financial-mode working changes. DraftPR2 remains unmerged.

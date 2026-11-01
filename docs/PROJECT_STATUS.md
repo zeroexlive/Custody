@@ -384,7 +384,7 @@ mainnet or customer-fund activation is authorized. Phase 7B remains optional,
 default-disabled manual withdrawal-only restrictions; no deposit screening or
 external AML/KYT integration is introduced.
 
-Current uncommitted continuation: explicit LC=None terminal source fencing and
+Earlier local snapshot (superseded by Nov1 evidence below): explicit LC=None terminal source fencing and
 verified successor history import have bounded genuine old4a/independent evidence;
 new runtime retains the original journal flock and enforces the approved cohort
 and exact witness profile pin. Expanded genuine migrated HOT/COLD signing and
@@ -402,3 +402,10 @@ Current bounded local gates now pass5 migration/witness-upgrade and3 ordinary
 refresh cases with zero skips, plus final successor preflight and genuine old4a
 historical-ID recovery. Independent enhanced HOT passed72.276s; historical-ID
 rerun passed72.366s with unchanged binaries; exact-checkpoint CI remains pending. No merged phase completion follows.
+
+39ad4f5 passed exactFast41269720532 and selectedSolana41269752763:45actualcalls,
+zero skips, independently matched public artifacts. Fixed3d32 compatibility and
+other chains were unselected, not ALL. Subsequent uncommitted financial-mode/query
+boundaries have bounded local and independent evidence only; protected coordinator,
+ledger integration, treasury roles, finalized SPL and whole-phase recovery remain
+incomplete. See PHASE6GC_FINANCIAL_INTEGRATION.md.

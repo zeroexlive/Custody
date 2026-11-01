@@ -93,18 +93,24 @@ impl AuthorizedIntent {
     }
     pub fn business_fingerprint(&self) -> Result<String> {
         let i = &self.intent;
-        fingerprint(
-            "WITNESS_BUSINESS_INTENT_V1",
-            &serde_json::json!({
-                "tenant": i.claim.root.ownership_scope, "owner":i.claim.owner_ref,
-                "chain":i.claim.root.chain_id,"genesis":i.claim.root.genesis_hash,
-                "class":i.claim.root.wallet_class,"asset":i.claim.asset,"asset_key":i.asset_key,
+        let mut value = serde_json::json!({
+            "tenant":i.claim.root.ownership_scope,"owner":i.claim.owner_ref,
+            "chain":i.claim.root.chain_id,"genesis":i.claim.root.genesis_hash,
+            "class":i.claim.root.wallet_class,"asset":i.claim.asset,"asset_key":i.asset_key,
             "original_root":i.claim.root.identity()?,"reservation":i.claim.reservation_id,
             "financial_source":i.financial_source,
-                "operation_type":i.operation_type,"operation_id":i.operation_id,"action":i.action,
-            }),
-        )
+            "operation_type":i.operation_type,"operation_id":i.operation_id,"action":i.action,
+        });
+        // Absence preserves the EXACT original object, not an added null key.
+        if let Some(financial) = &i.financial {
+            value
+                .as_object_mut()
+                .unwrap()
+                .insert("financial".into(), serde_json::to_value(financial)?);
+        }
+        fingerprint("WITNESS_BUSINESS_INTENT_V1", &value)
     }
+
     pub fn attempt_key(&self) -> Result<String> {
         fingerprint(
             "WITNESS_ATTEMPT_V1",
@@ -216,6 +222,8 @@ pub struct Permit {
     pub root_revision: u64,
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub node_profile: Option<crate::solana_profile_migration::NodeProfilePin>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub financial_mode: Option<crate::solana_financial::FinancialRootMode>,
 }
 
 #[derive(Clone, Debug, Serialize, Deserialize, PartialEq, Eq)]
@@ -304,6 +312,9 @@ pub enum CommandAction {
         issuance_id: Uuid,
     },
     Freeze,
+    EnableFinancialMode {
+        approvals: Box<crate::solana_financial::FinancialModeApprovals>,
+    },
     InstallNodeProfile {
         fence: Box<Signed<crate::solana_profile_migration::MigrationFence>>,
         renewal: Option<Box<crate::solana_profile_migration::RenewalApprovals>>,
@@ -353,6 +364,10 @@ impl Command {
                 && self.expires_at - now <= 300,
             "lifecycle command bounds"
         );
+        if let CommandAction::EnableFinancialMode { approvals } = &self.action {
+            approvals.validate_shape()?;
+            approvals.plan().validate(now)?;
+        }
         if let CommandAction::ReserveRefresh { plan } = &self.action {
             plan.value.validate(now)?;
         }
@@ -409,6 +424,8 @@ pub struct RootView {
     pub node_keys: std::collections::BTreeMap<String, String>,
     pub prepared: Option<Generation>,
     pub next_claim_index: u64,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub financial_mode: Option<crate::solana_financial::FinancialRootMode>,
 }
 #[derive(Clone, Debug, Serialize, Deserialize)]
 #[serde(deny_unknown_fields)]

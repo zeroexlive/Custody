@@ -360,6 +360,9 @@ impl Authority {
                 self.trust
                     .profile_migration(fence, renewal.as_deref(), first, time)?;
             }
+            CommandAction::EnableFinancialMode { approvals } => {
+                self.trust.financial_mode(approvals)?
+            }
             CommandAction::ReserveRefresh { plan } => {
                 self.trust.check_signed(
                     plan.as_ref(),
@@ -552,17 +555,8 @@ impl Authority {
             self.trust
                 .check_signed(&request, "WITNESS_QUERY_V1", &self.trust.lifecycle)?;
         } else {
-            let profile = self.trust.profile(&r.evidence.statement.wallet_class)?;
-            let party = PARTIES
-                .iter()
-                .find(|party| profile.nodes[**party].contains_key(&request.key_id))
-                .context("untrusted query node")?;
-            self.trust.check_node(
-                &r.evidence.statement.wallet_class,
-                party,
-                &request,
-                "WITNESS_QUERY_V1",
-            )?;
+            self.trust
+                .check_query(&r.evidence.statement.wallet_class, &request)?;
         }
         let execution = if let Some(id) = request.value.execution_id {
             if let Some(e) = j.state.executions.get(&id) {
@@ -617,6 +611,7 @@ impl Authority {
                     node_keys: r.node_keys.clone(),
                     prepared: r.prepared.as_ref().map(|p| p.generation.clone()),
                     next_claim_index: r.next_claim_index,
+                    financial_mode: r.financial_mode.clone(),
                 },
                 execution,
                 abandoned,

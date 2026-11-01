@@ -62,6 +62,12 @@ whole-phase recovery, current-identity Claim progression after replacement and
 fresh-DKG drain/retirement remain unfinished. See docs/PHASE6GC_RECOVERY.md and
 PHASE6GC_SOLANA_REFRESH.md. Current development source still needs its exact-head
 CI and final whole-phase review.
+Further financial-contract foundations add class-pinned read-only queries over
+existing courier TLS and explicit clean irreversible Root financial mode. Typed
+reservation/source-owner identity has bounded actual crypto/maintenance evidence;
+its references are synthetic in these cases. Protected coordinator, DB treasury
+roles, financial-wallet activation and actual ledger integration remain unfinished.
+See docs/PHASE6GC_FINANCIAL_INTEGRATION.md. No phase completion is implied.
 
 Phase 6G-B is merged as **development** at `3d32b763ff777347f77eae7a8a7936d85dc2d770`. Phase 6G-C (Solana provisioning, key lifecycle/rotation/recovery and Hot/Warm/Cold foundations) remains incomplete. On 2026-10-28 the owner explicitly authorized merging the verified bounded development checkpoint in PR #1 and continuing the next implementation step. See the dated decision in docs/DECISIONS.md: this supersedes keeping all remaining 6G-C work in that one Draft PR; it does not complete 6G-C or authorize Phase 7 or production. Keep original Phase 7A/7B/7C, 8A/8B/8C/8D and 9. TON public network, arbitrary shards and real USDT work are **deferred**; preserve existing TON code and open audit blocker, do not activate or widen it unless owner explicitly changes scope. Bitcoin, bridging, swaps, exchange matching engine and trading order book are out of current scope.
 

@@ -73,6 +73,8 @@ pub struct Intent {
     pub issued_at: u64,
     pub expires_at: u64,
     pub message_fingerprint: String,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub financial: Option<crate::solana_financial::FinancialBinding>,
 }
 
 /// Trusted local policy input, deliberately not deserializable from a request.
@@ -97,6 +99,9 @@ impl Intent {
         policy: &ValidationPolicy,
     ) -> Result<()> {
         self.claim.validate()?;
+        if let Some(financial) = &self.financial {
+            financial.validate(self)?;
+        }
         let root = &self.claim.root;
         let tenant = Uuid::parse_str(&root.ownership_scope)?;
         let owner = self

@@ -1860,3 +1860,221 @@ fn ordinary_refresh_requires_reservation_but_retains_pre_upgrade_prepared_activa
         s.lifecycle_id_reserved(p.value.session_id) && s.lifecycle_id_reserved(p.value.ceremony_id)
     );
 }
+
+fn financial_approvals(
+    s: &Snapshot,
+    b: &Binding,
+) -> wallet_mpc_protocol::solana_financial::FinancialModeApprovals {
+    use wallet_mpc_protocol::solana_financial::{FinancialModeApprovals, FinancialModePlan};
+    let r = &s.roots[&b.authorized.intent.claim.root.identity().unwrap()];
+    let plan = FinancialModePlan {
+        version: 1,
+        activation_id: Uuid::new_v4(),
+        witness_anchor: s.anchor_id,
+        root: r.evidence.statement.clone(),
+        generation: r.generation.clone(),
+        node_keys: r.node_keys.clone(),
+        expires_at: 1010,
+    };
+    let proof = |key_id| Signed {
+        key_id,
+        value: plan.clone(),
+        signature: "00".repeat(70),
+    };
+    FinancialModeApprovals {
+        custody: proof(hash(b"mode custody")),
+        policy: proof(hash(b"mode policy")),
+        custody_certificate_chain_der_hex: vec!["01".repeat(64)],
+        policy_certificate_chain_der_hex: vec!["02".repeat(64)],
+    }
+}
+fn financial_binding(b: &Binding) -> wallet_mpc_protocol::solana_financial::FinancialBinding {
+    use wallet_mpc_protocol::solana_financial::{FinancialBinding, SourceRole};
+    let i = &b.authorized.intent;
+    FinancialBinding {
+        version: 1,
+        reservation_id: Uuid::new_v4(),
+        tenant_id: Uuid::parse_str(&i.claim.root.ownership_scope).unwrap(),
+        reservation_owner_ref: i.claim.owner_ref.clone(),
+        source_owner_ref: i.claim.owner_ref.clone(),
+        source_role: SourceRole::CustomerDeposit,
+        operation_type: i.operation_type.clone(),
+        operation_id: i.operation_id,
+        approval_id: Uuid::new_v4(),
+        asset_key: i.asset_key.clone(),
+    }
+}
+#[test]
+fn financial_root_activation_is_clean_explicit_irreversible_and_required_on_every_grant() {
+    let mut b = binding();
+    let mut s = Snapshot::empty(Uuid::new_v4()).unwrap();
+    s.command(&command(
+        &s,
+        &b,
+        CommandAction::Enroll {
+            evidence: Box::new(evidence(b.authorized.intent.claim.root.clone())),
+            node_keys: node_keys(),
+        },
+    ))
+    .unwrap();
+    s.journal_rules = 2;
+    let approvals = financial_approvals(&s, &b);
+    let activation = approvals.plan().activation_id;
+    let enable = command(
+        &s,
+        &b,
+        CommandAction::EnableFinancialMode {
+            approvals: Box::new(approvals),
+        },
+    );
+    let before = s.clone();
+    for field in 0..3 {
+        let mut wrong = financial_approvals(&s, &b);
+        for plan in [&mut wrong.custody.value, &mut wrong.policy.value] {
+            match field {
+                0 => plan.generation.epoch += 1,
+                1 => {
+                    plan.node_keys
+                        .insert(PARTIES[1].into(), hash(b"other roster key"));
+                }
+                _ => plan.expires_at = 999,
+            }
+        }
+        assert!(s
+            .clone()
+            .command_at(
+                &command(
+                    &s,
+                    &b,
+                    CommandAction::EnableFinancialMode {
+                        approvals: Box::new(wrong),
+                    }
+                ),
+                1000
+            )
+            .is_err());
+    }
+    let mut pending = s.clone();
+    pending
+        .command(&command(&pending, &b, CommandAction::Freeze))
+        .unwrap();
+    let ordinary = ordinary_plan(&pending, &b);
+    pending
+        .command_at(
+            &command(
+                &pending,
+                &b,
+                CommandAction::ReserveRefresh {
+                    plan: Box::new(ordinary),
+                },
+            ),
+            1000,
+        )
+        .unwrap();
+    assert!(pending
+        .clone()
+        .command_at(
+            &command(
+                &pending,
+                &b,
+                CommandAction::EnableFinancialMode {
+                    approvals: Box::new(financial_approvals(&pending, &b)),
+                }
+            ),
+            1000
+        )
+        .is_err());
+    s.command_at(&enable, 1000).unwrap();
+    assert!(!s.command_at(&enable, 1000).unwrap());
+    assert!(s.lifecycle_id_reserved(activation));
+    assert!(s
+        .clone()
+        .command_at(
+            &command(
+                &s,
+                &b,
+                CommandAction::EnableFinancialMode {
+                    approvals: Box::new(financial_approvals(&s, &b))
+                }
+            ),
+            1000
+        )
+        .is_err());
+    let mut populated = before;
+    register(&mut populated, &b);
+    assert!(populated
+        .command_at(
+            &command(
+                &populated,
+                &b,
+                CommandAction::EnableFinancialMode {
+                    approvals: Box::new(financial_approvals(&populated, &b))
+                }
+            ),
+            1000
+        )
+        .is_err());
+    register(&mut s, &b);
+    assert!(s
+        .clone()
+        .permit(
+            &request(&s, &b, PARTIES[0], 1),
+            &node_keys()[PARTIES[0]],
+            1000
+        )
+        .is_err());
+    b.authorized.intent.financial = Some(financial_binding(&b));
+    let r1 = request(&s, &b, PARTIES[0], 1);
+    let permit = s.permit(&r1, &node_keys()[PARTIES[0]], 1000).unwrap();
+    assert_eq!(
+        permit.financial_mode.as_ref().unwrap().activation_id,
+        activation
+    );
+    let mut legacy = request(&s, &b, PARTIES[1], 1);
+    legacy.binding.authorized.intent.financial = None;
+    assert!(s
+        .clone()
+        .permit(&legacy, &node_keys()[PARTIES[1]], 1000)
+        .is_err());
+    let mut other = retry(&b);
+    other.authorized.intent.operation_id += 1;
+    other
+        .authorized
+        .intent
+        .financial
+        .as_mut()
+        .unwrap()
+        .operation_id = other.authorized.intent.operation_id;
+    assert!(s
+        .clone()
+        .permit(
+            &request(&s, &other, PARTIES[0], 1),
+            &node_keys()[PARTIES[0]],
+            1000
+        )
+        .is_err());
+    let mut mutated = retry(&b);
+    mutated
+        .authorized
+        .intent
+        .financial
+        .as_mut()
+        .unwrap()
+        .approval_id = Uuid::new_v4();
+    s.command(&command(
+        &s,
+        &b,
+        CommandAction::CloseNoSignature {
+            execution_id: b.authorized.intent.crypto_execution_id,
+        },
+    ))
+    .unwrap();
+    assert!(s
+        .clone()
+        .permit(
+            &request(&s, &mutated, PARTIES[0], 1),
+            &node_keys()[PARTIES[0]],
+            1000
+        )
+        .is_err());
+}

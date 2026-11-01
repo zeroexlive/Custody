@@ -663,3 +663,11 @@ original4a historical local-ID recovery72.77s; zero completed-call skips.
 Independent enhanced HOT72.276s and historical-ID72.366s passed with unchanged
 binaries and no bounded P0/P1 findings; exact-checkpoint CI pending.
 Recorded named public reports only; private stores/logs remain ignored.
+
+39ad4f5 exactFast and selectedSolana passed (41269720532/41269752763), independently
+verified45calls/0skips and public artifacts; noALL or fixed3d32 gate executed.
+Next uncommitted boundary: classCustody read-only query over existing courier TLS,
+versioned FinancialBinding and explicit clean irreversible financialRoot activation
+with original dual authority+Life. Local23W/8protocol and actualGen0/Gen1 transfer
+mode-maintenance58.04s passed; independent57.613s. Synthetic reservationrefs only;
+no DBfinancialwallet/ledger activation. See PHASE6GC_FINANCIAL_INTEGRATION.md.

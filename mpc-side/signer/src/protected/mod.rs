@@ -603,6 +603,22 @@ impl Service {
         if let Some(report) = local.journal.records.reports.get(&key) {
             return Ok(report.clone());
         }
+        if let Some(mode) = &permit.value.financial_mode {
+            ensure!(
+                mode.version == wallet_mpc_protocol::solana_financial::VERSION
+                    && !mode.activation_id.is_nil()
+                    && !mode.command_id.is_nil(),
+                "original financial Root activation proof required"
+            );
+            request
+                .binding
+                .authorized
+                .intent
+                .financial
+                .as_ref()
+                .context("financial permission requires exact typed financial identity")?
+                .validate(&request.binding.authorized.intent)?;
+        }
         if let Some(bootstrap) = &self.profile.profile_migration {
             let pin =
                 permit.value.node_profile.as_ref().context(

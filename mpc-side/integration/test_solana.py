@@ -113,6 +113,18 @@ def test_phase6gc_legacy_refresh_local_identifier_cross_field_fence(tmp_path):
     )
 
 
+def test_phase6gc_class_custody_read_query_without_private_or_lifecycle_authority(tmp_path):
+    from protected_financial_acceptance import run_custody_read_query
+
+    run_custody_read_query(tmp_path)
+
+
+def test_phase6gc_irreversible_financial_root_mode_and_explicit_reservation_crypto(tmp_path):
+    from protected_financial_acceptance import run_financial_mode
+
+    run_financial_mode(tmp_path)
+
+
 def test_phase6gc_private_replacement_repair_refresh_and_restart(tmp_path):
     from repair_acceptance import run_repair
 

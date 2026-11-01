@@ -186,6 +186,8 @@ jobs:
             work/crypto/fixtures/**/solana-profile-migrated-runtime-public-evidence.json
             work/crypto/fixtures/**/solana-refresh-reservation-public-evidence.json
             work/crypto/fixtures/**/solana-refresh-historical-ids-public-evidence.json
+            work/crypto/fixtures/**/solana-custody-read-query-public-evidence.json
+            work/crypto/fixtures/**/solana-financial-mode-public-evidence.json
             work/ton-review/mpc-tvm-evidence.json
             work/ton-review/validator-network-evidence.json
             work/ton-review/django-validator-evidence.json

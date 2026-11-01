@@ -11,7 +11,7 @@ use wallet_mpc_protocol::{
     solana_intent::ValidationPolicy,
     solana_provisioning::{receipt_message, Claim, Evidence, Root},
     solana_seeded::key,
-    witness::{hash_text, AuthorizedIntent, Signed},
+    witness::{hash_text, AuthorizedIntent, Query, Signed},
 };
 use wallet_mpc_transport::{
     CustodyRequestVerifier, PinnedIdentity, ReceiptIdentity, TlsConfig, AUTHORITY_ROLES, ROLES,
@@ -257,6 +257,20 @@ impl Trust {
             .context("untrusted class node key")?;
         self.check_signed(signed, domain, p)
     }
+    /// Read-only query authority for the already pinned financial Custody key.
+    /// TLS remains an independently configured original-node/courier channel;
+    /// this domain grants no command, permit or result authority.
+    pub fn check_query(&self, class: &str, query: &Signed<Query>) -> Result<()> {
+        let profile = self.profile(class)?;
+        if query.key_id == profile.custody_key.key_id {
+            return self.check_signed(query, "WITNESS_QUERY_V1", &profile.custody_key);
+        }
+        let party = PARTIES
+            .iter()
+            .find(|party| profile.nodes[**party].contains_key(&query.key_id))
+            .context("untrusted class query identity")?;
+        self.check_node(class, party, query, "WITNESS_QUERY_V1")
+    }
     pub fn root_evidence(&self, e: &Evidence<Root>) -> Result<()> {
         e.statement.validate()?;
         e.validate()?;
@@ -309,6 +323,44 @@ impl Trust {
             &a.operator_message()?,
             &a.operator_authorization,
         )
+    }
+    pub fn financial_mode(
+        &self,
+        approvals: &wallet_mpc_protocol::solana_financial::FinancialModeApprovals,
+    ) -> Result<()> {
+        use wallet_mpc_protocol::solana_financial::MODE_DOMAIN;
+        approvals.validate_shape()?;
+        let profile = self.profile(&approvals.plan().root.wallet_class)?;
+        ensure!(
+            approvals.custody.key_id == profile.custody_key.key_id
+                && approvals.policy.key_id == profile.operator_key.key_id,
+            "current original class Custody and independent Policy pins required"
+        );
+        for (signed, verifier, pin, chain) in [
+            (
+                &approvals.custody,
+                &profile.custody,
+                &profile.custody_key,
+                &approvals.custody_certificate_chain_der_hex,
+            ),
+            (
+                &approvals.policy,
+                &profile.operator,
+                &profile.operator_key,
+                &approvals.policy_certificate_chain_der_hex,
+            ),
+        ] {
+            proof(
+                verifier,
+                pin,
+                &signed.signing_message(MODE_DOMAIN)?,
+                &CustodyAuthorization {
+                    certificate_chain_der_hex: chain.clone(),
+                    signature_der_hex: signed.signature.clone(),
+                },
+            )?;
+        }
+        Ok(())
     }
     pub fn profile_migration(
         &self,

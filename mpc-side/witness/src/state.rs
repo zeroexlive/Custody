@@ -36,6 +36,8 @@ pub struct RootState {
     pub node_keys: BTreeMap<String, String>,
     pub prepared: Option<Prepared>,
     pub next_claim_index: u64,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub financial_mode: Option<wallet_mpc_protocol::solana_financial::FinancialRootMode>,
 }
 #[derive(Clone, Debug, Serialize, Deserialize, PartialEq, Eq)]
 #[serde(deny_unknown_fields)]
@@ -89,6 +91,8 @@ pub struct Snapshot {
         BTreeMap<Uuid, wallet_mpc_protocol::solana_profile_migration::MigrationReservation>,
     #[serde(default)]
     pub refreshes: BTreeMap<String, wallet_mpc_protocol::solana_generation::RefreshReservation>,
+    #[serde(default)]
+    pub financial_reservations: BTreeMap<Uuid, String>,
 }
 
 pub(crate) fn slot(party: &str, round: u16) -> String {
@@ -134,6 +138,7 @@ impl Snapshot {
             node_profiles: BTreeMap::new(),
             profile_migrations: BTreeMap::new(),
             refreshes: BTreeMap::new(),
+            financial_reservations: BTreeMap::new(),
         })
     }
     fn advance(&mut self, root: &str) -> Result<()> {
@@ -157,6 +162,9 @@ impl Snapshot {
                     .as_ref()
                     .is_some_and(|r| r.custody.value.renewal_id == id)
         }) || self.commands.values().any(|command| match &command.action {
+            CommandAction::EnableFinancialMode { approvals } => {
+                approvals.plan().activation_id == id
+            }
             CommandAction::ReserveRefresh { plan } => {
                 [plan.value.session_id, plan.value.ceremony_id].contains(&id)
             }
@@ -264,6 +272,7 @@ impl Snapshot {
                     node_keys: node_keys.clone(),
                     prepared: None,
                     next_claim_index: 0,
+                    financial_mode: None,
                 },
             );
         } else {
@@ -278,6 +287,7 @@ impl Snapshot {
                     | CommandAction::Activate
                     | CommandAction::ReserveReplacement { .. }
                     | CommandAction::ReserveRefresh { .. }
+                    | CommandAction::EnableFinancialMode { .. }
             ) {
                 ensure!(
                     !self
@@ -288,6 +298,36 @@ impl Snapshot {
                 );
             }
             match &command.action {
+                CommandAction::EnableFinancialMode { approvals } => {
+                    ensure!(
+                        self.journal_rules >= 2 && !legacy_roster,
+                        "financial activation requires current strict authority rules"
+                    );
+                    approvals.validate_shape()?;
+                    let p = approvals.plan();
+                    p.validate(time.context("independent financial activation clock required")?)?;
+                    ensure!(r.phase == Phase::Active && r.prepared.is_none()
+                        && r.financial_mode.is_none() && r.next_claim_index == 0
+                        && !self.replacements.contains_key(id) && !self.refreshes.contains_key(id)
+                        && p.witness_anchor == self.anchor_id && p.root == r.evidence.statement
+                        && p.generation == r.generation && p.node_keys == r.node_keys
+                        && !self.claims.values().any(|c| c.statement.root == p.root)
+                        && !self.executions.values().any(|e| e.root_identity == *id)
+                        && !self.commands.values().any(|c| c.root_identity == *id && matches!(
+                            c.action, CommandAction::CloseNoSignature { .. } | CommandAction::CloseUnreleased { .. })),
+                        "financial activation requires a clean Root before any Claim or private signing history; no automatic legacy adoption");
+                    ensure!(
+                        p.activation_id != command.request_id
+                            && !self.migration_identity_used(p.activation_id),
+                        "financial activation identity is globally permanent"
+                    );
+                    self.roots.get_mut(id).unwrap().financial_mode =
+                        Some(wallet_mpc_protocol::solana_financial::FinancialRootMode {
+                            version: p.version,
+                            activation_id: p.activation_id,
+                            command_id: command.request_id,
+                        });
+                }
                 CommandAction::ReserveRefresh { plan } => {
                     ensure!(
                         self.journal_rules >= 2 && !legacy_roster,
@@ -809,6 +849,11 @@ impl Snapshot {
             .roots
             .get(&root)
             .context("unregistered original root")?;
+        if let Some(financial) = &i.financial {
+            financial.validate(i)?;
+        }
+        ensure!(r.financial_mode.is_none() || i.financial.is_some(),
+            "financial Root requires a typed immutable financial reservation on every private round");
         if let Some(pin) = self
             .node_profiles
             .get(&root)
@@ -843,6 +888,14 @@ impl Snapshot {
         );
         let execution_id = i.crypto_execution_id;
         let logical_key = req.binding.authorized.operation_key()?;
+        if let Some(financial) = &i.financial {
+            ensure!(
+                self.financial_reservations
+                    .get(&financial.reservation_id)
+                    .is_none_or(|old| old == &logical_key),
+                "one financial reservation cannot back multiple business operations"
+            );
+        }
         let wire = req.binding.authorized.wire_key()?;
         ensure!(
             self.wires.get(&wire).is_none_or(|old| old == &logical_key),
@@ -879,6 +932,10 @@ impl Snapshot {
                         .is_none_or(|old| old == &logical_key),
                 "attempt/session belongs to another operation"
             );
+            if let Some(financial) = &i.financial {
+                self.financial_reservations
+                    .insert(financial.reservation_id, logical_key.clone());
+            }
             self.attempts.insert(attempt, logical_key.clone());
             self.wires.insert(wire.clone(), logical_key.clone());
             self.sessions.insert(i.session_id, logical_key.clone());
@@ -962,6 +1019,7 @@ impl Snapshot {
             request: req.clone(),
             sequence: self.sequence,
             root_revision: self.roots[&root].revision,
+            financial_mode: self.roots[&root].financial_mode.clone(),
             node_profile: self
                 .node_profiles
                 .get(&root)

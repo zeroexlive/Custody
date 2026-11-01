@@ -247,7 +247,11 @@ def reserve_withdrawal(req):
 
 @financial_precision()
 def release_withdrawal(req):
+    from .solana_financial_sessions import reject_generic_business
+
+    reject_generic_business("WITHDRAWAL", req.pk)
     accounts = lock_user_accounts(req.user_id, req.asset_key)
+    reject_generic_business("WITHDRAWAL", req.pk)
     _require_withdrawal_reservation(req, accounts)
     return post_transaction(
         event_key=f"withdrawal:{req.pk}:release",
@@ -261,7 +265,11 @@ def release_withdrawal(req):
 
 @financial_precision()
 def settle_withdrawal(req):
+    from .solana_financial_sessions import reject_generic_business
+
+    reject_generic_business("WITHDRAWAL", req.pk)
     accounts = lock_user_accounts(req.user_id, req.asset_key)
+    reject_generic_business("WITHDRAWAL", req.pk)
     _require_withdrawal_reservation(req, accounts)
     return post_transaction(
         event_key=f"withdrawal:{req.pk}:settle",

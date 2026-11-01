@@ -2,7 +2,14 @@
   "bounded_independent_review": "no demonstrated P0/P1; two role/evidence P2 findings corrected",
   "caller_durable_15s_lease_consumption_required": true,
   "correct_pin_controls_observe_http_bytes": true,
-  "current_source_ci": "pending",
+  "current_source_ci": {
+    "all_gate": false,
+    "conclusion": "success",
+    "executed_jobs": 4,
+    "fast_run": 41357648627,
+    "source_sha": "2077eea07b4714e2a2d719748b248090a8669601",
+    "unselected_crypto_jobs": 10
+  },
   "date": "2026-11-02 Asia/Tehran",
   "independent_source_binary_hashes_unchanged": true,
   "non_courier_identity_rejected_before_private_key_load": true,

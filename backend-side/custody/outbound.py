@@ -112,6 +112,9 @@ def create_attempt(
     destination: str,
     amount: Decimal,
 ) -> OnchainTransactionAttempt:
+    from .solana_financial_sessions import reject_generic_business
+
+    reject_generic_business(operation_type, operation_id)
     from .config import validate_chain_asset
     from .models import Asset
 
@@ -183,6 +186,9 @@ def _execute_attempt(attempt_id: int, actor_id: str, signer: MpcSigner | None = 
     from .signer_adapter import assert_mpc_backend_runtime_safe
 
     attempt = OnchainTransactionAttempt.objects.get(pk=attempt_id)
+    from .solana_financial_sessions import reject_generic_attempt
+
+    reject_generic_attempt(attempt)
     assert_mpc_backend_runtime_safe(attempt.chain_id)
     signer = signer or get_signer()
     executor = _executor(attempt.chain_id, attempt.asset_key)

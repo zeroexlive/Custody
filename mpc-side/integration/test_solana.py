@@ -147,6 +147,13 @@ def test_phase6gc_native_financial_customer_treasury_publication_and_unknown_gra
     run_financial_wallets(tmp_path)
 
 
+@pytest.mark.django_db(transaction=True)
+def test_phase6gc_financial_session_allocation_and_unprepared_witness_abandonment(tmp_path):
+    from financial_session_acceptance import run_financial_sessions
+
+    run_financial_sessions(tmp_path)
+
+
 @pytest.mark.parametrize(
     "fault",
     (

@@ -78,6 +78,9 @@ def reconcile_attempt(attempt_id: int):
 
 def _reconcile_attempt(attempt_id: int):
     snapshot = OnchainTransactionAttempt.objects.get(pk=attempt_id)
+    from .solana_financial_sessions import reject_generic_attempt
+
+    reject_generic_attempt(snapshot)
     if snapshot.status in {"CONFIRMED", "FAILED"}:
         return snapshot
     if not snapshot.network_tx_id:

@@ -279,6 +279,51 @@ remains part of upcoming financial recovery acceptance. No financial signing or
 ledger flow is enabled. Current-source CI remains required. See
 [evidence](evidence/phase6gc-witness-client-local.json).
 
+## Durable unprepared financial-session boundary (development)
+
+Migration0039 and the standalone operator service allocate a permanent business
+reservation/approval, explicit customer or treasury source, and then both MPC
+UUIDs plus an OnchainAttempt before exporting queries or lifecycle actions.
+Withdrawals reuse their original verified USER reserve journal. Customer sweeps
+bind one immutable snapshot to an explicit same-tenant/asset treasury; HELD here
+provides exclusivity, with no additional customer liability reserve or ledger.
+Fee budgets are explicit installed-policy caps. Allocation does not attest live
+source/base liquidity or authorize spending.
+
+Operation, parent, source, pair and attempt identity cannot be replaced. Only a
+fresh original pinned witness proof of permanent abandonment can close an
+**unprepared** allocation and permit a new attempt under the same business hold.
+An absent execution, timeout, expired blockhash or raw FAILED attempt is not that
+proof. Challenges are append-only15s leases with immutable purpose, authority and
+deadline; verification and commit both check current wall-clock expiry. Recovery
+uses original Root/Claim identity and works while W is Frozen. No Life key or
+command-submission route is added to the backend.
+
+The schema also reserves permanent canonical message/signature ownership and
+exact prepared identity for the upcoming typed flow. These SQL checks establish
+structure, not cryptographic verification or accepted prepared-session behavior.
+There is no enabled prepared/private signing, broadcast, settlement/release or
+seeded-credit controller. Generic attempt, reconciliation and ledger mutation
+paths reject protected businesses. SQL parent/attempt/generic-session fences
+require READ COMMITTED before checking for a protected link; older snapshots
+cannot hide a concurrently committed reservation. A post-account-lock ledger
+recheck and parent-serialized NOWAIT journal guard close the late-release race.
+Populated signing history cannot be deleted or downgraded.
+
+54 initial local PG cases passed52.06s, including both ledger orderings, old snapshots,
+wrong-family aliases, proof/commit expiry, original reserve reuse and rollback.
+Actual original-three-node receipts/PG/Rust W allocation and unprepared permanent
+abandonment passed8.69s: absent-execution denial, independent Life command,
+witness restart/ACK recovery, Frozen proof, after-remote audit rollback and two
+distinct crypto attempts under one original reservation. Its sweep snapshot is
+synthetic; no private signing, transfer or ledger journal occurs. Independent
+59 final PG/SQLite cases57.528s and actual W case7.989s passed with stable11-source/3-binary
+hashes and no remaining identified bounded P0/P1. A broader run caught a generic
+session SQL variable/alias collision, corrected before these final reruns.117
+protected/legacy regression cases77.96s and four new legacy positive cases6.35s
+pass; the four scopes now belong to the58-case regression file. Full backend/current-source CI
+remain required. See [allocation evidence](evidence/phase6gc-financial-session-allocation-local.json).
+
 ## Local evidence and remaining implementation
 
 Current protocol8 and witness23 tests pass, independently rerun. Tests preserve
@@ -319,3 +364,27 @@ zero scenario skips, XML2812.070s. Preflight/inventory264 hash and exact SHA mat
 artifact13078274703 contains39 allowlisted public files including materialized
 pytest current aliases. Fixed3d32 original-store compatibility and other suites
 were unselected: this is not ALL and does not cover later coordinator/backend code.
+
+Later stored-wallet/coordinator checkpoint600fcfe passed
+[Fast41330106726](https://github.com/zeroexlive/Custody/actions/runs/41330106726)
+and [selected Solana41330272112](https://github.com/zeroexlive/Custody/actions/runs/41330272112).
+Both artifacts were downloaded and verified: exact SHA/shared inventory274/hash,
+57 selected=57 unique called, zero scenario skips/failures/errors, XML3288.062s,
+51 allowlisted public files including current aliases and no private-key markers.
+Six executed jobs passed; eight suites/jobs were unselected. The unchanged fixed
+3d32 compatibility suite was unselected. This is not ALL and predates later
+roles, native membership, backend courier and allocation code. See
+[bounded CI evidence](evidence/phase6gc-coordinator-ci-600fcfe.json).
+The later courier checkpoint2077eea passed
+[Fast41357648627](https://github.com/zeroexlive/Custody/actions/runs/41357648627),
+all four executed jobs; skipped crypto jobs are not a whole-phase gate.
+
+The corrected SQL passed946 backend cases428.52s. A separate real SQLite smoke
+then caught a PostgreSQL-only SHOW call on legacy demo SOL ledger mutations.
+Only that isolation-check branch is now PostgreSQL-specific; protected operation
+rejection remains universal and new services remain PG-only. Real full SQLite
+migration/reserve-release/reserve-settle/protected-allocation denial is the59th
+component case. Final59 local cases57.56s and independent59 cases57.528s/genuine
+7.989s/stable11-source/3-binary hashes pass. The946-case run predates this minimal
+SQLite guard; final committed-source CI remains required. No prepared financial
+or production activation is implied.

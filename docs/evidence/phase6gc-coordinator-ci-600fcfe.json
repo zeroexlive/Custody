@@ -1,0 +1,28 @@
+{
+  "all_gate": false,
+  "artifacts": {
+    "preflight": 13093800441,
+    "solana": 13095570601
+  },
+  "conclusion": "success",
+  "date": "2026-11-02 Asia/Tehran",
+  "exact_sha_inventory_hash_selected_called_and_allowlist_verified": true,
+  "executed_jobs": 6,
+  "fast_run": 41330106726,
+  "fixed_3d32_network_compatibility_executed": false,
+  "inventory_scenarios": 274,
+  "inventory_sha256": "4198693f495784c1c5b32cf3a6cb550c68ba037849b3c7086f615937bfec5da3",
+  "limitations": "Covers coordinator/mode-import/stored-wallet correction only, before later role/membership/courier/session changes; no whole-phase financial acceptance.",
+  "preflight_cases": 8,
+  "preflight_xml_seconds": 43.149,
+  "private_key_markers_found": false,
+  "public_fixture_reports_including_current_aliases": 49,
+  "public_solana_files": 51,
+  "scenario_skips": 0,
+  "selected_scenarios": 57,
+  "selected_solana_run": 41330272112,
+  "source_sha": "600fcfe771816abc95759c61602682f636ac160b",
+  "unique_called_scenarios": 57,
+  "unselected_jobs": 8,
+  "xml_seconds": 3288.062
+}

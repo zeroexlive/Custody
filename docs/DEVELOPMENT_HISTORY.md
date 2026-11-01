@@ -737,3 +737,38 @@ independent9 cases1.29s and genuine6.99s/stable hashes found no bounded P0/P1.
 Caller-owned15s lease and DB consumption remain mandatory; no Life/Policy keys,
 private permits or financial/ledger flow are enabled. Positive authentic report
 delivery remains a required upcoming recovery case. Current-source CI still required.
+
+2026-11-02: courier2077eea exactFast41357648627 passed all four executed jobs.
+Earlier600fcfe selectedSolana41330272112 artifact verification confirms57 unique
+selected/called scenarios, zero skips/failures/errors, XML3288.062s, inventory274
+hash4198693f495784c1c5b32cf3a6cb550c68ba037849b3c7086f615937bfec5da3 and51 allowlisted
+public files. This bounded run predates subsequent financial additions, is not ALL,
+and did not select the fixed3d32 compatibility suite.
+
+New0039 allocates original business/approval/source and then both MPC UUIDs plus
+OnchainAttempt before any query/lifecycle action. No second ledger or customer
+sweep reserve is added. Fresh append-only15s terminal proofs accept only permanent
+W abandonment of an unprepared UUID; timeout/absence/rawFAILED never unlock a new
+attempt or release the original business hold. Parent/attempt/message/signature
+identity guards are structural foundations; no prepared/private/settlement path
+is enabled. Independent source review found stale-snapshot and late ledger-release
+races, corrected by prelookup READ COMMITTED guards, STRICT actual-attempt scope,
+post-account-lock rechecks and NOWAIT parent-serialized journal birth.54 local PG
+cases52.06s and genuine original-three-node receipts/PG/Rust W case8.69s passed;
+final independent59 cases57.528s and genuine7.989s/stable11-source/3-binary hashes found no
+remaining bounded P0/P1. An earlier fixture lacked the required fee cap, and a
+mutable test-query alias affected a negative test; both harness issues corrected.
+The initial full backend was interrupted at68.15s after a generic-session SQL
+variable/table alias collision caused31 failures/152 errors. Corrected without
+weakening guards;117 protected/legacy cases77.96s and four new normal-session
+positive cases6.35s passed before the final independent reruns. Empty0039 reverse/
+reapply and Django checks passed. Full backend/current-source CI remain required.
+Whole financial signing/finality,
+seeded provenance, SPL and phase acceptance remain incomplete.
+Full backend946 cases428.52s subsequently passed. A real disposable SQLite smoke
+exposed the new helper's unconditional PostgreSQL SHOW statement; the vendor
+condition now covers only that branch, preserving universal protected rejection.
+Full SQLite migration and legacy reserve/release/settle plus PG-only protected
+denial now run as the59th component case.59 local cases57.56s and independent59
+cases57.528s/genuine7.989s/stable11-source/3-binary hashes passed.946 predates that
+minimal non-PG guard; exact committed-source CI remains required.

@@ -457,3 +457,27 @@ Local9 raw TLS cases1.26s and actual Rust W query/publication6.92s pass, indepen
 9 cases1.29s/genuine6.99s with stable source/binaries and no bounded P0/P1. Caller
 durable freshness/ledger checks and positive authentic report-delivery acceptance
 remain required. Protected financial sessions/settlement still remain unfinished.
+
+2026-11-02: courier2077eea passed exactFast41357648627. Earlier selected
+Solana41330272112 at600fcfe was downloaded/verified:57 selected=called/zero skips,
+XML3288.062s, shared274-scenario inventory/hash and51 allowlisted public files.
+It predates later roles/membership/courier/allocation and is not ALL; fixed3d32
+network compatibility was unselected.
+
+New0039 unprepared financial-session allocation commits original business/source/
+approval plus MPC/session/OnchainAttempt IDs before query/lifecycle export. Original
+withdrawal journals are reused; sweep HELD adds no USER reserve. Append-only15s
+leases and a fresh pinned W permanent-abandonment proof permit a new crypto
+attempt while retaining the business hold. Generic signing/reconciliation/ledger
+paths stay fenced. Independent review found and corrected stale-snapshot and late
+ledger-release races;54 PG cases52.06s and actual Rust W case8.69s pass, independently
+59 final cases57.528s/genuine7.989s with unchanged source/binaries and no remaining
+identified bounded P0/P1. Full backend/current-source CI remain pending. Prepared
+signing, broadcast, settlement/release, seeded credit, SPL and whole-phase lifecycle
+acceptance remain unfinished. See PHASE6GC_FINANCIAL_INTEGRATION.md.
+
+Full backend946 cases428.52s passed after SQL alias correction. Subsequent minimal
+SQLite vendor guard preserves legacy demo ledger flows while retaining PG-only
+protected allocation; final59 local cases57.56s and independent59 cases57.528s/
+genuine7.989s pass with stable11-source/3-binary hashes. The946-case run predates
+that non-PG-only correction; final committed-source CI remains required.

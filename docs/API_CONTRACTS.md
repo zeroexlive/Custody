@@ -247,6 +247,16 @@ evidence, not current generation/phase or financial wallet activation. Pending
 import fences new Claims, and every new Claim admission re-verifies stored mode
 proof. Direct seeded credit remains closed pending the financial wallet contract.
 
+Standalone operator `register_financial_principal` requires explicit CUSTOMER or
+TREASURY role. An audited CUSTOMER declaration preserves the original registered
+tenant/principal/owner and existing history. TREASURY requires a fresh reference;
+neither role can later change or disappear. Customer wallet, USER-liability,
+withdrawal and HD reference guards reject treasury owners across chains. These
+declarations add no external authentication or signing permission. Financial-Root
+Claims require an explicit role; treasury Claims require verified Root mode and
+cannot enter the customer-publication API. Dedicated treasury publication and
+financial-wallet activation remain separate, unfinished contracts.
+
 
 ### Phase6G-C public replacement reservation (unmerged development)
 

@@ -22,7 +22,15 @@ from django.db import transaction
 from django.utils import timezone
 
 from .identity_registry import _standalone, _text, _uuid
-from .models import Asset, MpcKeyset, MpcSolanaClaim, MpcSolanaIssuance, MpcSolanaRoot, UserWallet
+from .models import (
+    Asset,
+    CustodyPrincipalRole,
+    MpcKeyset,
+    MpcSolanaClaim,
+    MpcSolanaIssuance,
+    MpcSolanaRoot,
+    UserWallet,
+)
 from .mpc_binding import MpcBindingError
 from .mpc_solana_network import network_identity, verify_solana_rpc_endpoints
 from .native_tx import RequestsTransport
@@ -116,6 +124,13 @@ def _claim(claim, tenant_id):
         raise MpcBindingError("exact approved native owner/root/network/asset/address required")
 
 
+def _customer_publication(claim):
+    if CustodyPrincipalRole.objects.filter(
+        principal_id=claim.principal_id, role="TREASURY"
+    ).exists():
+        raise MpcBindingError("treasury Claim requires its dedicated treasury publication contract")
+
+
 def _locked_claim(reservation_id, tenant_id):
     # Consistent keyset -> root -> claim order. No transaction spans remote I/O.
     ref = MpcSolanaClaim.objects.only("root_id").get(pk=reservation_id, root__tenant_id=tenant_id)
@@ -144,6 +159,7 @@ def publication_request(*, reservation_id, tenant_id, operator_ref):
     with transaction.atomic():
         claim = _locked_claim(reservation_id, tenant_id)
         _claim(claim, tenant_id)
+        _customer_publication(claim)
         row = MpcSolanaIssuance.objects.select_for_update().filter(claim=claim).first()
         if row is None:
             row = MpcSolanaIssuance.objects.create(
@@ -225,6 +241,7 @@ def complete_publication(*, issuance_id, tenant_id, evidence, operator_ref, tran
     with transaction.atomic():
         claim = _locked_claim(ref.claim_id, tenant_id)
         _claim(claim, tenant_id)
+        _customer_publication(claim)
         row = (
             MpcSolanaIssuance.objects.select_for_update(of=("self",))
             .select_related("claim__root")

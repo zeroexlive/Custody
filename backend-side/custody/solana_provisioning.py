@@ -15,6 +15,7 @@ from .identity_registry import _standalone, _text, _uuid, resolve_principal
 from .models import (
     AdminActionLog,
     Asset,
+    CustodyPrincipalRole,
     CustodyTenant,
     MpcKeyset,
     MpcSolanaClaim,
@@ -225,6 +226,10 @@ def reserve_claim(*, keyset_id, tenant_id, principal_id, asset_key, idempotency_
             from .solana_financial_root import verify_financial_mode
 
             verify_financial_mode(mode)
+            if not CustodyPrincipalRole.objects.filter(principal=principal).exists():
+                raise MpcBindingError("financial Root Claim requires explicit principal role")
+        elif CustodyPrincipalRole.objects.filter(principal=principal, role="TREASURY").exists():
+            raise MpcBindingError("treasury Claim requires independently verified financial Root")
         asset = Asset.objects.select_for_update().get(asset_key=asset_key)
         original = MpcSolanaClaim.objects.filter(root=root, idempotency_key=idempotency_key).first()
         if original:

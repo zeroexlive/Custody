@@ -702,3 +702,16 @@ synthetic deposit with real stored wallet/deposit fixtures without weakening its
 precision assertions; credit now also consumes the stored owner and exact asset.
 Targeted precision/seeded-denial2 cases passed3.88s. Fresh exact-head CI is required;
 the checkpoint is not accepted as a passing broad gate.
+
+Correction600fcfe passed exactFast41330106726 with812 backend tests245.64s;
+selected Solana41330272112 runs independently. Subsequent uncommitted0037 adds
+explicit immutable principal classification, preserving existing multichain
+customer identity/history while requiring fresh treasury birth. SQL stable-parent
+locks and NOWAIT history scans serialize future customer writes and classification;
+treasury owners cannot enter customer liabilities/wallets/withdrawals/HD paths.
+Financial Claims require explicit roles; customer publication rejects treasury
+before creating any issuance intent. Targeted49 cases54.37s and actual Rust W/PG
+customer-declared mode import6.02s pass. Bounded source review found no P0/P1;
+full backend840 tests291.17s passed. Independent49 PG cases53.586s and genuine
+import5.912s/stable binaries passed, with no bounded P0/P1 finding. Current-source
+CI remains pending, with no wallet/ledger activation.

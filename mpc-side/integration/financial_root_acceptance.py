@@ -5,6 +5,7 @@ import json
 import time
 
 import pytest
+from custody.financial_identity import register_financial_principal
 from custody.identity_registry import register_principal, register_tenant
 from custody.models import LedgerTransaction, MpcSolanaFinancialRoot
 from custody.mpc_binding import MpcBindingError
@@ -115,6 +116,13 @@ def run_financial_mode_import(root_path):
             row = complete_financial_mode(**arguments, evidence=proof)
             assert row.status == "VERIFIED"
             assert complete_financial_mode(**arguments, evidence=None).evidence == proof
+            declared = register_financial_principal(
+                tenant_id=tenant.pk,
+                reference=principal.customer_ref,
+                role="CUSTOMER",
+                operator_ref="integration",
+            )
+            assert declared.pk == principal.pk
             claim = reserve_claim(**claim_arguments)
             claim = approve_claim(
                 reservation_id=claim.pk, tenant_id=tenant.pk, operator_ref="integration"

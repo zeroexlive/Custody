@@ -84,6 +84,23 @@ class CustodyPrincipal(RegistryIdentity):
         return super().save(*args, **kwargs)
 
 
+class CustodyPrincipalRole(RegistryIdentity):
+    """Explicit immutable financial role; opaque references never imply a role."""
+
+    principal = models.OneToOneField(CustodyPrincipal, on_delete=models.PROTECT, primary_key=True)
+    role = models.CharField(
+        max_length=16, choices=[("CUSTOMER", "CUSTOMER"), ("TREASURY", "TREASURY")]
+    )
+
+    class Meta:
+        constraints = [
+            models.CheckConstraint(
+                condition=Q(role__in=["CUSTOMER", "TREASURY"]),
+                name="custody_principal_financial_role",
+            ),
+        ]
+
+
 class Asset(models.Model):
     """Authoritative custody capability record for a reviewed asset.
 

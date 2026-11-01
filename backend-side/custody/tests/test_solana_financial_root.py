@@ -134,12 +134,51 @@ def test_durable_mode_ids_query_and_verified_history_survive_claim_allocation(cl
     assert row.status == "VERIFIED"
     assert complete(c, None).evidence == row.evidence
     original = copy.deepcopy(row.evidence)
+    with pytest.raises(MpcBindingError, match="explicit principal role"):
+        reserve(c)
+    from custody.financial_identity import register_financial_principal
+
+    register_financial_principal(
+        tenant_id=c["tenant"].pk,
+        reference=c["principal"].customer_ref,
+        role="CUSTOMER",
+        operator_ref="operator",
+    )
     claim = reserve(c)
     assert claim.index == 0
     assert verify_financial_mode(row) == row.activation_id
     assert begin(c)["status"] == "VERIFIED"
     assert row.evidence == original
     assert LedgerTransaction.objects.count() == before
+
+
+def test_treasury_claim_requires_verified_financial_root_and_never_creates_user_wallet(clean_mode):
+    from custody.financial_identity import register_financial_principal
+    from custody.models import MpcSolanaIssuance, UserWallet
+    from custody.solana_issuance import publication_request
+    from custody.tests.test_solana_provisioning import approve
+
+    c = clean_mode
+    treasury = register_financial_principal(
+        tenant_id=c["tenant"].pk,
+        reference="fresh-treasury",
+        role="TREASURY",
+        operator_ref="operator",
+    )
+    with pytest.raises(MpcBindingError, match="verified financial Root"):
+        reserve(c, principal=treasury)
+    request = begin(c)
+    complete(c, signed(c, request))
+    claim = reserve(c, principal=treasury)
+    assert claim.principal_id == treasury.pk and claim.index == 0
+    claim = approve(c, claim)
+    with patch("custody.solana_issuance._runtime"):
+        with pytest.raises(MpcBindingError, match="dedicated treasury publication"):
+            publication_request(
+                reservation_id=claim.pk, tenant_id=c["tenant"].pk, operator_ref="operator"
+            )
+    assert not MpcSolanaIssuance.objects.filter(claim=claim).exists()
+    assert not UserWallet.objects.filter(user_id=treasury.ledger_owner_id).exists()
 
 
 @pytest.mark.parametrize(

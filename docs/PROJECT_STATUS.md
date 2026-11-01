@@ -429,3 +429,14 @@ and credit stay closed until financial wallet activation/provenance is implement
 Independent54 PG cases passed76.12s and genuine import8.39s/stable binaries, with
 no bounded P0/P1 finding. Broader backend/current-head CI remain pending; whole-phase acceptance
 and Draft PR2 merge remain incomplete.
+
+The stored-wallet precision correction600fcfe passed Fast41330106726, including
+812 backend tests245.64s. Selected Solana41330272112 is running. Subsequent
+uncommitted0037 explicit CUSTOMER/TREASURY roles preserve existing customer IDs,
+require fresh treasury creation and block treasury references in customer wallet,
+USER liability, withdrawal and HD paths.49 targeted cases54.37s and actual Rust W/
+PG customer-declared mode import6.02s pass. Full backend840 tests291.17s pass;
+independent49 PG cases53.586s and genuine import5.912s/stable binaries passed,
+with no bounded P0/P1 finding. Current-source CI remains pending. Dedicated treasury
+publication, financial-wallet activation and actual
+protected ledger integration remain unfinished.

@@ -160,6 +160,49 @@ full-precision assertion, and the credit service reads the stored owner/asset.
 Targeted precision plus seeded-credit denial passed2 cases3.88s. New exact-head
 broader backend/crypto gates remain required; this failure is not a green gate.
 
+The correction `600fcfe` subsequently passed Fast41330106726, all four executed
+jobs including812 backend tests245.64s. Selected Solana41330272112 is running;
+no current ALL gate is claimed. Later principal-role source is separate.
+
+## Explicit principal roles (subsequent uncommitted development)
+
+Migration0037 adds immutable, mutually exclusive CUSTOMER/TREASURY classification
+on the existing tenant-scoped principal. A standalone operator service always
+requires the explicit role. An audited CUSTOMER declaration may preserve an
+existing registered principal and its multichain history; owner IDs, wallet
+ownership, assets, balances and original receipts do not change. Treasury
+registration creates a fresh principal/reference and cannot relabel an existing
+reference, even an empty one. Matching original-role retries are reads. Identity
+and role/audit creation are atomic; role references are not caller authentication.
+
+SQL Treasury birth locks the stable principal and scans all customer ownership,
+USER-account, withdrawal, HD account/reservation and Solana Claim history while
+holding NOWAIT table locks. Future customer writers take compatible KEY SHARE
+locks on that same principal; these conflict with role birth's UPDATE lock.
+Customer wallet/USER-account/withdrawal/HD customer references cannot use treasury
+principals, across chains. Isolation is checked before role/absence lookups so a
+stale transaction cannot miss a newly committed role. Unrelated legacy reference
+strings retain their prior semantics. Treasury and customer classifications
+cannot change or be deleted, including through SQL; populated downgrade fails.
+
+Financial-Root Claims require a declared role; treasury Claims require a verified
+financial Root. Root/Claim ownership and the separate original W issuance grant
+remain unchanged. Existing customer publication rejects a treasury Claim before
+reserving an issuance intent; SQL independently blocks a treasury UserWallet.
+Dedicated treasury publication/financial-wallet activation remain unfinished.
+No synthetic `FinancialBinding.source_role` assertion substitutes for this DB role.
+
+Current targeted49 cases passed54.37s, with existing-owner balance preservation,
+immutable roles, five future-writer paths across ETH/SOL, both actual database lock
+race orders for wallet and USER account birth, stale-isolation denial, Root-mode
+and treasury-Claim gates, and audit rollback. Genuine Rust W/PG import with explicit
+customer declaration passed6.02s. Independent49 PG cases passed53.586s and genuine
+import5.912s with unchanged binaries; bounded source/runtime review found no P0/P1.
+Full backend passed840 tests291.17s, zero failures/skips. Current-source CI remains
+required; the earlier600fcfe selected run does not cover this role layer.
+No financial wallet or ledger activation follows from these classification tests.
+See [bounded evidence](evidence/phase6gc-financial-principal-roles-local.json).
+
 ## Local evidence and remaining implementation
 
 Current protocol8 and witness23 tests pass, independently rerun. Tests preserve

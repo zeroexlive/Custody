@@ -26,6 +26,15 @@ pub struct RefreshPlan {
     pub expires_at: u64,
 }
 
+/// Independently durable admission of both ordinary-refresh identifiers.
+/// Completion/abandonment never recycles either identifier.
+#[derive(Clone, Debug, Serialize, Deserialize, PartialEq, Eq)]
+#[serde(deny_unknown_fields)]
+pub struct RefreshReservation {
+    pub plan: Signed<RefreshPlan>,
+    pub command_id: Uuid,
+}
+
 #[derive(Clone, Debug, Serialize, Deserialize)]
 #[serde(deny_unknown_fields)]
 pub struct RefreshStart {
@@ -35,6 +44,20 @@ pub struct RefreshStart {
 impl RefreshStart {
     /// Public agreement only; callers must verify both pinned signatures and
     /// their own still-live original query challenge before consuming a start.
+    /// New private admission requires a durable exact reservation. Historical
+    /// signed starts retain their original shape and replay without this gate.
+    pub fn validate_reservation(&self) -> Result<()> {
+        self.validate_shape()?;
+        let reservation =
+            self.frozen.value.refresh.as_ref().context(
+                "ordinary refresh requires independently durable identifier reservation",
+            )?;
+        ensure!(
+            reservation.plan == self.plan && !reservation.command_id.is_nil(),
+            "exact original reserved Life plan required before private work"
+        );
+        Ok(())
+    }
     pub fn validate_shape(&self) -> Result<()> {
         self.plan.value.validate_shape()?;
         let plan = &self.plan.value;

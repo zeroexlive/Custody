@@ -79,6 +79,16 @@ pub struct Snapshot {
     pub issuance_ids: BTreeMap<Uuid, Uuid>,
     pub replacements:
         BTreeMap<String, wallet_mpc_protocol::solana_recovery::ReplacementReservation>,
+    #[serde(default)]
+    pub node_profiles: BTreeMap<
+        String,
+        BTreeMap<String, wallet_mpc_protocol::solana_profile_migration::NodeProfilePin>,
+    >,
+    #[serde(default)]
+    pub profile_migrations:
+        BTreeMap<Uuid, wallet_mpc_protocol::solana_profile_migration::MigrationReservation>,
+    #[serde(default)]
+    pub refreshes: BTreeMap<String, wallet_mpc_protocol::solana_generation::RefreshReservation>,
 }
 
 pub(crate) fn slot(party: &str, round: u16) -> String {
@@ -121,6 +131,9 @@ impl Snapshot {
             claim_issuances: BTreeMap::new(),
             issuance_ids: BTreeMap::new(),
             replacements: BTreeMap::new(),
+            node_profiles: BTreeMap::new(),
+            profile_migrations: BTreeMap::new(),
+            refreshes: BTreeMap::new(),
         })
     }
     fn advance(&mut self, root: &str) -> Result<()> {
@@ -135,8 +148,18 @@ impl Snapshot {
             .context("root revision exhausted")?;
         Ok(())
     }
-    fn replacement_id_reserved(&self, id: Uuid) -> bool {
-        self.commands.values().any(|command| match &command.action {
+    fn lifecycle_id_reserved(&self, id: Uuid) -> bool {
+        self.profile_migrations.values().any(|m| {
+            let p = m.fence.value.approvals.plan();
+            p.migration_id == id
+                || p.new_anchor_id == id
+                || m.renewal
+                    .as_ref()
+                    .is_some_and(|r| r.custody.value.renewal_id == id)
+        }) || self.commands.values().any(|command| match &command.action {
+            CommandAction::ReserveRefresh { plan } => {
+                [plan.value.session_id, plan.value.ceremony_id].contains(&id)
+            }
             CommandAction::ReserveReplacement { plan } => [
                 plan.repair_session_id,
                 plan.repair_ceremony_id,
@@ -148,15 +171,41 @@ impl Snapshot {
             _ => false,
         })
     }
+    fn migration_identity_used(&self, id: Uuid) -> bool {
+        self.lifecycle_id_reserved(id)
+            || self.commands.contains_key(&id)
+            || self.executions.contains_key(&id)
+            || self.sessions.contains_key(&id)
+            || self.abandoned.contains_key(&id)
+            || self.commands.values().any(|c| matches!(&c.action, CommandAction::Prepare { ready, .. }
+                if ready.iter().any(|r| r.value.generation.ceremony_id == id || r.value.previous_generation.ceremony_id == id)))
+            || self.roots.values().any(|r| {
+                [
+                    r.evidence.statement.dkg.session_id,
+                    r.evidence.statement.dkg.execution_id,
+                    r.generation.ceremony_id,
+                ]
+                .contains(&id)
+            })
+    }
+    #[cfg(test)]
     pub(crate) fn command(&mut self, command: &Command) -> Result<bool> {
-        self.command_with_rules(command, false)
+        self.command_with_rules(command, false, None)
+    }
+    pub(crate) fn command_at(&mut self, command: &Command, time: u64) -> Result<bool> {
+        self.command_with_rules(command, false, Some(time))
     }
     /// Only journal replay may retain the previously accepted implicit roster
     /// rule. Fresh admissions always require an explicit replacement reservation.
     pub(crate) fn command_legacy(&mut self, command: &Command) -> Result<bool> {
-        self.command_with_rules(command, true)
+        self.command_with_rules(command, true, None)
     }
-    fn command_with_rules(&mut self, command: &Command, legacy_roster: bool) -> Result<bool> {
+    fn command_with_rules(
+        &mut self,
+        command: &Command,
+        legacy_roster: bool,
+        time: Option<u64>,
+    ) -> Result<bool> {
         ensure!(
             command.anchor_id == self.anchor_id,
             "wrong authority anchor"
@@ -169,7 +218,7 @@ impl Snapshot {
             return Ok(false);
         }
         ensure!(
-            !self.replacement_id_reserved(command.request_id),
+            !self.lifecycle_id_reserved(command.request_id),
             "replacement identities remain permanently reserved"
         );
         let id = &command.root_identity;
@@ -182,8 +231,8 @@ impl Snapshot {
             let root = &evidence.statement;
             root.validate()?;
             ensure!(
-                !self.replacement_id_reserved(root.dkg.session_id)
-                    && !self.replacement_id_reserved(root.dkg.execution_id),
+                !self.lifecycle_id_reserved(root.dkg.session_id)
+                    && !self.lifecycle_id_reserved(root.dkg.execution_id),
                 "replacement identities cannot become new original DKG identities"
             );
             roster(node_keys)?;
@@ -223,11 +272,149 @@ impl Snapshot {
                 r.revision == command.expected_revision,
                 "stale lifecycle CAS revision"
             );
+            if matches!(
+                command.action,
+                CommandAction::Prepare { .. }
+                    | CommandAction::Activate
+                    | CommandAction::ReserveReplacement { .. }
+                    | CommandAction::ReserveRefresh { .. }
+            ) {
+                ensure!(
+                    !self
+                        .profile_migrations
+                        .values()
+                        .any(|m| m.pending_root(id).unwrap_or(true)),
+                    "partial profile cohort migration fences lifecycle advance and replacement"
+                );
+            }
             match &command.action {
+                CommandAction::ReserveRefresh { plan } => {
+                    ensure!(
+                        self.journal_rules >= 2 && !legacy_roster,
+                        "ordinary refresh reservation requires current strict event rules"
+                    );
+                    let p = &plan.value;
+                    p.validate(time.context("independent refresh reservation clock required")?)?;
+                    ensure!(r.phase == Phase::Frozen && r.prepared.is_none()
+                        && !self.replacements.contains_key(id) && !self.refreshes.contains_key(id)
+                        && p.anchor_id == self.anchor_id && p.root == r.evidence.statement
+                        && p.previous == r.generation && p.previous_public_key_package == r.public_key_package
+                        && p.node_keys == r.node_keys
+                        && !self.executions.values().any(|e| e.root_identity == *id
+                            && e.status == ExecutionStatus::Open),
+                        "one exact Frozen current Root/generation/roster with drained executions required");
+                    ensure!([p.session_id,p.ceremony_id].iter().all(|new|
+                        *new != command.request_id && !self.migration_identity_used(*new)),
+                        "ordinary refresh identities are globally permanent and cannot alias previous work");
+                    self.refreshes.insert(
+                        id.clone(),
+                        wallet_mpc_protocol::solana_generation::RefreshReservation {
+                            plan: (**plan).clone(),
+                            command_id: command.request_id,
+                        },
+                    );
+                }
+                CommandAction::AbandonRefresh { ceremony_id } => {
+                    ensure!(
+                        r.phase == Phase::Frozen
+                            && r.prepared.is_none()
+                            && self
+                                .refreshes
+                                .get(id)
+                                .is_some_and(|r| r.plan.value.ceremony_id == *ceremony_id),
+                        "only the exact Frozen unprepared refresh reservation may be abandoned"
+                    );
+                    self.refreshes.remove(id);
+                }
+                CommandAction::InstallNodeProfile { fence, renewal } => {
+                    use wallet_mpc_protocol::solana_profile_migration::{
+                        MigrationReservation, NodeProfilePin,
+                    };
+                    ensure!(
+                        !legacy_roster,
+                        "profile migration requires strict live event rules"
+                    );
+                    fence.value.validate_shape()?;
+                    let p = fence.value.approvals.plan();
+                    ensure!(
+                        fence.key_id == p.node_key_id
+                            && p.witness_anchor == self.anchor_id
+                            && p.cohort
+                                .iter()
+                                .any(|c| c.original.identity().is_ok_and(|root| root == *id)),
+                        "exact original signer/authority/cohort migration required"
+                    );
+                    if let Some(original) = self.profile_migrations.get(&p.migration_id) {
+                        ensure!(
+                            original.fence == **fence
+                                && original.renewal.as_ref() == renewal.as_deref()
+                                && !original.root_commands.contains_key(id),
+                            "timely migration reservation/renewal/target cannot change or repeat"
+                        );
+                    } else {
+                        fence.value.validate_first_registration(
+                            time.context(
+                                "first witness registration needs its locked admission clock",
+                            )?,
+                            renewal.as_deref(),
+                        )?;
+                        let mut ids = vec![p.migration_id, p.new_anchor_id];
+                        if let Some(renewal) = renewal {
+                            ids.push(renewal.custody.value.renewal_id);
+                        }
+                        ensure!(ids.iter().all(|new| *new != command.request_id && !self.migration_identity_used(*new))
+                            && !self.profile_migrations.values().any(|m| {
+                                let old = m.fence.value.approvals.plan();
+                                old.node_key_id == p.node_key_id && old.old_profile_sha256 == p.old_profile_sha256
+                            }), "migration source/anchor/approval identities remain permanently consumed");
+                        for cohort in &p.cohort {
+                            let root = cohort.original.identity()?;
+                            let current = self
+                                .roots
+                                .get(&root)
+                                .context("every migration cohort Root must be enrolled")?;
+                            ensure!(current.phase == Phase::Frozen && current.prepared.is_none()
+                                && !self.replacements.contains_key(&root)
+                                && !self.refreshes.contains_key(&root)
+                                && current.evidence.statement == cohort.original
+                                && current.generation == cohort.generation && current.public_key_package == cohort.public_key_package
+                                && current.node_keys == cohort.node_keys
+                                && self.node_profiles.get(&root).is_none_or(|pins| !pins.contains_key(&p.party_id)),
+                                "entire exact original cohort must be Frozen with unchanged generation/roster and unbound profile");
+                        }
+                        self.profile_migrations.insert(
+                            p.migration_id,
+                            MigrationReservation {
+                                fence: (**fence).clone(),
+                                renewal: renewal.as_deref().cloned(),
+                                first_command_id: command.request_id,
+                                root_commands: BTreeMap::new(),
+                            },
+                        );
+                    }
+                    let pin = NodeProfilePin {
+                        node_key_id: p.node_key_id.clone(),
+                        profile_sha256: p.new_profile_sha256.clone(),
+                        anchor_id: p.new_anchor_id,
+                        authority_id: p.migration_id,
+                        source_fence_sha256: fence.value.identity()?,
+                    };
+                    pin.validate_shape()?;
+                    self.node_profiles
+                        .entry(id.clone())
+                        .or_default()
+                        .insert(p.party_id.clone(), pin);
+                    self.profile_migrations
+                        .get_mut(&p.migration_id)
+                        .unwrap()
+                        .root_commands
+                        .insert(id.clone(), command.request_id);
+                }
                 CommandAction::ReserveReplacement { plan } => {
                     plan.validate_shape()?;
                     ensure!(r.phase == Phase::Frozen && r.prepared.is_none()
                         && !self.replacements.contains_key(id)
+                        && !self.refreshes.contains_key(id)
                         && plan.refresh.anchor_id == self.anchor_id
                         && plan.refresh.root == r.evidence.statement
                         && plan.refresh.previous == r.generation
@@ -249,7 +436,7 @@ impl Snapshot {
                         "replacement identities cannot alias their approval command"
                     );
                     ensure!(
-                        new_ids.iter().all(|id| !self.replacement_id_reserved(*id)),
+                        new_ids.iter().all(|id| !self.lifecycle_id_reserved(*id)),
                         "replacement identities remain permanently reserved"
                     );
                     ensure!(
@@ -485,10 +672,23 @@ impl Snapshot {
                                 && next.generation.ceremony_id == plan.ceremony_id,
                             "preparation must complete the exact reserved replacement refresh"
                         );
+                    } else if let Some(reservation) = self.refreshes.get(id) {
+                        let plan = &reservation.plan.value;
+                        ensure!(plan.root == r.evidence.statement && plan.previous == r.generation
+                            && plan.previous_public_key_package == r.public_key_package
+                            && node_keys == &plan.node_keys && node_keys == &r.node_keys
+                            && next.previous_generation == plan.previous
+                            && next.generation.epoch == plan.next_epoch
+                            && next.generation.ceremony_id == plan.ceremony_id,
+                            "all-three readiness must complete the exact independently reserved refresh");
                     } else {
                         ensure!(
+                            self.journal_rules < 2,
+                            "new ordinary readiness requires original durable refresh reservation"
+                        );
+                        ensure!(
                             legacy_roster
-                                || !self.replacement_id_reserved(next.generation.ceremony_id),
+                                || !self.lifecycle_id_reserved(next.generation.ceremony_id),
                             "ordinary refresh cannot reuse a replacement identity"
                         );
                         ensure!(
@@ -560,7 +760,27 @@ impl Snapshot {
                     r.public_key_package = next.public_key_package;
                     r.node_keys = next.node_keys;
                     r.phase = Phase::Active;
+                    // Historical4a replacements had no profile pins. Preserve
+                    // their original valid None request replay semantics.
+                    if let Some(replacement) = self.replacements.get(id) {
+                        let p = &replacement.plan;
+                        if let Some(pins) = self.node_profiles.get_mut(id) {
+                            if pins.contains_key(&p.party_id) {
+                                pins.insert(
+                                    p.party_id.clone(),
+                                    wallet_mpc_protocol::solana_profile_migration::NodeProfilePin {
+                                        node_key_id: p.refresh.node_keys[&p.party_id].clone(),
+                                        profile_sha256: p.recipient_profile_sha256.clone(),
+                                        anchor_id: p.recipient_anchor_id,
+                                        authority_id: p.repair_ceremony_id,
+                                        source_fence_sha256: p.identity()?,
+                                    },
+                                );
+                            }
+                        }
+                    }
                     self.replacements.remove(id);
+                    self.refreshes.remove(id);
                 }
                 CommandAction::Enroll { .. } => unreachable!(),
             }
@@ -580,8 +800,8 @@ impl Snapshot {
         ensure!(req.anchor_id == self.anchor_id, "wrong anchor");
         let i = &req.binding.authorized.intent;
         ensure!(
-            !self.replacement_id_reserved(i.crypto_execution_id)
-                && !self.replacement_id_reserved(i.session_id),
+            !self.lifecycle_id_reserved(i.crypto_execution_id)
+                && !self.lifecycle_id_reserved(i.session_id),
             "replacement identities cannot become private signing executions or sessions"
         );
         let root = i.claim.root.identity()?;
@@ -589,6 +809,18 @@ impl Snapshot {
             .roots
             .get(&root)
             .context("unregistered original root")?;
+        if let Some(pin) = self
+            .node_profiles
+            .get(&root)
+            .and_then(|pins| pins.get(&req.party_id))
+        {
+            pin.validate_shape()?;
+            ensure!(
+                pin.node_key_id == node_key
+                    && req.node_profile_sha256.as_ref() == Some(&pin.profile_sha256),
+                "private admission requires exact current witness profile pin"
+            );
+        }
         ensure!(
             r.phase == Phase::Active
                 && r.generation == i.generation
@@ -730,6 +962,11 @@ impl Snapshot {
             request: req.clone(),
             sequence: self.sequence,
             root_revision: self.roots[&root].revision,
+            node_profile: self
+                .node_profiles
+                .get(&root)
+                .and_then(|pins| pins.get(&req.party_id))
+                .cloned(),
         })
     }
 

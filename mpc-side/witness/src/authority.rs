@@ -82,7 +82,7 @@ fn event_hash(event: &Signed<Event>) -> Result<String> {
 }
 fn replay(state: &mut Snapshot, event: &Event) -> Result<()> {
     ensure!(
-        event.rules.is_none() || event.rules == Some(1),
+        event.rules.is_none() || matches!(event.rules, Some(1 | 2)),
         "unsupported authority event rules"
     );
     ensure!(
@@ -101,7 +101,7 @@ fn replay(state: &mut Snapshot, event: &Event) -> Result<()> {
                 if event.rules.is_none() {
                     state.command_legacy(&command.value)?
                 } else {
-                    state.command(&command.value)?
+                    state.command_at(&command.value, event.time)?
                 },
                 "duplicate lifecycle journal event"
             );
@@ -162,7 +162,7 @@ impl Authority {
                 sequence: 0,
                 previous_hash: "00".repeat(32),
                 time: now()?,
-                rules: Some(1),
+                rules: Some(2),
                 transition: Transition::Initialize,
             };
             let signed = trust.sign("WITNESS_EVENT_V1", genesis)?;
@@ -301,7 +301,7 @@ impl Authority {
             sequence: candidate.sequence,
             previous_hash: j.last_hash.clone(),
             time,
-            rules: Some(1),
+            rules: Some(2),
             transition,
         };
         let signed = self.trust.sign("WITNESS_EVENT_V1", event)?;
@@ -340,7 +340,7 @@ impl Authority {
             j.poisoned = true;
             return Err(error.into());
         }
-        candidate.journal_rules = 1;
+        candidate.journal_rules = 2;
         j.last_hash = next_hash;
         j.state = candidate;
         Ok(())
@@ -352,6 +352,21 @@ impl Authority {
             lock_fresh(&self.journal, |time| command.value.validate(time), now).await?;
         ensure!(!j.poisoned, "authority durability uncertain");
         match &command.value.action {
+            CommandAction::InstallNodeProfile { fence, renewal } => {
+                let first = !j
+                    .state
+                    .profile_migrations
+                    .contains_key(&fence.value.approvals.plan().migration_id);
+                self.trust
+                    .profile_migration(fence, renewal.as_deref(), first, time)?;
+            }
+            CommandAction::ReserveRefresh { plan } => {
+                self.trust.check_signed(
+                    plan.as_ref(),
+                    "WITNESS_FROST_REFRESH_PLAN_V1",
+                    &self.trust.lifecycle,
+                )?;
+            }
             CommandAction::RegisterClaim { evidence } => self.trust.claim_evidence(evidence)?,
             CommandAction::Enroll {
                 evidence,
@@ -422,7 +437,8 @@ impl Authority {
         }
         let fingerprint = hash(&command.signing_message("WITNESS_COMMAND_V1")?);
         let mut candidate = j.state.clone();
-        if candidate.command(&command.value)? {
+        candidate.journal_rules = 2;
+        if candidate.command_at(&command.value, time)? {
             self.commit(
                 &mut j,
                 candidate,
@@ -607,11 +623,22 @@ impl Authority {
                 claim,
                 lifecycle_key_id: Some(self.trust.lifecycle.key_id.clone()),
                 claim_issuance,
+                refresh: j
+                    .state
+                    .refreshes
+                    .get(&r.evidence.statement.identity()?)
+                    .cloned(),
                 replacement: j
                     .state
                     .replacements
                     .get(&r.evidence.statement.identity()?)
                     .cloned(),
+                node_profiles: j
+                    .state
+                    .node_profiles
+                    .get(&r.evidence.statement.identity()?)
+                    .cloned()
+                    .unwrap_or_default(),
             },
         )
     }
@@ -726,7 +753,13 @@ mod tests {
         assert_eq!(state.anchor_id, head.value.anchor_id);
         assert_eq!(state.roots.len(), 2);
         assert_eq!(state.claims.len(), 1);
-        state.journal_rules = 1;
+        state.journal_rules = 2;
+        let mut version_one = first.value.clone();
+        version_one.rules = Some(1);
+        assert!(replay(&mut state, &version_one)
+            .unwrap_err()
+            .to_string()
+            .contains("downgrade"));
         assert!(replay(&mut state, &first.value)
             .unwrap_err()
             .to_string()

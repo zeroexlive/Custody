@@ -2,16 +2,18 @@
 
 import copy
 import hashlib
+import json
 import shutil
 import socket
 import ssl
 import threading
 import time
 import uuid
+from pathlib import Path
 
 from cryptography import x509
 from cryptography.hazmat.primitives import serialization
-from environment import issue
+from environment import issue, private_file
 from protected_acceptance import group
 from test_dkg import PARTIES, request
 from witness_acceptance import sign, verify
@@ -51,7 +53,29 @@ def plan(g):
     return sign(g.w.life, "WITNESS_FROST_REFRESH_PLAN_V1", value)
 
 
+def reserve(g, p):
+    current = g.w.query()
+    return g.w.request(
+        "command", g.w.command({"kind": "ReserveRefresh", "plan": p}, current["root"]["revision"])
+    )
+
+
+def abandon(g, p):
+    code, reply = g.w.request(
+        "command",
+        g.w.command(
+            {"kind": "AbandonRefresh", "ceremony_id": p["value"]["ceremony_id"]},
+            g.w.query()["root"]["revision"],
+        ),
+    )
+    assert code == 200, reply
+
+
 def start(g, p, party):
+    if g.w.query().get("refresh") is None:
+        code, reply = reserve(g, p)
+        if code != 200:
+            return code, reply
     status = None
     if g.custody_class == "COLD":
         code, query = call(g, party, "query", p)
@@ -61,9 +85,10 @@ def start(g, p, party):
     return call(g, party, "start", {"plan": p, "frozen": status})
 
 
-def run_rounds(g, p, *, interrupt_ready=False):
+def run_rounds(g, p, *, interrupt_ready=False, already_started=()):
     for party in PARTIES:
-        assert start(g, p, party)[0] == 200
+        if party not in already_started:
+            assert start(g, p, party)[0] == 200
     for action in ("round1", "round2"):
         for party in PARTIES:
             code, report = call(g, party, action, {"plan": p, "frozen": None})
@@ -178,6 +203,7 @@ def wrong_peer_private_round(g):
     # Malformed direct messages cannot rebind this consumed ceremony. No
     # private packet is exported by the test or accepted from the controller.
     assert request(g.net, PARTIES[0], "coordinator", PREFIX + "message", {})[0] == 409
+    abandon(g, p)
 
 
 def run_refresh(root_path, *, custody_class="HOT"):
@@ -192,6 +218,42 @@ def run_refresh(root_path, *, custody_class="HOT"):
         }
         freeze(g)
         p = plan(g)
+        # A Life plan alone cannot consume private entropy or append a start.
+        events = Path(g.profiles[PARTIES[0]]["anchor_directory"]) / "events"
+        count = len(list(events.glob("*.json")))
+        initial_generations = {
+            f
+            for party in PARTIES
+            for f in (g.net.root / party / "storage" / "solana-generations").glob("*.enc")
+        }
+        if custody_class == "COLD":
+            code, query = call(g, PARTIES[0], "query", p)
+            assert code == 200
+            code, unreserved = g.w.request("query", query, identity=g.w.courier)
+            assert code == 200
+        else:
+            unreserved = None
+        assert call(g, PARTIES[0], "start", {"plan": p, "frozen": unreserved})[0] == 409
+        assert len(list(events.glob("*.json"))) == count
+        assert {
+            f
+            for party in PARTIES
+            for f in (g.net.root / party / "storage" / "solana-generations").glob("*.enc")
+        } == initial_generations
+        reserve_command = g.w.command(
+            {"kind": "ReserveRefresh", "plan": p}, g.w.query()["root"]["revision"]
+        )
+        code, original_ack = g.w.request("command", reserve_command)
+        assert code == 200
+        # Lose the response at the controller boundary, then recover the actual
+        # durable reservation from a restarted independent authority.
+        g.w.stop()
+        g.w.start()
+        committed = g.w.query()["refresh"]
+        assert committed["plan"] == p
+        assert committed["command_id"] == reserve_command["value"]["request_id"]
+        code, repeated_ack = g.w.request("command", reserve_command)
+        assert code == 200 and repeated_ack["value"] == original_ack["value"]
         forged = copy.deepcopy(p)
         forged["signature"] = "00" * 70
         assert call(g, PARTIES[0], "start", {"plan": forged, "frozen": None})[0] == 409
@@ -224,6 +286,42 @@ def run_refresh(root_path, *, custody_class="HOT"):
             code, report = call(g, party, "report", {"plan": p, "frozen": None})
             assert code == 200 and report["ready"] == ready[PARTIES.index(party)]
             assert start(g, p, party)[0] == 409  # No regenerated private ceremony.
+        # Abandonment releases the pending slot, never a consumed identifier or
+        # the durable encrypted generation. Late genuine Ready cannot activate.
+        abandoned_plan = p
+        abandoned_ready = ready
+        abandoned_artifacts = {
+            f: hashlib.sha256(f.read_bytes()).hexdigest()
+            for party in PARTIES
+            for f in (g.net.root / party / "storage" / "solana-generations").glob("*.enc")
+        }
+        assert len(abandoned_artifacts) == 3
+        abandon(g, p)
+        late = g.w.command(
+            {"kind": "Prepare", "ready": ready, "node_keys": p["value"]["node_keys"]},
+            g.w.query()["root"]["revision"],
+        )
+        assert g.w.request("command", late)[0] == 409
+        assert g.w.request("command", reserve_command)[0] == 200
+        assert g.w.query().get("refresh") is None
+        p = plan(g)
+        assert start(g, p, PARTIES[0])[0] == 200
+        late = g.w.command(
+            {
+                "kind": "Prepare",
+                "ready": abandoned_ready,
+                "node_keys": abandoned_plan["value"]["node_keys"],
+            },
+            g.w.query()["root"]["revision"],
+        )
+        assert g.w.request("command", late)[0] == 409
+        # Party A already consumed its start; continue the genuine protocol
+        # without starting it twice or removing its tombstone.
+        ready = run_rounds(g, p, already_started=(PARTIES[0],))
+        assert all(
+            hashlib.sha256(f.read_bytes()).hexdigest() == digest
+            for f, digest in abandoned_artifacts.items()
+        )
         activate(g, p, ready)
         assert g.w.query()["root"]["original"] == original
         assert g.w.query(claim_id=c["reservation_id"])["claim"]["statement"] == c
@@ -246,6 +344,27 @@ def run_refresh(root_path, *, custody_class="HOT"):
         assert (
             g.call(PARTIES[0], "auto", {"binding": old, "round": 1, "signing_package": None})[0]
             == 409
+        )
+        private_file(
+            root_path / "solana-refresh-reservation-public-evidence.json",
+            json.dumps(
+                {
+                    "scope": "genuine durable ordinary refresh reservation and abandonment",
+                    "class": custody_class,
+                    "new_witness_event_rules": 2,
+                    "unreserved_direct_http_start_rejected_without_new_journal_or_generation": True,
+                    "reservation_ack_loss_recovered_after_actual_witness_restart": True,
+                    "exact_life_plan_and_command_id_recovered": True,
+                    "abandoned_three_ready_reports_cannot_prepare_or_resurrect": True,
+                    "new_reservation_rejects_original_late_ready": True,
+                    "abandoned_generation_artifacts_retained_unchanged": 3,
+                    "new_session_and_ceremony_use_new_upstream_refresh": True,
+                    "original_dkg_ciphertexts_unchanged": 3,
+                    "finalized_transfers_after_restart": 3 if custody_class == "HOT" else 1,
+                    "same_group_key_is_not_threshold_revocation": True,
+                },
+                sort_keys=True,
+            ).encode(),
         )
 
 
@@ -271,6 +390,7 @@ def run_interrupted_refresh(root_path):
         renamed["ceremony_id"] = str(uuid.uuid4())
         renamed = sign(g.w.life, "WITNESS_FROST_REFRESH_PLAN_V1", renamed)
         assert start(g, renamed, lost)[0] == 409
+        abandon(g, p)
         wrong_peer_private_round(g)
         p = plan(g)  # Explicitly authorized new ceremony, same frozen generation.
         ready = run_rounds(g, p)
@@ -329,3 +449,96 @@ def run_interrupted_refresh(root_path):
         binding = g.binding(c, receipts, 3, amount=1000002)
         assert binding["authorized"]["intent"]["generation"]["epoch"] == 2
         g.broadcast(binding, g.sign(binding))
+
+
+def run_historical_identifier_fence(root_path, baseline_bin, current_bin):
+    """Old4a has durable local private IDs that its witness has never observed."""
+    from profile_migration_baseline import SOURCE_SHA, binary_sha256
+
+    baseline_bin, current_bin = Path(baseline_bin), Path(current_bin)
+    identity = json.loads((baseline_bin.parent / "build-identity.json").read_bytes())
+    assert identity["source_sha"] == SOURCE_SHA
+    assert all(
+        binary_sha256(baseline_bin / name) == value for name, value in identity["binaries"].items()
+    )
+    with group(root_path, lifecycle=True, binary_directory=baseline_bin) as (g, c, receipts):
+        freeze(g)
+        old = plan(g)
+        for party in PARTIES:
+            # Direct old binary call: no new reservation helper or synthesized
+            # signed history. These original starts really precede rules2.
+            assert call(g, party, "start", {"plan": old, "frozen": None})[0] == 200
+        history = {
+            party: {
+                f: f.read_bytes()
+                for f in (Path(g.profiles[party]["anchor_directory"]) / "events").glob("*.json")
+            }
+            for party in PARTIES
+        }
+        ciphertexts = {
+            f: hashlib.sha256(f.read_bytes()).hexdigest()
+            for party in PARTIES
+            for f in (g.net.root / party / "storage").glob("*.share.enc")
+        }
+        assert len(ciphertexts) == 3
+        for party in PARTIES:
+            g.net.stop(party)
+        g.w.stop()
+        g.net.bin = current_bin
+        g.w.start()
+        for party in PARTIES:
+            g.start(party)  # Complete old signed-start replay remains accepted.
+        swapped = copy.deepcopy(old["value"])
+        swapped.update(
+            session_id=old["value"]["ceremony_id"],
+            ceremony_id=old["value"]["session_id"],
+            expires_at=int(time.time()) + 240,
+        )
+        swapped = sign(g.w.life, "WITNESS_FROST_REFRESH_PLAN_V1", swapped)
+        # The old public journal never contained those private-start IDs. The
+        # upgraded W can honestly reserve them, but each original node knows
+        # its complete local history and must refuse cross-field reuse.
+        assert reserve(g, swapped)[0] == 200
+        for party in PARTIES:
+            assert call(g, party, "start", {"plan": swapped, "frozen": None})[0] == 409
+            events = Path(g.profiles[party]["anchor_directory"]) / "events"
+            assert set(events.glob("*.json")) == set(history[party])
+            assert all(f.read_bytes() == raw for f, raw in history[party].items())
+            assert not list((g.net.root / party / "storage" / "solana-generations").glob("*.enc"))
+        abandon(g, swapped)
+        fresh = plan(g)
+        ready = run_rounds(g, fresh)
+        activate(g, fresh, ready)
+        for party in PARTIES:
+            g.net.stop(party)
+            g.start(party)
+        finalized = []
+        for n, pair in enumerate(
+            ((PARTIES[0], PARTIES[1]), (PARTIES[0], PARTIES[2]), (PARTIES[1], PARTIES[2])), 9800
+        ):
+            binding = g.binding(c, receipts, n, pair)
+            finalized.append(g.broadcast(binding, g.sign(binding))[0])
+        assert all(
+            hashlib.sha256(f.read_bytes()).hexdigest() == digest
+            for f, digest in ciphertexts.items()
+        )
+        assert all(
+            f.read_bytes() == raw for records in history.values() for f, raw in records.items()
+        )
+        private_file(
+            root_path / "solana-refresh-historical-ids-public-evidence.json",
+            json.dumps(
+                {
+                    "scope": "original4a refresh history: cross-field identifier fence",
+                    "baseline_source_sha": SOURCE_SHA,
+                    "original_signed_start_replayed_on_nodes": 3,
+                    "ids_unobserved_by_old_witness_can_be_reserved_but_not_reused_locally": True,
+                    "swapped_old_ids_denied_before_new_node_event_or_generation": True,
+                    "all_original_raw_records_and_three_dkg_ciphertexts_unchanged": True,
+                    "explicit_abandon_and_fresh_plan_all_three_refresh": True,
+                    "all_three_pair_transfers_finalized_after_restart": len(finalized),
+                    "transaction_ids": finalized,
+                },
+                sort_keys=True,
+            ).encode(),
+        )

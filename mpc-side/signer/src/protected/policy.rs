@@ -51,6 +51,52 @@ fn proof(
     pin.verify(msg, &sig)
 }
 impl Policy {
+    pub(super) fn migration_approvals(
+        &self,
+        approvals: &wallet_mpc_protocol::solana_profile_migration::MigrationApprovals,
+        lifecycle: &PinnedIdentity,
+        live: bool,
+    ) -> Result<()> {
+        use wallet_mpc_protocol::solana_profile_migration::APPROVAL_DOMAIN;
+        approvals.validate_shape()?;
+        ensure!(
+            approvals.custody.key_id == self.custody_key.key_id
+                && approvals.policy.key_id == self.operator_key.key_id
+                && approvals.lifecycle.key_id == lifecycle.key_id,
+            "original independent current authority keys and exact new Life required"
+        );
+        for (pin, signed) in [
+            (&self.custody_key, &approvals.custody),
+            (&self.operator_key, &approvals.policy),
+            (lifecycle, &approvals.lifecycle),
+        ] {
+            pin.verify(
+                &signed.signing_message(APPROVAL_DOMAIN)?,
+                &signed.signature_bytes()?,
+            )?;
+        }
+        if live {
+            proof(
+                &self.custody,
+                &self.custody_key,
+                &approvals.custody.signing_message(APPROVAL_DOMAIN)?,
+                &CustodyAuthorization {
+                    certificate_chain_der_hex: approvals.custody_certificate_chain_der_hex.clone(),
+                    signature_der_hex: approvals.custody.signature.clone(),
+                },
+            )?;
+            proof(
+                &self.operator,
+                &self.operator_key,
+                &approvals.policy.signing_message(APPROVAL_DOMAIN)?,
+                &CustodyAuthorization {
+                    certificate_chain_der_hex: approvals.policy_certificate_chain_der_hex.clone(),
+                    signature_der_hex: approvals.policy.signature.clone(),
+                },
+            )?;
+        }
+        Ok(())
+    }
     pub(super) fn approval_key_ids(&self) -> [&str; 2] {
         [&self.custody_key.key_id, &self.operator_key.key_id]
     }

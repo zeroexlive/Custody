@@ -11,6 +11,7 @@ pub mod hd;
 pub mod sign;
 pub mod solana_generation;
 pub mod solana_intent;
+pub mod solana_profile_migration;
 pub mod solana_provisioning;
 pub mod solana_recovery;
 pub mod solana_seeded;

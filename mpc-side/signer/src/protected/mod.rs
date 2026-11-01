@@ -2,6 +2,7 @@
 //! mandatory profile survive restoration of any private-share backup.
 pub mod generations;
 mod journal;
+pub mod migration;
 mod network;
 mod policy;
 pub mod refresh;
@@ -62,6 +63,8 @@ pub struct Profile {
     pub lifecycle_certificate: Option<String>,
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub replacement_bootstrap: Option<ReplacementBootstrap>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub profile_migration: Option<migration::Bootstrap>,
 }
 impl Profile {
     pub fn load(path: &Path) -> Result<(Self, String)> {
@@ -101,6 +104,12 @@ impl Profile {
         fs::create_dir_all(&p.anchor_directory)?;
         let storage = fs::canonicalize(&p.signer.storage_directory)?;
         let anchor = fs::canonicalize(&p.anchor_directory)?;
+        if let Some(migration) = &p.profile_migration {
+            ensure!(p.lifecycle_certificate.is_some() && p.replacement_bootstrap.is_none()
+                && migration.anchor_id != p.witness_anchor && migration.migration_id != p.witness_anchor,
+                "explicit original-profile migration requires independent Life and a fresh external anchor");
+            migration.validate_paths(path, &p)?;
+        }
         ensure!(
             !anchor.starts_with(&storage) && !storage.starts_with(&anchor),
             "public protected anchor must be outside private-share backups"
@@ -182,6 +191,7 @@ pub struct Service {
     dkg: Arc<DkgService>,
     provisioning: Arc<solana_provisioning::Service>,
     local: Mutex<Local>,
+    _migration_predecessor: Option<migration::Predecessor>,
 }
 pub fn now() -> Result<u64> {
     Ok(std::time::SystemTime::now()
@@ -238,19 +248,30 @@ impl Service {
                 &profile.witness_certificate,
             )?)
         };
-        let journal = journal::Journal::open(
-            &profile.anchor_directory,
-            fingerprint.clone(),
-            &identity,
-            journal::Authorities {
-                own: &own,
-                witness: &witness,
-                lifecycle: lifecycle.as_ref(),
-                party,
-                profile: &fingerprint,
-            },
-            initialize,
-        )?;
+        let (journal, migration_predecessor) = if profile.profile_migration.is_some() {
+            let (journal, source) = migration::open_runtime(&profile, &fingerprint, initialize)?;
+            (journal, Some(source))
+        } else {
+            (
+                journal::Journal::open(
+                    &profile.anchor_directory,
+                    fingerprint.clone(),
+                    &identity,
+                    journal::Authorities {
+                        own: &own,
+                        witness: &witness,
+                        lifecycle: lifecycle.as_ref(),
+                        party,
+                        profile: &fingerprint,
+                        policy: &policy,
+                        class: &profile.class,
+                        migration_lifecycle: None,
+                    },
+                    initialize,
+                )?,
+                None,
+            )
+        };
         let provenance = OnceLock::new();
         if let Some(bootstrap) = &profile.replacement_bootstrap {
             for start in journal.records.repairs.values() {
@@ -299,6 +320,7 @@ impl Service {
                 journal,
                 active: BTreeMap::new(),
             }),
+            _migration_predecessor: migration_predecessor,
         }))
     }
     fn append(&self, local: &mut Local, change: journal::Change) -> Result<()> {
@@ -319,6 +341,9 @@ impl Service {
                 lifecycle: self.lifecycle.as_ref(),
                 party: &self.profile.signer.party_id,
                 profile: &self.fingerprint,
+                policy: &self.policy,
+                class: &self.profile.class,
+                migration_lifecycle: None,
             },
         );
         self.private_uncertain
@@ -336,10 +361,23 @@ impl Service {
         );
         Ok(serial)
     }
+    fn require_migration_root(
+        &self,
+        root: &wallet_mpc_protocol::solana_provisioning::Root,
+    ) -> Result<()> {
+        if let Some(b) = &self.profile.profile_migration {
+            ensure!(
+                b.cohort.binary_search(&root.identity()?).is_ok(),
+                "successor private authority is limited to its exact approved Root cohort"
+            );
+        }
+        Ok(())
+    }
     async fn require_root(
         &self,
         root: &wallet_mpc_protocol::solana_provisioning::Root,
     ) -> Result<()> {
+        self.require_migration_root(root)?;
         if let Some(bootstrap) = &self.profile.replacement_bootstrap {
             let original = self
                 .provenance
@@ -366,6 +404,7 @@ impl Service {
         &self,
         claim: &wallet_mpc_protocol::solana_provisioning::Claim,
     ) -> Result<()> {
+        self.require_migration_root(&claim.root)?;
         if self.profile.replacement_bootstrap.is_some() {
             claim.validate()?;
             // Independent Policy::verify checks every original Claim signature;
@@ -491,6 +530,7 @@ impl Service {
                 challenge: wallet_mpc_protocol::dkg::hex(&challenge),
                 expires_at: now()?.checked_add(15).context("time overflow")?,
                 signing_package: c.signing_package,
+                node_profile_sha256: Some(self.fingerprint.clone()),
             },
         )?;
         request.value.validate(now()?)?;
@@ -562,6 +602,31 @@ impl Service {
         );
         if let Some(report) = local.journal.records.reports.get(&key) {
             return Ok(report.clone());
+        }
+        if let Some(bootstrap) = &self.profile.profile_migration {
+            let pin =
+                permit.value.node_profile.as_ref().context(
+                    "migrated runtime requires explicit current witness profile provenance",
+                )?;
+            let source = local
+                .journal
+                .records
+                .profile_migration_source
+                .as_ref()
+                .context("original successor history provenance missing")?;
+            ensure!(pin.anchor_id == bootstrap.anchor_id
+                && pin.authority_id == bootstrap.migration_id
+                && pin.source_fence_sha256 == source.fence.value.identity()?,
+                "private permission must retain the exact approved source fence and successor anchor");
+        }
+        if let Some(pin) = &permit.value.node_profile {
+            pin.validate_shape()?;
+            ensure!(
+                pin.node_key_id == self.own.key_id
+                    && pin.profile_sha256 == self.fingerprint
+                    && request.node_profile_sha256.as_ref() == Some(&self.fingerprint),
+                "private permission must bind the actual current signer profile"
+            );
         }
         ensure!(
             !local.journal.records.consumed.contains_key(&key),

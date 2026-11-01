@@ -11,6 +11,7 @@ import threading
 import time
 from concurrent.futures import ThreadPoolExecutor
 from decimal import Decimal
+from pathlib import Path
 from unittest.mock import patch
 
 import pytest
@@ -62,6 +63,54 @@ def test_phase6gc_witness_replacement_reservation_and_original_signed_store_upgr
     from replacement_acceptance import run_reserved_upgrade
 
     run_reserved_upgrade(tmp_path)
+
+
+def test_phase6gc_profile_migration_current_dual_authority_and_fresh_witness_time(tmp_path):
+    from profile_migration_acceptance import run_public_registration
+
+    run_public_registration(tmp_path)
+
+
+def test_phase6gc_original_profile_terminal_fence_and_successor_history_import(tmp_path):
+    from profile_migration_acceptance import run_terminal_fence
+
+    run_terminal_fence(
+        tmp_path,
+        Path(os.environ["PHASE6GC_PROFILE_COMPAT_BIN"]).resolve(),
+        Path("mpc-side/target/debug").resolve(),
+        import_successor=True,
+    )
+
+
+def test_phase6gc_migrated_profile_two_root_runtime_refresh_and_restart(tmp_path):
+    from profile_migration_acceptance import run_migrated_runtime
+
+    run_migrated_runtime(
+        tmp_path,
+        Path(os.environ["PHASE6GC_PROFILE_COMPAT_BIN"]).resolve(),
+        Path("mpc-side/target/debug").resolve(),
+    )
+
+
+def test_phase6gc_migrated_profile_cold_two_root_courier_runtime(tmp_path):
+    from profile_migration_acceptance import run_migrated_runtime
+
+    run_migrated_runtime(
+        tmp_path,
+        Path(os.environ["PHASE6GC_PROFILE_COMPAT_BIN"]).resolve(),
+        Path("mpc-side/target/debug").resolve(),
+        custody_class="COLD",
+    )
+
+
+def test_phase6gc_legacy_refresh_local_identifier_cross_field_fence(tmp_path):
+    from refresh_acceptance import run_historical_identifier_fence
+
+    run_historical_identifier_fence(
+        tmp_path,
+        Path(os.environ["PHASE6GC_PROFILE_COMPAT_BIN"]).resolve(),
+        Path("mpc-side/target/debug").resolve(),
+    )
 
 
 def test_phase6gc_private_replacement_repair_refresh_and_restart(tmp_path):

@@ -16,6 +16,7 @@ import time
 import uuid
 from contextlib import contextmanager
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
+from pathlib import Path
 
 from cryptography.hazmat.primitives.asymmetric.ed25519 import Ed25519PublicKey
 from custody.mpc_request_auth import _authorize_message, _canonical
@@ -324,10 +325,13 @@ def group(
     lifecycle=False,
     bootstrap_only=False,
     tenant_id=None,
+    binary_directory=None,
 ):
     validator = Validator(root_path / "validator")
     proxy = DelayedRpc(validator) if delayed_rpc else None
     net = Processes(root_path / "services")
+    if binary_directory is not None:
+        net.bin = Path(binary_directory).resolve()
     witness = None
     try:
         preliminary = {

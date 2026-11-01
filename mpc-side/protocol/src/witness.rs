@@ -178,6 +178,8 @@ pub struct PermitRequest {
     pub challenge: String,
     pub expires_at: u64,
     pub signing_package: Option<Vec<u8>>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub node_profile_sha256: Option<String>,
 }
 impl PermitRequest {
     pub fn validate(&self, now: u64) -> Result<()> {
@@ -188,6 +190,10 @@ impl PermitRequest {
                 && [1, 2].contains(&self.round)
                 && hash_text(&self.challenge)
                 && self.challenge != "00".repeat(32)
+                && self
+                    .node_profile_sha256
+                    .as_ref()
+                    .is_none_or(|p| hash_text(p) && *p != "00".repeat(32))
                 && now < self.expires_at
                 && self.expires_at - now <= 15
                 && ((self.round == 1 && self.signing_package.is_none())
@@ -208,6 +214,8 @@ pub struct Permit {
     pub request: PermitRequest,
     pub sequence: u64,
     pub root_revision: u64,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub node_profile: Option<crate::solana_profile_migration::NodeProfilePin>,
 }
 
 #[derive(Clone, Debug, Serialize, Deserialize, PartialEq, Eq)]
@@ -296,6 +304,16 @@ pub enum CommandAction {
         issuance_id: Uuid,
     },
     Freeze,
+    InstallNodeProfile {
+        fence: Box<Signed<crate::solana_profile_migration::MigrationFence>>,
+        renewal: Option<Box<crate::solana_profile_migration::RenewalApprovals>>,
+    },
+    ReserveRefresh {
+        plan: Box<Signed<crate::solana_generation::RefreshPlan>>,
+    },
+    AbandonRefresh {
+        ceremony_id: Uuid,
+    },
     ReserveReplacement {
         plan: Box<crate::solana_recovery::ReplacementPlan>,
     },
@@ -335,6 +353,9 @@ impl Command {
                 && self.expires_at - now <= 300,
             "lifecycle command bounds"
         );
+        if let CommandAction::ReserveRefresh { plan } = &self.action {
+            plan.value.validate(now)?;
+        }
         if let CommandAction::ReserveReplacement { plan } = &self.action {
             plan.validate(now)?;
         }
@@ -412,6 +433,10 @@ pub struct QueryReply {
     pub claim_issuance: Option<ClaimIssuance>,
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub replacement: Option<crate::solana_recovery::ReplacementReservation>,
+    #[serde(default, skip_serializing_if = "BTreeMap::is_empty")]
+    pub node_profiles: BTreeMap<String, crate::solana_profile_migration::NodeProfilePin>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub refresh: Option<crate::solana_generation::RefreshReservation>,
 }
 
 /// Durable permission to publish one already registered native deposit claim.

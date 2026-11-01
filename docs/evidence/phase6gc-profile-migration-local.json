@@ -1,0 +1,248 @@
+{
+  "current_witness_event_rules": 2,
+  "fixed_original_profile_source_sha": "4a4e6ffca0d7107d53e742144f52838a3473f32e",
+  "independent_enhanced_hot_current_rules2": {
+    "passed": true,
+    "scope": "exact current rules2 and successor preflight binaries; predates local cross-field guard",
+    "seconds": 72.275693195
+  },
+  "independent_historical_cross_field_ids": {
+    "binary_hashes_unchanged": true,
+    "blocking_p0_p1_found": false,
+    "passed": true,
+    "scope": "final conditional historical-ID guard and genuine original4a recovery",
+    "seconds": 72.366376191
+  },
+  "local_runtime_batches": {
+    "current_migration_and_original_witness_upgrade": [
+      {
+        "seconds": 0.655,
+        "test": "test_phase6gc_witness_replacement_reservation_and_original_signed_store_upgrade"
+      },
+      {
+        "seconds": 28.625,
+        "test": "test_phase6gc_profile_migration_current_dual_authority_and_fresh_witness_time"
+      },
+      {
+        "seconds": 43.235,
+        "test": "test_phase6gc_original_profile_terminal_fence_and_successor_history_import"
+      },
+      {
+        "seconds": 227.718,
+        "test": "test_phase6gc_migrated_profile_two_root_runtime_refresh_and_restart"
+      },
+      {
+        "seconds": 225.013,
+        "test": "test_phase6gc_migrated_profile_cold_two_root_courier_runtime"
+      }
+    ],
+    "final_successor_pending_refresh_preflight": [
+      {
+        "seconds": 44.86,
+        "test": "test_phase6gc_original_profile_terminal_fence_and_successor_history_import"
+      }
+    ],
+    "historical_local_cross_field_ids": [
+      {
+        "seconds": 72.505,
+        "test": "test_phase6gc_legacy_refresh_local_identifier_cross_field_fence"
+      }
+    ],
+    "ordinary_refresh_hot_cold_interrupted_and_gen2": [
+      {
+        "seconds": 72.523,
+        "test": "test_phase6gc_distributed_refresh_original_identity_all_pairs_restart"
+      },
+      {
+        "seconds": 44.177,
+        "test": "test_phase6gc_distributed_refresh_cold_manual_query_and_restart"
+      },
+      {
+        "seconds": 60.514,
+        "test": "test_phase6gc_distributed_refresh_interrupted_missing_generation_and_second_epoch"
+      }
+    ]
+  },
+  "phase_completed": false,
+  "previous_independent_runtime_scope": {
+    "pre_rules2_migration_hot_seconds": 228.003781081,
+    "pre_rules2_terminal_import_seconds": 46.094329983,
+    "validates_subsequent_rules2_changes": false
+  },
+  "production_or_customer_funds_authorized": false,
+  "public_reports": [
+    {
+      "basename": "solana-profile-migrated-runtime-public-evidence.json",
+      "evidence": {
+        "active_root_old_schema_and_wrong_profile_requests_denied": 4,
+        "all_original_raw_events_and_signed_pre_heads_preserved": true,
+        "all_three_pairs_for_both_roots_finalized": 6,
+        "baseline_source_sha": "4a4e6ffca0d7107d53e742144f52838a3473f32e",
+        "class": "HOT",
+        "cohort_profile_pins_installed": 6,
+        "excluded_original_roots": 1,
+        "migrated_original_nodes": 3,
+        "migrated_roots": 2,
+        "new_dkg_routes_rejected": true,
+        "noncohort_original_root_public_history_preserved_private_routes_closed": true,
+        "old_none_requests_used_unchanged_in_terminal_no_release": 2,
+        "old_unknown_r2_preserved_until_actual_grantee_no_release": true,
+        "ordinary_three_node_refresh_and_restart_for_each_root": true,
+        "original_dkg_ciphertexts_unchanged": 9,
+        "original_public_results_recovered_unchanged": 14,
+        "predecessor_flock_held_and_source_corruption_fences_restart": true,
+        "scope": "original4a migration: three nodes, two Roots, refreshed signing",
+        "transaction_ids": [
+          "3JKjtHEiST8qUVx6VKnaTNsMe4eYMCizHLbZ4PwRpWT1cqVdGuncjvYU5jTCoZKvAu6fu6TeYecuGMYYX3FkyqaQ",
+          "2n1G2ordQt7hQJsBSPgBGWyhwu8TP3vvdKkTReZn3EWHrF673GMbS74gcAhYPxVQCEQdvuHFXoxCKsZwAD2n9h6",
+          "4pZt3zL7yen1i1GMMYcQWRRniTVPgWUv4iocceotgpJhtF6o8DpvjwHZdeLPJByrUNt5WbowehB3eEpsiWNkhZpR",
+          "32JRCKHMxRxhKag2FN3jAaAZA2nEj9G8Mqk6eLzTCrewyRr83vW31BuLQVuSgMgXJczTE7YxDdBwWqDZXRemtkKH",
+          "5wPD5x6TrT82xjWZBPWxTTCNZ221yMQ8pdEEqQr7tF9e4scGxJtXqci97xq8f2ez8WEEChMRYaMQKuRoo2QdCBD",
+          "4uuHkSspKcx1d63g1eggiDvgzkuoepRNCv9CsYLC9CRs94FStUZ7uFdt5qP6ZmfKK9oQJoECqhrFRPamcTF6AbSU"
+        ]
+      }
+    },
+    {
+      "basename": "solana-profile-migrated-runtime-public-evidence.json",
+      "evidence": {
+        "active_root_old_schema_and_wrong_profile_requests_denied": 4,
+        "all_original_raw_events_and_signed_pre_heads_preserved": true,
+        "all_three_pairs_for_both_roots_finalized": 6,
+        "baseline_source_sha": "4a4e6ffca0d7107d53e742144f52838a3473f32e",
+        "class": "COLD",
+        "cohort_profile_pins_installed": 6,
+        "excluded_original_roots": 1,
+        "migrated_original_nodes": 3,
+        "migrated_roots": 2,
+        "new_dkg_routes_rejected": true,
+        "noncohort_original_root_public_history_preserved_private_routes_closed": true,
+        "old_none_requests_used_unchanged_in_terminal_no_release": 2,
+        "old_unknown_r2_preserved_until_actual_grantee_no_release": true,
+        "ordinary_three_node_refresh_and_restart_for_each_root": true,
+        "original_dkg_ciphertexts_unchanged": 9,
+        "original_public_results_recovered_unchanged": 14,
+        "predecessor_flock_held_and_source_corruption_fences_restart": true,
+        "scope": "original4a migration: three nodes, two Roots, refreshed signing",
+        "transaction_ids": [
+          "5Q288wUdHQboM5RwBLByF2e3z4FC9bdZeAKUeqqDUj9i9tHztsZQ8ySG94zvqYZX6kAzNEvFDkhkBa8cxMgNSy5p",
+          "Z7hJp5DdBW9du7M4qFJ6PgbsEELNjQnwdgEaN3sg61HuJs13BXmsGQNuFCxa21RiuKbi8fTonCqLNV3cFppCMF3",
+          "3bk56YGQsCXAKCZyZzinx2HsG9VbJuMaWioVQ5am7EB8z3ATHKhBKkFFpdS2memiubjqffXkUYfig631FCiY2AwN",
+          "3U37iX1HiPugFa9DGVgh5RF7XS13zSBwNgnTgk6kLSerxTGT3Ezivy8y7jLsW1i5PzegvyMJbGH3t9DuHVqu7XtP",
+          "2Dr6b6AKjc4YqiFUbgWLe95L1n7qVRSP6En2HUjphAdqai1qkv8hdGvpNbtDZo48JEFdYq2qBQjSjsjGVipHnoNb",
+          "2tNU8pofm2PXHWigQak3DJBSboDw2XBeP7Urtu9UcgysQ2AaEbhdVRyvacFTZAdtmFgjjgnKFNZsvZWUpAo2Stno"
+        ]
+      }
+    },
+    {
+      "basename": "solana-profile-migration-public-evidence.json",
+      "evidence": {
+        "backdated_local_fence_expired_dual_approval_denied": true,
+        "fresh_exact_original_dual_renewal_admitted": true,
+        "local_terminal_journal_migration_executed": false,
+        "original_lifecycle_none_profiles": true,
+        "original_witness_events_and_dkg_ciphertexts_unchanged": true,
+        "same_command_ack_loss_restart_replay_idempotent": true,
+        "scope": "public witness profile migration authority only",
+        "successor_profile_private_signing_executed": false,
+        "wrong_policy_signature_and_current_custody_role_chain_denied": true
+      }
+    },
+    {
+      "basename": "solana-refresh-reservation-public-evidence.json",
+      "evidence": {
+        "abandoned_generation_artifacts_retained_unchanged": 3,
+        "abandoned_three_ready_reports_cannot_prepare_or_resurrect": true,
+        "class": "HOT",
+        "exact_life_plan_and_command_id_recovered": true,
+        "finalized_transfers_after_restart": 3,
+        "new_reservation_rejects_original_late_ready": true,
+        "new_session_and_ceremony_use_new_upstream_refresh": true,
+        "new_witness_event_rules": 2,
+        "original_dkg_ciphertexts_unchanged": 3,
+        "reservation_ack_loss_recovered_after_actual_witness_restart": true,
+        "same_group_key_is_not_threshold_revocation": true,
+        "scope": "genuine durable ordinary refresh reservation and abandonment",
+        "unreserved_direct_http_start_rejected_without_new_journal_or_generation": true
+      }
+    },
+    {
+      "basename": "solana-refresh-reservation-public-evidence.json",
+      "evidence": {
+        "abandoned_generation_artifacts_retained_unchanged": 3,
+        "abandoned_three_ready_reports_cannot_prepare_or_resurrect": true,
+        "class": "COLD",
+        "exact_life_plan_and_command_id_recovered": true,
+        "finalized_transfers_after_restart": 1,
+        "new_reservation_rejects_original_late_ready": true,
+        "new_session_and_ceremony_use_new_upstream_refresh": true,
+        "new_witness_event_rules": 2,
+        "original_dkg_ciphertexts_unchanged": 3,
+        "reservation_ack_loss_recovered_after_actual_witness_restart": true,
+        "same_group_key_is_not_threshold_revocation": true,
+        "scope": "genuine durable ordinary refresh reservation and abandonment",
+        "unreserved_direct_http_start_rejected_without_new_journal_or_generation": true
+      }
+    },
+    {
+      "basename": "solana-profile-terminal-fence-public-evidence.json",
+      "evidence": {
+        "exact_one_terminal_event": true,
+        "exact_retry_retains_same_head_and_fence": true,
+        "normal_successor_initialize_cannot_reset_history": true,
+        "old_and_current_old_profile_writers_rejected": true,
+        "original_dkg_ciphertexts_unchanged": 3,
+        "original_none_consumes_preserved": 2,
+        "original_none_requests_preserved": 2,
+        "original_raw_events_preserved": 7,
+        "scope": "genuine original4a LC=None source journal terminal fence only",
+        "successor_history_import_executed": true,
+        "successor_private_signing_executed": false,
+        "witness_profile_pin_registered_root_frozen": true,
+        "wrong_source_reference_and_unsafe_output_denied_before_mutation": true
+      }
+    },
+    {
+      "basename": "solana-profile-successor-import-public-evidence.json",
+      "evidence": {
+        "all_original_raw_events_and_final_head_unchanged": true,
+        "exact_retry_and_orphan_genesis_recovery_preserve_original_genesis": true,
+        "genuine_original4a_none_consumes": 2,
+        "genuine_original4a_none_requests": 2,
+        "original_public_results_imported": 2,
+        "pending_refresh_requires_abandon_before_import": true,
+        "scope": "offline verified successor import; no private round executed",
+        "source_stage_and_uninstalled_profile_queries_rejected": true,
+        "successor_private_signing_executed": false,
+        "successor_requires_complete_original_source_on_every_replay": true
+      }
+    },
+    {
+      "basename": "solana-refresh-historical-ids-public-evidence.json",
+      "evidence": {
+        "all_original_raw_records_and_three_dkg_ciphertexts_unchanged": true,
+        "all_three_pair_transfers_finalized_after_restart": 3,
+        "baseline_source_sha": "4a4e6ffca0d7107d53e742144f52838a3473f32e",
+        "explicit_abandon_and_fresh_plan_all_three_refresh": true,
+        "ids_unobserved_by_old_witness_can_be_reserved_but_not_reused_locally": true,
+        "original_signed_start_replayed_on_nodes": 3,
+        "scope": "original4a refresh history: cross-field identifier fence",
+        "swapped_old_ids_denied_before_new_node_event_or_generation": true,
+        "transaction_ids": [
+          "22nm7fxnq3nyG6ph6m4XEjFFmArdEhUDTgEub25s2tFGP1PNDYWGugP8g4cHC5XRxkMn5ikXDNNpZFt9t4jSKY4d",
+          "64XtCmZTTPktNZNq8Kydfjg5DShst7xrCTxY8J4DT3r3u9eYiwPrd3uXwKJYEJBtZ67UBMLLGV8R9MqsPZVsVrrE",
+          "5Z6dcJJMDVgZBxY45BqbYwGMDrLiGt3DnhT6PX1QdTsq644aCVDnHtKyteTDeDx3ne1YhFq7mEMTEUxuZXcLaRTL"
+        ]
+      }
+    }
+  ],
+  "required_final_head_fast_all_and_original_store_gate_completed": false,
+  "scope": "bounded development profile migration and durable ordinary-refresh reservation; phase incomplete",
+  "scope_note": "The final successor pending-refresh preflight was added after the five-case batch and passed the final terminal/import case; it does not alter private signing or refresh execution. The later conditional local cross-field guard is covered by the genuine original4a historical-ID case; it retains old None replay semantics.",
+  "unit_evidence": {
+    "all_target_clippy_seconds": 6.16,
+    "final_all_target_clippy_seconds": 2.76,
+    "independent_witness_tests": 22,
+    "protocol_solana_tests": 6,
+    "witness_tests": 22
+  }
+}

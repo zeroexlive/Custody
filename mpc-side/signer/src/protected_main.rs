@@ -80,6 +80,7 @@ async fn main() -> Result<()> {
     let party = profile.signer.party_id.clone();
     let class = profile.class.clone();
     let replacement = profile.replacement_bootstrap.is_some();
+    let migration_cohort = profile.profile_migration.as_ref().map(|b| b.cohort.clone());
     if replacement && !args.is_empty() {
         ensure!(
             std::fs::read_dir(&profile.signer.storage_directory)?
@@ -159,7 +160,11 @@ async fn main() -> Result<()> {
         .route_layer(middleware::from_fn(
             move |request: axum::extract::Request, next: Next| {
                 let class = class.clone();
+                let migration_cohort = migration_cohort.clone();
                 async move {
+                    if migration_cohort.is_some() && request.uri().path().contains("/dkg/") {
+                        return Err(StatusCode::CONFLICT);
+                    }
                     if request.uri().path().ends_with("/dkg/message") {
                         return Ok::<Response, StatusCode>(next.run(request).await);
                     }
@@ -179,8 +184,14 @@ async fn main() -> Result<()> {
                             serde_json::from_slice(&bytes).map_err(|_| StatusCode::BAD_REQUEST)?;
                         let statement = &value["statement"];
                         let root = statement.get("root").unwrap_or(statement);
-                        serde_json::from_value::<Root>(root.clone())
-                            .is_ok_and(|r| r.wallet_class == class && r.validate().is_ok())
+                        serde_json::from_value::<Root>(root.clone()).is_ok_and(|r| {
+                            r.wallet_class == class
+                                && r.validate().is_ok()
+                                && migration_cohort.as_ref().is_none_or(|cohort| {
+                                    r.identity()
+                                        .is_ok_and(|id| cohort.binary_search(&id).is_ok())
+                                })
+                        })
                     };
                     if !allowed {
                         return Err(StatusCode::CONFLICT);

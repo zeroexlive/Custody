@@ -41,8 +41,8 @@ signed requests, separate lifecycle approval, durable local cancellation and
 Frozen witness proof from every actual grantee. Any durable partial or missing
 evidence remains unresolved; see docs/PHASE6GC_NO_RELEASE.md. Genuine restart,
 write-failure, late-permission, race, COLD and refresh/retry cases pass, including
-independent review/reruns. Explicit identity/provenance migration and
-share repair, finalized SPL wallets,
+independent review/reruns. Narrow same-identity profile migration and one-share
+repair now have bounded genuine development evidence; finalized SPL wallets,
 financial integration and whole-phase acceptance remain incomplete. Unmerged
 native Claim-linked wallet publication now requires a separate permanent witness
 grant; expanded genuine three-wallet tests pass. After an initial timeout, the
@@ -50,13 +50,18 @@ retry actually published1000 wallets in627.149s and finalized all-pair transfers
 from issued indices0/500/999 (complete case737.59s). See docs/PHASE6GC_NATIVE_ISSUANCE.md.
 The public replacement reservation/abandonment and original witness-store replay
 boundary now has independent17-unit and actual-runtime upgrade/tampering evidence;
-see docs/PHASE6GC_RECOVERY.md. Explicit profile migration remains unfinished.
+see docs/PHASE6GC_RECOVERY.md. Explicit LC=None source fencing, verified successor
+history import and HOT/COLD migrated signing now pass bounded local cases.
 Further unmerged private upstream one-share RTS, fresh recipient provenance and
 all-three replacement refresh now have genuine HOT/COLD, restart and storage/TLS/
 expiry fault evidence plus bounded independent review. Existing original Claims
-only; repaired staging cannot sign. Explicit old-profile migration and whole-phase
-recovery remain unfinished. See docs/PHASE6GC_RECOVERY.md. Current development
-source still needs its exact-final-head CI and final review.
+only; repaired staging cannot sign. New durable ordinary-refresh reservation
+permanently binds both IDs before private work, with forward-only rules2 and old
+signed-history replay. Genuine restart/abandonment and historical-ID recovery pass;
+whole-phase recovery, current-identity Claim progression after replacement and
+fresh-DKG drain/retirement remain unfinished. See docs/PHASE6GC_RECOVERY.md and
+PHASE6GC_SOLANA_REFRESH.md. Current development source still needs its exact-head
+CI and final whole-phase review.
 
 Phase 6G-B is merged as **development** at `3d32b763ff777347f77eae7a8a7936d85dc2d770`. Phase 6G-C (Solana provisioning, key lifecycle/rotation/recovery and Hot/Warm/Cold foundations) remains incomplete. On 2026-10-28 the owner explicitly authorized merging the verified bounded development checkpoint in PR #1 and continuing the next implementation step. See the dated decision in docs/DECISIONS.md: this supersedes keeping all remaining 6G-C work in that one Draft PR; it does not complete 6G-C or authorize Phase 7 or production. Keep original Phase 7A/7B/7C, 8A/8B/8C/8D and 9. TON public network, arbitrary shards and real USDT work are **deferred**; preserve existing TON code and open audit blocker, do not activate or widen it unless owner explicitly changes scope. Bitcoin, bridging, swaps, exchange matching engine and trading order book are out of current scope.
 

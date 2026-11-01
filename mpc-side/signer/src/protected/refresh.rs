@@ -219,7 +219,7 @@ impl Service {
             plan: control.plan.clone(),
             frozen,
         };
-        start.validate_shape()?;
+        start.validate_reservation()?;
         let mut local = self.local.lock().await;
         let (query, deadline) = local
             .queries

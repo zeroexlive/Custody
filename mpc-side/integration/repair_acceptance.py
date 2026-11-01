@@ -42,8 +42,9 @@ def profile_hash(p):
             for f in ("custody_ca", "custody_certificate", "policy_ca", "policy_certificate")
         ],
         *[f for fs in p["policy"]["receipt_certificates"].values() for f in fs],
-        p["lifecycle_certificate"],
     ]
+    if p.get("lifecycle_certificate"):
+        files.append(p["lifecycle_certificate"])
     material = {f: hashlib.sha256(Path(f).read_bytes()).hexdigest() for f in files}
     return hashlib.sha256(canonical({"profile": p, "public_trust_material": material})).hexdigest()
 

@@ -631,3 +631,35 @@ CI and whole-phase gates remain pending. Complete restored private run subsequen
 passed5 cases297.72s; ordinary-refresh regressions passed2 cases138.78s and final
 all-target Clippy passed5.69s. Public local evidence is
 `docs/evidence/phase6gc-private-repair-local.json`. No merge or production activation.
+
+Exact pushed4a4e6ff/tree16b25bca subsequently passed Fast40908695597 and selected
+Solana40908696183:40 actual unique calls/zero scenario skips, XML2237.562s,
+artifact12916845138 matching exact SHA/inventory257/preflight12913152351. All22
+files were independently matched to the explicit public allowlist; original-store
+and other-chain gates were unselected. No ALL/whole-phase/merge acceptance follows.
+
+2026-10-29 (Asia/Tehran), uncommitted Phase6G-C continuation: added explicit original
+LC=None migration approvals, independently timed witness profile reservations,
+terminal source fencing, full predecessor import and linked successor genesis.
+Original signed bytes/requests/results survive; startup holds the original flock
+and new private authority requires the exact cohort/profile pin. Bounded genuine
+terminal/import root and independent runs passed; expanded private runtime and
+exact-head acceptance remain pending. A runtime fixture operation-ID collision
+was correctly refused and is corrected for rerun. No phase/merge/production
+acceptance is inferred. Details and evidence limits: PHASE6GC_RECOVERY.md.
+
+2026-11-01 (Asia/Tehran), uncommitted: completed bounded HOT/COLD same-identity
+profile migration runtime and independent HOT review. Review then identified
+ordinary refresh session/ceremony allocation could race W-only migration IDs.
+Added exact Life-signed durable ReserveRefresh, explicit AbandonRefresh, permanent
+global UUID tombstones and forward-only rules2; original signed history and
+already Prepared pre-upgrade activation retain meaning. New state tests22/22 and
+independent22/22 passed; focused genuine current gates remain in progress. No
+phase/merge/production acceptance is claimed.
+
+Subsequent local gates:5 actual rules2 migration/witness-upgrade calls525.47s,
+3 enhanced ordinary refresh calls177.44s, final successor preflight45.06s and
+original4a historical local-ID recovery72.77s; zero completed-call skips.
+Independent enhanced HOT72.276s and historical-ID72.366s passed with unchanged
+binaries and no bounded P0/P1 findings; exact-checkpoint CI pending.
+Recorded named public reports only; private stores/logs remain ignored.

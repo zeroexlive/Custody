@@ -105,6 +105,7 @@ fn request(s: &Snapshot, b: &Binding, party: &str, round: u16) -> PermitRequest 
         challenge: hash(Uuid::new_v4().as_bytes()),
         expires_at: 1010,
         signing_package: None,
+        node_profile_sha256: None,
     }
 }
 pub(crate) fn admission_request() -> PermitRequest {
@@ -116,12 +117,222 @@ fn grant(s: &mut Snapshot, b: &Binding, party: &str) -> PermitRequest {
     s.permit(&req, &node_keys()[party], 1000).unwrap();
     req
 }
+
+#[test]
+fn installed_profile_pin_is_required_before_new_private_admission() {
+    use wallet_mpc_protocol::solana_profile_migration::NodeProfilePin;
+    let (mut s, b) = setup();
+    let root = b.authorized.intent.claim.root.identity().unwrap();
+    let req = request(&s, &b, PARTIES[0], 1);
+    // Original unpinned state preserves the old None canonical request/permit.
+    let old = s
+        .clone()
+        .permit(&req, &node_keys()[PARTIES[0]], 1000)
+        .unwrap();
+    assert!(old.node_profile.is_none());
+    let wire = serde_json::to_value(&old).unwrap();
+    assert!(wire.get("node_profile").is_none());
+    assert!(wire["request"].get("node_profile_sha256").is_none());
+    let pin = NodeProfilePin {
+        node_key_id: node_keys()[PARTIES[0]].clone(),
+        profile_sha256: hash(b"current immutable profile"),
+        anchor_id: Uuid::new_v4(),
+        authority_id: Uuid::new_v4(),
+        source_fence_sha256: hash(b"original migration fence"),
+    };
+    s.node_profiles
+        .entry(root)
+        .or_default()
+        .insert(PARTIES[0].into(), pin.clone());
+    let sequence = s.sequence;
+    assert!(s.permit(&req, &node_keys()[PARTIES[0]], 1000).is_err());
+    let mut wrong = req.clone();
+    wrong.node_profile_sha256 = Some(hash(b"other profile"));
+    assert!(s.permit(&wrong, &node_keys()[PARTIES[0]], 1000).is_err());
+    assert_eq!(s.sequence, sequence);
+    let mut correct = req;
+    correct.node_profile_sha256 = Some(pin.profile_sha256.clone());
+    let permit = s.permit(&correct, &node_keys()[PARTIES[0]], 1000).unwrap();
+    assert_eq!(permit.node_profile, Some(pin));
+}
 fn retry(b: &Binding) -> Binding {
     let mut b = b.clone();
     b.authorized.intent.crypto_execution_id = Uuid::new_v4();
     b.authorized.intent.session_id = Uuid::new_v4();
     b.authorized.intent.attempt_id += 1;
     b
+}
+
+fn migration_fence(
+    s: &Snapshot,
+    bindings: &[Binding],
+) -> Signed<wallet_mpc_protocol::solana_profile_migration::MigrationFence> {
+    use wallet_mpc_protocol::solana_profile_migration::{
+        CohortRoot, MigrationApprovals, MigrationFence, MigrationPlan,
+    };
+    let mut cohort: Vec<_> = bindings
+        .iter()
+        .map(|b| {
+            let root = &s.roots[&b.authorized.intent.claim.root.identity().unwrap()];
+            CohortRoot {
+                original: root.evidence.statement.clone(),
+                generation: root.generation.clone(),
+                public_key_package: root.public_key_package.clone(),
+                node_keys: root.node_keys.clone(),
+            }
+        })
+        .collect();
+    cohort.sort_by_key(|c| c.original.identity().unwrap());
+    let p = MigrationPlan {
+        migration_id: Uuid::new_v4(),
+        witness_anchor: s.anchor_id,
+        party_id: PARTIES[0].into(),
+        node_key_id: cohort[0].node_keys[PARTIES[0]].clone(),
+        old_profile_sha256: hash(b"old current immutable profile"),
+        new_profile_sha256: hash(b"new immutable profile"),
+        source_sequence: 8,
+        source_event_hash: hash(b"original source signed head"),
+        new_anchor_id: Uuid::new_v4(),
+        new_lifecycle_key_id: hash(b"current independent Life"),
+        cohort,
+        expires_at: 1010,
+    };
+    let proof = |key_id: String| Signed {
+        key_id,
+        value: p.clone(),
+        signature: "00".repeat(70),
+    };
+    Signed {
+        key_id: p.node_key_id.clone(),
+        signature: "00".repeat(70),
+        value: MigrationFence {
+            approvals: MigrationApprovals {
+                custody: proof(hash(b"current custody")),
+                policy: proof(hash(b"current policy")),
+                lifecycle: proof(p.new_lifecycle_key_id.clone()),
+                custody_certificate_chain_der_hex: vec!["01".repeat(64)],
+                policy_certificate_chain_der_hex: vec!["02".repeat(64)],
+            },
+            fenced_at: 1000,
+        },
+    }
+}
+
+#[test]
+fn profile_migration_first_clock_and_entire_cohort_fence_are_permanent() {
+    let (mut s, b) = setup();
+    let (_, public) = keys();
+    let mut other = b.clone();
+    let root = &mut other.authorized.intent.claim.root;
+    root.dkg.keyset_id = Uuid::new_v4();
+    root.dkg.execution_id = Uuid::new_v4();
+    root.dkg.session_id = Uuid::new_v4();
+    root.group_public_key = hex(&public.verifying_key().serialize().unwrap());
+    root.public_key_package = public.serialize().unwrap();
+    let enrolled = root.clone();
+    s.command(&command(
+        &s,
+        &other,
+        CommandAction::Enroll {
+            evidence: Box::new(evidence(enrolled)),
+            node_keys: node_keys(),
+        },
+    ))
+    .unwrap();
+    let fence = migration_fence(&s, &[b.clone(), other.clone()]);
+    let action = || CommandAction::InstallNodeProfile {
+        fence: Box::new(fence.clone()),
+        renewal: None,
+    };
+    assert!(s
+        .clone()
+        .command_at(&command(&s, &b, action()), 1000)
+        .is_err());
+    s.command(&command(&s, &b, CommandAction::Freeze)).unwrap();
+    assert!(s
+        .clone()
+        .command_at(&command(&s, &b, action()), 1000)
+        .is_err());
+    s.command(&command(&s, &other, CommandAction::Freeze))
+        .unwrap();
+    let mut late = command(&s, &b, action());
+    late.expires_at = 1200;
+    assert!(s.clone().command_at(&late, 1011).is_err()); // Backdated local fence is insufficient.
+    let first = command(&s, &b, action());
+    s.command_at(&first, 1000).unwrap();
+    assert!(!s.command_at(&first, 1001).unwrap());
+    let root_a = b.authorized.intent.claim.root.identity().unwrap();
+    let root_b = other.authorized.intent.claim.root.identity().unwrap();
+    let id = fence.value.approvals.plan().migration_id;
+    assert!(s.profile_migrations[&id].pending_root(&root_a).unwrap());
+    let pending = s
+        .clone()
+        .command(&command(&s, &b, CommandAction::Activate))
+        .unwrap_err();
+    assert!(pending.to_string().contains("partial profile cohort"));
+    assert!(s
+        .clone()
+        .command_at(&command(&s, &b, action()), 1001)
+        .is_err());
+    let mut remaining = command(&s, &other, action());
+    remaining.expires_at = 1200;
+    s.command_at(&remaining, 1011).unwrap(); // Independently timely global reservation already exists.
+    assert!(!s.profile_migrations[&id].pending_root(&root_a).unwrap());
+    for root in [root_a, root_b] {
+        assert_eq!(s.roots[&root].phase, Phase::Frozen);
+        assert_eq!(
+            s.node_profiles[&root][PARTIES[0]].profile_sha256,
+            fence.value.approvals.plan().new_profile_sha256
+        );
+    }
+    assert_eq!(s.profile_migrations[&id].root_commands.len(), 2);
+    assert!(s.lifecycle_id_reserved(id));
+    assert!(s.lifecycle_id_reserved(fence.value.approvals.plan().new_anchor_id));
+}
+
+#[test]
+fn expired_local_profile_fence_needs_fresh_exact_original_dual_renewal() {
+    use wallet_mpc_protocol::solana_profile_migration::{MigrationRenewal, RenewalApprovals};
+    let (mut s, b) = setup();
+    s.command(&command(&s, &b, CommandAction::Freeze)).unwrap();
+    let fence = migration_fence(&s, std::slice::from_ref(&b));
+    let mut c = command(
+        &s,
+        &b,
+        CommandAction::InstallNodeProfile {
+            fence: Box::new(fence.clone()),
+            renewal: None,
+        },
+    );
+    c.expires_at = 1200;
+    assert!(s.clone().command_at(&c, 1011).is_err());
+    let p = fence.value.approvals.plan();
+    let r = MigrationRenewal {
+        migration_id: p.migration_id,
+        plan_identity: p.identity().unwrap(),
+        fence_identity: fence.value.identity().unwrap(),
+        renewal_id: Uuid::new_v4(),
+        expires_at: 1020,
+    };
+    let proof = |key_id: String| Signed {
+        key_id,
+        value: r.clone(),
+        signature: "00".repeat(70),
+    };
+    let renewal = RenewalApprovals {
+        custody: proof(fence.value.approvals.custody.key_id.clone()),
+        policy: proof(fence.value.approvals.policy.key_id.clone()),
+        lifecycle: proof(p.new_lifecycle_key_id.clone()),
+        custody_certificate_chain_der_hex: vec!["01".repeat(64)],
+        policy_certificate_chain_der_hex: vec!["02".repeat(64)],
+    };
+    c.action = CommandAction::InstallNodeProfile {
+        fence: Box::new(fence),
+        renewal: Some(Box::new(renewal)),
+    };
+    assert!(s.clone().command_at(&c, 1020).is_err());
+    s.command_at(&c, 1011).unwrap();
+    assert!(s.lifecycle_id_reserved(r.renewal_id));
 }
 fn json<T: Serialize>(v: &T) -> Value {
     serde_json::to_value(v).unwrap()
@@ -677,6 +888,67 @@ fn all_three_refresh_agreement_activates_without_rewriting_original_identity() {
     history
         .command(&command(&history, &b, CommandAction::Freeze))
         .unwrap();
+    let retired = s.roots[&root_id].generation.ceremony_id;
+    assert_ne!(history.roots[&root_id].generation.ceremony_id, retired);
+    assert!(history.migration_identity_used(retired));
+    // A completed Gen1 remains reserved after Gen2 activation, including for
+    // a migration, public successor anchor or exact-dual renewal identity.
+    for kind in 0..3 {
+        use wallet_mpc_protocol::solana_profile_migration::{MigrationRenewal, RenewalApprovals};
+        let mut fence = migration_fence(&history, std::slice::from_ref(&b));
+        if kind < 2 {
+            for approval in [
+                &mut fence.value.approvals.custody,
+                &mut fence.value.approvals.policy,
+                &mut fence.value.approvals.lifecycle,
+            ] {
+                if kind == 0 {
+                    approval.value.migration_id = retired;
+                } else {
+                    approval.value.new_anchor_id = retired;
+                }
+            }
+        }
+        fence.value.validate_shape().unwrap();
+        let renewal = if kind == 2 {
+            let p = fence.value.approvals.plan();
+            let r = MigrationRenewal {
+                migration_id: p.migration_id,
+                plan_identity: p.identity().unwrap(),
+                fence_identity: fence.value.identity().unwrap(),
+                renewal_id: retired,
+                expires_at: 1010,
+            };
+            let proof = |key_id: String| Signed {
+                key_id,
+                value: r.clone(),
+                signature: "00".repeat(70),
+            };
+            Some(Box::new(RenewalApprovals {
+                custody: proof(fence.value.approvals.custody.key_id.clone()),
+                policy: proof(fence.value.approvals.policy.key_id.clone()),
+                lifecycle: proof(p.new_lifecycle_key_id.clone()),
+                custody_certificate_chain_der_hex: vec!["01".repeat(64)],
+                policy_certificate_chain_der_hex: vec!["02".repeat(64)],
+            }))
+        } else {
+            None
+        };
+        assert!(history
+            .clone()
+            .command_at(
+                &command(
+                    &history,
+                    &b,
+                    CommandAction::InstallNodeProfile {
+                        fence: Box::new(fence),
+                        renewal,
+                    }
+                ),
+                1000
+            )
+            .is_err());
+    }
     let third: Vec<_> = PARTIES
         .iter()
         .map(|p| Signed {
@@ -1221,4 +1493,370 @@ fn abandoned_replacement_never_releases_identity_or_resurrects_from_old_ack() {
     ))
     .unwrap();
     assert_eq!(s.replacements.values().next().unwrap().plan, fresh);
+}
+
+fn ordinary_plan(
+    s: &Snapshot,
+    b: &Binding,
+) -> Signed<wallet_mpc_protocol::solana_generation::RefreshPlan> {
+    let mut plan = replacement_plan(s, b, 17).refresh;
+    plan.node_keys = s.roots[&b.authorized.intent.claim.root.identity().unwrap()]
+        .node_keys
+        .clone();
+    Signed {
+        key_id: hash(b"current independent Life"),
+        value: plan,
+        signature: "00".repeat(70),
+    }
+}
+
+#[test]
+fn ordinary_refresh_ids_are_atomically_global_and_never_released() {
+    let (mut s, b) = setup();
+    let mut other = b.clone();
+    other.authorized.intent.claim.root.dkg.session_id = Uuid::new_v4();
+    other.authorized.intent.claim.root.dkg.execution_id = Uuid::new_v4();
+    other.authorized.intent.claim.root.dkg.keyset_id = Uuid::new_v4();
+    let (_, other_public) = keys();
+    other.authorized.intent.claim.root.group_public_key =
+        hex(&other_public.verifying_key().serialize().unwrap());
+    other.authorized.intent.claim.root.public_key_package = other_public.serialize().unwrap();
+    s.command(&command(
+        &s,
+        &other,
+        CommandAction::Enroll {
+            evidence: Box::new(evidence(other.authorized.intent.claim.root.clone())),
+            node_keys: node_keys(),
+        },
+    ))
+    .unwrap();
+    for binding in [&b, &other] {
+        s.command(&command(&s, binding, CommandAction::Freeze))
+            .unwrap();
+    }
+    s.journal_rules = 2;
+    let before = s.clone();
+    let p = ordinary_plan(&s, &b);
+    let reserve = command(
+        &s,
+        &b,
+        CommandAction::ReserveRefresh {
+            plan: Box::new(p.clone()),
+        },
+    );
+    assert!(s.command_at(&reserve, 1000).unwrap());
+    assert!(!s.command_at(&reserve, 1001).unwrap());
+    assert_eq!(s.refreshes[&reserve.root_identity].plan, p);
+    let free = ordinary_plan(&s, &other);
+    assert!(s
+        .clone()
+        .command_at(
+            &command(
+                &s,
+                &other,
+                CommandAction::ReserveRefresh {
+                    plan: Box::new(free)
+                }
+            ),
+            1000
+        )
+        .is_ok());
+    // Both orders of the cross-Root namespace race: the first durable owner wins.
+    for id in [p.value.session_id, p.value.ceremony_id] {
+        for field in 0..2 {
+            let mut next = ordinary_plan(&s, &other);
+            if field == 0 {
+                next.value.session_id = id;
+            } else {
+                next.value.ceremony_id = id;
+            }
+            assert!(s
+                .clone()
+                .command_at(
+                    &command(
+                        &s,
+                        &other,
+                        CommandAction::ReserveRefresh {
+                            plan: Box::new(next)
+                        }
+                    ),
+                    1000
+                )
+                .is_err());
+        }
+        let mut migration = migration_fence(&s, std::slice::from_ref(&other));
+        for plan in [
+            &mut migration.value.approvals.custody.value,
+            &mut migration.value.approvals.policy.value,
+            &mut migration.value.approvals.lifecycle.value,
+        ] {
+            plan.migration_id = id;
+        }
+        assert!(s
+            .clone()
+            .command_at(
+                &command(
+                    &s,
+                    &other,
+                    CommandAction::InstallNodeProfile {
+                        fence: Box::new(migration),
+                        renewal: None
+                    }
+                ),
+                1000
+            )
+            .is_err());
+    }
+    assert!(s
+        .clone()
+        .command_at(
+            &command(
+                &s,
+                &b,
+                CommandAction::ReserveReplacement {
+                    plan: Box::new(replacement_plan(&s, &b, 17))
+                }
+            ),
+            1000
+        )
+        .is_err());
+    assert!(s
+        .clone()
+        .command_at(
+            &command(
+                &s,
+                &b,
+                CommandAction::InstallNodeProfile {
+                    fence: Box::new(migration_fence(&s, std::slice::from_ref(&b))),
+                    renewal: None
+                }
+            ),
+            1000
+        )
+        .is_err());
+    let abandon = command(
+        &s,
+        &b,
+        CommandAction::AbandonRefresh {
+            ceremony_id: p.value.ceremony_id,
+        },
+    );
+    s.command_at(&abandon, 1000).unwrap();
+    assert!(s.refreshes.is_empty());
+    assert!(!s.command_at(&reserve, 1000).unwrap()); // ACK recovery never resurrects authority.
+    assert!(s.refreshes.is_empty());
+    for id in [p.value.session_id, p.value.ceremony_id] {
+        assert!(s.lifecycle_id_reserved(id));
+        let mut next = ordinary_plan(&s, &b);
+        next.value.session_id = id;
+        assert!(s
+            .clone()
+            .command_at(
+                &command(
+                    &s,
+                    &b,
+                    CommandAction::ReserveRefresh {
+                        plan: Box::new(next)
+                    }
+                ),
+                1000
+            )
+            .is_err());
+    }
+    // A W-only original-dual renewal also reserves its ID against BOTH ordinary
+    // private identifiers, including on a different Root.
+    let mut migrated = before;
+    let fence = migration_fence(&migrated, std::slice::from_ref(&b));
+    use wallet_mpc_protocol::solana_profile_migration::{MigrationRenewal, RenewalApprovals};
+    let renewal = MigrationRenewal {
+        migration_id: fence.value.approvals.plan().migration_id,
+        plan_identity: fence.value.approvals.plan().identity().unwrap(),
+        fence_identity: fence.value.identity().unwrap(),
+        renewal_id: Uuid::new_v4(),
+        expires_at: 1010,
+    };
+    let proof = |key_id: String| Signed {
+        key_id,
+        value: renewal.clone(),
+        signature: "00".repeat(70),
+    };
+    let approvals = RenewalApprovals {
+        custody: proof(fence.value.approvals.custody.key_id.clone()),
+        policy: proof(fence.value.approvals.policy.key_id.clone()),
+        lifecycle: proof(fence.value.approvals.lifecycle.key_id.clone()),
+        custody_certificate_chain_der_hex: fence
+            .value
+            .approvals
+            .custody_certificate_chain_der_hex
+            .clone(),
+        policy_certificate_chain_der_hex: fence
+            .value
+            .approvals
+            .policy_certificate_chain_der_hex
+            .clone(),
+    };
+    let reserved_ids = [
+        fence.value.approvals.plan().migration_id,
+        fence.value.approvals.plan().new_anchor_id,
+        renewal.renewal_id,
+    ];
+    let install = command(
+        &migrated,
+        &b,
+        CommandAction::InstallNodeProfile {
+            fence: Box::new(fence),
+            renewal: Some(Box::new(approvals)),
+        },
+    );
+    migrated.command_at(&install, 1000).unwrap();
+    for id in reserved_ids {
+        for field in 0..2 {
+            let mut next = ordinary_plan(&migrated, &other);
+            if field == 0 {
+                next.value.session_id = id;
+            } else {
+                next.value.ceremony_id = id;
+            }
+            assert!(migrated
+                .clone()
+                .command_at(
+                    &command(
+                        &migrated,
+                        &other,
+                        CommandAction::ReserveRefresh {
+                            plan: Box::new(next)
+                        }
+                    ),
+                    1000
+                )
+                .is_err());
+        }
+    }
+}
+
+#[test]
+fn ordinary_refresh_requires_reservation_but_retains_pre_upgrade_prepared_activation() {
+    let (keys, public) = keys();
+    let next = refreshed(&keys, &public);
+    let mut b = binding();
+    b.authorized.intent.claim.root.group_public_key =
+        hex(&public.verifying_key().serialize().unwrap());
+    b.authorized.intent.claim.root.public_key_package = public.serialize().unwrap();
+    let mut s = Snapshot::empty(Uuid::new_v4()).unwrap();
+    s.command(&command(
+        &s,
+        &b,
+        CommandAction::Enroll {
+            evidence: Box::new(evidence(b.authorized.intent.claim.root.clone())),
+            node_keys: node_keys(),
+        },
+    ))
+    .unwrap();
+    s.command(&command(&s, &b, CommandAction::Freeze)).unwrap();
+    let p = ordinary_plan(&s, &b);
+    let root = p.value.root.identity().unwrap();
+    let ready: Vec<_> = PARTIES
+        .iter()
+        .map(|party| {
+            signed(
+                party,
+                GenerationReady {
+                    root_identity: root.clone(),
+                    previous_generation: p.value.previous.clone(),
+                    generation: Generation {
+                        epoch: 1,
+                        ceremony_id: p.value.ceremony_id,
+                        public_key_package_sha256: hash(&next.serialize().unwrap()),
+                    },
+                    public_key_package: next.serialize().unwrap(),
+                    party_id: (*party).into(),
+                },
+            )
+        })
+        .collect();
+    let action = CommandAction::Prepare {
+        ready: ready.clone(),
+        node_keys: node_keys(),
+    };
+    let mut historical = s.clone();
+    historical.journal_rules = 1;
+    historical
+        .command_at(&command(&historical, &b, action.clone()), 1000)
+        .unwrap();
+    historical.journal_rules = 2;
+    historical
+        .command_at(&command(&historical, &b, CommandAction::Activate), 1000)
+        .unwrap();
+    assert_eq!(
+        historical.roots[&root].generation,
+        ready[0].value.generation
+    );
+    s.journal_rules = 2;
+    assert!(s
+        .clone()
+        .command_at(&command(&s, &b, action.clone()), 1000)
+        .is_err());
+    s.command_at(
+        &command(
+            &s,
+            &b,
+            CommandAction::ReserveRefresh {
+                plan: Box::new(p.clone()),
+            },
+        ),
+        1000,
+    )
+    .unwrap();
+    let mut abandoned = s.clone();
+    abandoned
+        .command_at(
+            &command(
+                &abandoned,
+                &b,
+                CommandAction::AbandonRefresh {
+                    ceremony_id: p.value.ceremony_id,
+                },
+            ),
+            1000,
+        )
+        .unwrap();
+    let retry = ordinary_plan(&abandoned, &b);
+    abandoned
+        .command_at(
+            &command(
+                &abandoned,
+                &b,
+                CommandAction::ReserveRefresh {
+                    plan: Box::new(retry.clone()),
+                },
+            ),
+            1000,
+        )
+        .unwrap();
+    assert!(abandoned
+        .clone()
+        .command_at(&command(&abandoned, &b, action.clone()), 1000)
+        .is_err());
+    assert_eq!(abandoned.refreshes[&root].plan, retry);
+    assert!(abandoned.lifecycle_id_reserved(p.value.session_id));
+    s.command_at(&command(&s, &b, action), 1000).unwrap();
+    assert!(s
+        .clone()
+        .command_at(
+            &command(
+                &s,
+                &b,
+                CommandAction::AbandonRefresh {
+                    ceremony_id: p.value.ceremony_id
+                }
+            ),
+            1000
+        )
+        .is_err());
+    s.command_at(&command(&s, &b, CommandAction::Activate), 1000)
+        .unwrap();
+    assert!(s.refreshes.is_empty());
+    assert!(
+        s.lifecycle_id_reserved(p.value.session_id) && s.lifecycle_id_reserved(p.value.ceremony_id)
+    );
 }

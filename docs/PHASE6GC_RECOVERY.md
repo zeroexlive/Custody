@@ -4,7 +4,7 @@ The current unmerged continuation implements public replacement authorization an
 journal upgrade, plus direct upstream single-share RTS repair into a fresh
 required-profile recipient and subsequent all-three refresh. Private-path runtime
 and fault evidence below remains bounded development evidence under review.
-Explicit old-profile migration, root rotation and complete recovery remain open.
+Explicit old-profile migration acceptance, root rotation and complete recovery remain open.
 Do not infer phase completion or production readiness from these foundations.
 
 ## Public replacement reservation
@@ -191,12 +191,129 @@ The pre-disconnection partial final-run output is not counted. This local test
 selection is not a complete selected-Solana/ALL gate; exact-checkpoint CI remains
 required and these passes do not implement profile migration or financial flows.
 
-Remaining implementation: explicit narrow profile migration preserving every
-original signed node record and all Roots sharing that profile; current-revision
-exact-head acceptance and whole-phase independent review. New identities cannot
+Private checkpoint `4a4e6ffca0d7107d53e742144f52838a3473f32e`, tree
+`16b25bca416dd7ce3c4cdbd41827bb64f0312460`, subsequently passed exact
+[Fast40908695597](https://github.com/zeroexlive/Custody/actions/runs/40908695597)
+and [selectedSolana40908696183](https://github.com/zeroexlive/Custody/actions/runs/40908696183).
+Independent verification matched artifact12916845138 to that SHA:40 unique
+selected/actual calls, zero scenario skips, XML2237.562s; inventory257 with hash
+`9946094195659c13238ae4fb8703d39a416fcfd6009b6c735d28a1a1ef813b7e`
+matches preflight12913152351. All22 files match the exact public allowlist. The
+five actual private cases passed70.561/70.878/69.549/29.477/32.573s remotely.
+The independent bounded review is tied to this exact tree. Fixed-baseline
+original-store compatibility and other chains were skipped/unselected: these
+passes are not ALL, phase completion or merge acceptance, and do not validate
+subsequent profile-migration working-tree changes.
+
+Remaining migration acceptance: expanded genuine private runtime/failure coverage,
+current-revision exact-head gates and independent review. Current-identity Claim
+receipt rollover after physical replacement, fresh-DKG rotation and complete
+recovery remain implementation work. New identities cannot
 attest NoRelease for old execution keys or erase unresolved old R2 outcomes.
 Same-key repair/refresh cannot revoke a compromised threshold: fresh-DKG rotation,
 actual fund migration, drain/retirement and old-address rescue remain required.
 
 Final exact-head gates, independent private-recovery review and whole-phase
 acceptance remain open. No generic signing or LocalKey fallback is introduced.
+
+## Explicit original-profile migration — current working implementation
+
+A dedicated offline `wallet-mpc-profile-migration` command now handles original
+`lifecycle_certificate=None` deployments. A successor changes only the independent
+Life pin, external public anchor and explicit migration bootstrap; original TLS,
+private storage/wrapping key, policy/receipt trust and network/class stay exact.
+Original Custody AND Policy approvals, validated through their current original
+CA/role validators and key pins, plus the independently pinned Life key authorize
+one exact source head, successor fingerprint/anchor and ordered Root cohort.
+
+The source receives one terminal signed event containing the exact original raw
+signed pre-head, both original approvals, Life approval and own fresh signed
+Frozen witness queries. Earlier signed events are never rewritten. Old binaries
+reject the unknown terminal event; current normal old-profile startup also fails.
+Source paths and output destinations are checked before this irreversible fence.
+The offline command loads no MPC share or nonce and never receives a Life private
+key. COLD migration uses explicit end-to-end signed courier exchanges.
+
+The witness's FIRST global migration reservation checks approval freshness at its
+own locked clock, current original CA/role proofs and every cohort Root's Frozen
+identity/generation/roster. A local signed timestamp cannot establish timely
+admission. If independent registration misses expiry, a fresh OLD Custody+Policy
+renewal plus Life must bind the same immutable fence/target/UUID. A timely durable
+reservation permits exact subsequent cohort recovery after original expiry.
+Permanent source/profile/anchor/renewal IDs survive completion. Partial cohort
+registration fences lifecycle activation; no old R2 outcome is reclassified.
+
+Offline successor import requires a separate set of own fresh signed queries
+showing the exact installed profile pin for EVERY cohort Root. It fully replays
+all original raw signed records under their OLD profile context, imports every
+request/consume/result/ceremony/cancellation/repair map, then records a new signed
+genesis linked to the exact final original signed head. Source-stage proofs or
+an uninstalled profile cannot initialize it. Interrupted genesis recovery uses
+the same durable signed event and preserves accepted artifacts. Normal
+`--initialize` cannot reset either journal.
+
+Runtime startup replays the complete original predecessor and successor, retaining
+the predecessor flock throughout service lifetime. New private work is limited to
+the approved Root cohort and requires an explicit exact witness profile pin,
+including source fence, anchor and migration UUID. Public historical results and
+original-request NoRelease recovery retain their original signatures and keys.
+New DKG routes are closed; provisioning is limited to the approved cohort. This
+same-identity migration does not replace historical receipt identities or revoke
+a compromised threshold.
+
+Bounded local evidence: original4a terminal-fence/path/raw-head case passed44.373s;
+offline successor import passed51.717s. Independent terminal/import rerun passed
+46.094s with identical before/after binary hashes. These genuine cases preserve
+2 original None-profile requests, 2 consumed None-profile permits and 2 public
+results, reject corrupt predecessor history, and recover the same orphan genesis.
+The current protocol/signer/witness library selection passed12/12/20 tests;
+workspace all-target Clippy passed7.34s. Independent bounded source review found no
+remaining P0/P1 in the terminal/import layer. At that initial snapshot genuine
+migrated private runtime and expanded failure acceptance were pending; completed
+local results below supersede that runtime status. Exact-head CI remains separate. The initial runtime fixture reused one financial operation ID across two
+Roots; the witness correctly refused the second use. That failed run is not
+acceptance. The corrected expanded HOT case passed277.789s, with terminal/import
+passing50.418s in the same selection (2 completed calls; selection stopped before
+COLD, not a complete three-case pass). The runtime case uses three genuine old
+Roots: two migrate as the explicit cohort; the third retains exact public
+historical recovery but rejects new signing/provisioning/refresh. All three
+original nodes migrate, all9 original DKG ciphertexts remain unchanged, and old
+None-profile R2 requests remain Open until both actual grantees attest NoRelease.
+Both cohort Roots then refresh, restart and finalize all3 signer pairs (6 actual
+transactions). Freshly re-signed missing/wrong profile requests are refused while
+Roots are Active, independently of the old grant's expiry. The predecessor flock
+remains held; corrupt predecessor bytes fence successor restart. COLD and the
+independent HOT rerun were pending at that initial snapshot; Nov1 results below
+supersede that status. The first independent HOT attempt stopped
+at initial validator funding before migration under simultaneous local validator
+load; it is not acceptance evidence.
+
+CI now builds genuine original-profile services from the fixed unmodified
+`4a4e6ffca0d7107d53e742144f52838a3473f32e` source in a separate target directory,
+records actual binary hashes, and includes terminal/import and HOT/COLD runtime
+cases in the selected Solana inventory. This is ADDITIONAL compatibility coverage;
+the original fixed `3d32b763ff777347f77eae7a8a7936d85dc2d770` six-case store gate
+remains unchanged. Only explicit named public reports may be uploaded. No current
+working-tree CI pass or complete Phase6G-C acceptance is claimed here.
+
+2026-11-01 (Asia/Tehran): the previously pending standalone COLD migrated runtime
+passed274.23s, and independent expanded HOT rerun passed228.004s with stable binary
+hashes (14 exact historical results,9 original ciphertexts,6 finalized transfers).
+Those binaries predate the subsequent durable ordinary-refresh reservation and
+rules2 boundary. Review identified that local refresh could otherwise consume a
+W-reserved renewal/session identity; preflight cannot solve its cross-Root race.
+New explicit Life `ReserveRefresh`/`AbandonRefresh`, permanent global IDs and exact
+own-query proofs now close that allocation gap in the working implementation.
+Original absent/1 events retain historical meaning; all new witness events use2
+and cannot downgrade. See PHASE6GC_SOLANA_REFRESH.md for semantics and current
+evidence limits. Fresh genuine gates were then in progress; completed local
+results follow below.
+
+Rules2 local migration/witness-upgrade5 completed cases passed525.47s; ordinary
+refresh3 passed177.44s, independently enhanced HOT72.276s. Final successor-import
+preflight passed45.06s and refuses a known pending refresh until explicit abandon
+and fresh proof, without resetting source history. Subsequent local historical
+cross-field ID tightening preserves old None-start replay and passed a genuine
+original4a old-writer/new-reader recovery case72.77s. Independent historical rerun
+and exact-head CI remain pending. See the explicit scope/delta notes in
+[public local evidence](evidence/phase6gc-profile-migration-local.json).

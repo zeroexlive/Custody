@@ -310,6 +310,84 @@ impl Trust {
             &a.operator_authorization,
         )
     }
+    pub fn profile_migration(
+        &self,
+        fence: &Signed<wallet_mpc_protocol::solana_profile_migration::MigrationFence>,
+        renewal: Option<&wallet_mpc_protocol::solana_profile_migration::RenewalApprovals>,
+        first: bool,
+        time: u64,
+    ) -> Result<()> {
+        use wallet_mpc_protocol::solana_profile_migration::{
+            APPROVAL_DOMAIN, FENCE_DOMAIN, RENEWAL_DOMAIN,
+        };
+        fence.value.validate_shape()?;
+        let a = &fence.value.approvals;
+        let plan = a.plan();
+        let p = self.profile(&plan.cohort[0].original.wallet_class)?;
+        ensure!(
+            plan.new_lifecycle_key_id == self.lifecycle.key_id
+                && a.custody.key_id == p.custody_key.key_id
+                && a.policy.key_id == p.operator_key.key_id,
+            "original CURRENT custody/policy and independently current witness Life pins required"
+        );
+        self.check_node(
+            &plan.cohort[0].original.wallet_class,
+            &plan.party_id,
+            fence,
+            FENCE_DOMAIN,
+        )?;
+        self.check_signed(&a.lifecycle, APPROVAL_DOMAIN, &self.lifecycle)?;
+        self.check_signed(&a.custody, APPROVAL_DOMAIN, &p.custody_key)?;
+        self.check_signed(&a.policy, APPROVAL_DOMAIN, &p.operator_key)?;
+        if first {
+            fence.value.validate_first_registration(time, renewal)?;
+            if let Some(r) = renewal {
+                r.validate_shape(&fence.value)?;
+                self.check_signed(&r.lifecycle, RENEWAL_DOMAIN, &self.lifecycle)?;
+                proof(
+                    &p.custody,
+                    &p.custody_key,
+                    &r.custody.signing_message(RENEWAL_DOMAIN)?,
+                    &CustodyAuthorization {
+                        certificate_chain_der_hex: r.custody_certificate_chain_der_hex.clone(),
+                        signature_der_hex: r.custody.signature.clone(),
+                    },
+                )?;
+                proof(
+                    &p.operator,
+                    &p.operator_key,
+                    &r.policy.signing_message(RENEWAL_DOMAIN)?,
+                    &CustodyAuthorization {
+                        certificate_chain_der_hex: r.policy_certificate_chain_der_hex.clone(),
+                        signature_der_hex: r.policy.signature.clone(),
+                    },
+                )?;
+            } else {
+                proof(
+                    &p.custody,
+                    &p.custody_key,
+                    &a.custody.signing_message(APPROVAL_DOMAIN)?,
+                    &CustodyAuthorization {
+                        certificate_chain_der_hex: a.custody_certificate_chain_der_hex.clone(),
+                        signature_der_hex: a.custody.signature.clone(),
+                    },
+                )?;
+                proof(
+                    &p.operator,
+                    &p.operator_key,
+                    &a.policy.signing_message(APPROVAL_DOMAIN)?,
+                    &CustodyAuthorization {
+                        certificate_chain_der_hex: a.policy_certificate_chain_der_hex.clone(),
+                        signature_der_hex: a.policy.signature.clone(),
+                    },
+                )?;
+            }
+        }
+        // For later exact-plan commands, the W journal already independently
+        // established admission while fresh. Historical proof is not re-used
+        // as a new current CA authorization; state still matches exact bytes.
+        Ok(())
+    }
     pub fn sign<T: serde::Serialize>(&self, domain: &str, value: T) -> Result<Signed<T>> {
         let key_id = self.identity.key_id();
         let signature = self

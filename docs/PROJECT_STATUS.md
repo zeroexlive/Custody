@@ -101,7 +101,10 @@ passed and independent current-source staging/provenance rerun passed76.81s,
 including all-pair finalized transfers. Independent review found no demonstrated
 P0/P1 in this layer. Complete current-source genuine run passed5 cases297.72s,
 with2 ordinary-refresh regression cases138.78s and all-target Clippy; exact-head
-CI remains open.
+CI at private checkpoint4a4e6ff subsequently passed exact Fast40908695597 and
+selectedSolana40908696183:40 actual calls/zero skips and independently verified
+exact-SHA public artifact/inventory. Fixed-baseline/ALL remains mandatory; these
+passes do not cover subsequent profile-migration source changes.
 Explicit old-profile migration, new Claim receipt identity rollover and complete
 recovery remain unfinished.
 Remaining6G-C includes explicit profile migration,
@@ -380,3 +383,22 @@ isolated/deferred with its external artifact-audit gate open. No production,
 mainnet or customer-fund activation is authorized. Phase 7B remains optional,
 default-disabled manual withdrawal-only restrictions; no deposit screening or
 external AML/KYT integration is introduced.
+
+Current uncommitted continuation: explicit LC=None terminal source fencing and
+verified successor history import have bounded genuine old4a/independent evidence;
+new runtime retains the original journal flock and enforces the approved cohort
+and exact witness profile pin. Expanded genuine migrated HOT/COLD signing and
+exact-head CI are still pending. See PHASE6GC_RECOVERY.md. Whole-phase financial,
+SPL publication, fresh-DKG drain/retirement and recovery acceptance remain open.
+
+2026-11-01 continuation: original-profile migration HOT/COLD and bounded independent
+HOT runtime now have actual finalized evidence. Subsequent ordinary-refresh ID
+allocation required explicit durable witness reservation, rather than a racy
+preflight. New rules2 reservation/abandonment has22 state-test and independent
+passes; current genuine runtime gates are in progress. Draft PR2 remains unmerged;
+whole-phase work and exact-final-head ALL acceptance are still incomplete.
+
+Current bounded local gates now pass5 migration/witness-upgrade and3 ordinary
+refresh cases with zero skips, plus final successor preflight and genuine old4a
+historical-ID recovery. Independent enhanced HOT passed72.276s; historical-ID
+rerun passed72.366s with unchanged binaries; exact-checkpoint CI remains pending. No merged phase completion follows.

@@ -24,10 +24,12 @@ from custody.solana_financial_wallet import (
     validate_financial_wallet,
 )
 from custody.solana_provisioning import approve_claim, reserve_claim
+from custody.solana_witness_client import query_witness
+from django.test import override_settings
 from environment import private_file
 from financial_root_acceptance import run_financial_mode_import
 from test_dkg import encrypted_files
-from witness_acceptance import sign, verify
+from witness_acceptance import verify
 
 
 def run_financial_wallets(root_path):
@@ -81,12 +83,14 @@ def publish_native_wallets(g, root_path, tenant, customer_claim, arguments):
     assert g.w.request("command", frozen)[0] == 200
     records = []
     for claim, request in zip(claims, requests, strict=True):
-        code, proof = g.w.request(
-            "query",
-            sign(g.w.custody, "WITNESS_QUERY_V1", request["query"]),
-            identity=g.w.courier,
-        )
-        assert code == 200 and proof["value"]["root"]["phase"] == "Frozen"
+        with override_settings(
+            MPC_SOLANA_WITNESS_URL=f"https://localhost:{g.w.port}",
+            MPC_SOLANA_WITNESS_CA_CERT=str(g.w.identity / "ca.crt"),
+            MPC_SOLANA_WITNESS_COURIER_CERT=str(g.w.courier / "tls.crt"),
+            MPC_SOLANA_WITNESS_COURIER_KEY=str(g.w.courier / "tls.key"),
+        ):
+            proof = query_witness(request["query"])
+        assert proof["value"]["root"]["phase"] == "Frozen"
         verify(g.w.identity, "WITNESS_QUERY_REPLY_V1", proof)
         complete_args = {
             "reservation_id": claim.pk,

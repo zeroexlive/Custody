@@ -726,3 +726,14 @@ no ledger journals or seeded credit are enabled. Initial ACK-equality harness
 assumption was corrected to verify original digest/current sequence and no state
 advance. Protected financial sessions, ledger/finality integration and whole-phase
 SPL/lifecycle work remain incomplete; current-source CI still required.
+
+2026-11-02: a4e8d5b exactFast41337021996 passed. Next query/record-only backend
+courier client adds TLS1.3 current W point-key/URI pin before HTTP, exact own
+courier/Custody leaf checks and authenticated query/ACK verification. Independent
+review found two P2 gaps (own-role validation and request counters insufficient
+for zero-byte proof); both corrected with raw byte collection and positive canary
+controls.9 local cases1.26s and genuine Rust W query/publication6.92s passed;
+independent9 cases1.29s and genuine6.99s/stable hashes found no bounded P0/P1.
+Caller-owned15s lease and DB consumption remain mandatory; no Life/Policy keys,
+private permits or financial/ledger flow are enabled. Positive authentic report
+delivery remains a required upcoming recovery case. Current-source CI still required.

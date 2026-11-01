@@ -249,6 +249,36 @@ binaries, with no bounded source/runtime P0/P1 finding. Full backend passed879
 tests360.44s, zero failures/skips. Current-source CI and whole-phase gates remain
 required. See [public evidence](evidence/phase6gc-financial-wallet-local.json).
 
+## Backend courier client (2026-11-02 development)
+
+An optional isolated HTTPS client now signs read-only queries with the existing
+Custody identity and uses a separately configured courier TLS certificate. It
+provides query and original-public-result delivery only: no Life/Policy key,
+command, private permit or MPC nonce creation. URLs and credentials default empty;
+normal isolated-MPC runtime guards remain required. TLS1.3 CA/hostname validation,
+exact witness URI and independently installed P256 point-key identity precede
+every HTTP body. Own courier/Custody leaf roles are checked before their private
+keys are read, rejecting Life/node credential misconfiguration.
+
+Replies require the current pinned W signature and exact query echo/anchor;
+delivery ACKs must match the original public report digest. This is transport,
+not live ledger authority or timestamp freshness. Callers still must commit and
+consume their own random15s query lease after response verification and DB locks.
+Socket timeouts are per I/O, not a hard total execution deadline. Record delivery
+never invokes Node.auto or allocates a private permission.
+
+Nine real TLS tests passed1.26s, independently1.29s: raw application-byte capture
+proves zero bytes to a same-CA wrong key or same-key wrong URI, while correct-pin
+controls prove HTTP reaches the canary. Request threads finish before assertions.
+Life/node/Custody credentials cannot be loaded as courier keys. Independent review
+caught and corrected the earlier full-request-counter evidence weakness and own
+courier-role omission. Genuine Rust W query/publication passed6.92s, independently
+6.99s with source/binaries unchanged and no bounded P0/P1 finding. This exercises
+actual query delivery; successful authentic Node-report delivery/ACK recovery
+remains part of upcoming financial recovery acceptance. No financial signing or
+ledger flow is enabled. Current-source CI remains required. See
+[evidence](evidence/phase6gc-witness-client-local.json).
+
 ## Local evidence and remaining implementation
 
 Current protocol8 and witness23 tests pass, independently rerun. Tests preserve

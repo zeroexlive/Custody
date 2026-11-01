@@ -449,3 +449,11 @@ actual publication7.283s/stable binaries found no bounded P0/P1. Full backend879
 tests360.44s pass. ACTIVE membership enables no credit/signing/settlement; seeded
 credit stays closed. Protected financial sessions/ledger integration, SPL and
 whole-phase lifecycle acceptance remain unfinished. Current-source CI is pending.
+
+2026-11-02: membership checkpointa4e8d5b passed exactFast41337021996, all four
+executed jobs. Subsequent optional query/record courier client checks actual W
+TLS identity before HTTP and reads only correctly typed courier/Custody keys.
+Local9 raw TLS cases1.26s and actual Rust W query/publication6.92s pass, independently
+9 cases1.29s/genuine6.99s with stable source/binaries and no bounded P0/P1. Caller
+durable freshness/ledger checks and positive authentic report-delivery acceptance
+remain required. Protected financial sessions/settlement still remain unfinished.

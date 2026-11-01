@@ -1,0 +1,35 @@
+{
+  "bounded_independent_review": "no demonstrated P0/P1; two role/evidence P2 findings corrected",
+  "caller_durable_15s_lease_consumption_required": true,
+  "correct_pin_controls_observe_http_bytes": true,
+  "current_source_ci": "pending",
+  "date": "2026-11-02 Asia/Tehran",
+  "independent_source_binary_hashes_unchanged": true,
+  "non_courier_identity_rejected_before_private_key_load": true,
+  "phase_complete": false,
+  "production_authorized": false,
+  "raw_application_bytes_zero_wrong_pin_and_role": true,
+  "request_threads_joined_before_asserting_zero_bytes": true,
+  "scope": "query/record-only courier transport; no private permit, financial signing, ledger activation or phase acceptance",
+  "source_base_sha": "a4e8d5b66ec7dbdfacc4ad51e55c5d94aa9a7e44",
+  "successful_authentic_node_report_delivery_runtime": "not yet exercised; required in financial recovery acceptance",
+  "tests": {
+    "independent_real_query_membership": {
+      "cases": 1,
+      "xml_seconds": 6.988
+    },
+    "independent_transport": {
+      "cases": 9,
+      "xml_seconds": 1.287
+    },
+    "local_real_query_membership": {
+      "cases": 1,
+      "xml_seconds": 6.921
+    },
+    "local_transport": {
+      "cases": 9,
+      "xml_seconds": 1.263
+    }
+  },
+  "timeout_scope": "per socket I/O, not a total hard deadline"
+}

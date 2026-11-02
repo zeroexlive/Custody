@@ -200,6 +200,13 @@ jobs:
             work/crypto/fixtures/**/solana-financial-root-import-public-evidence.json
             work/crypto/fixtures/**/solana-financial-wallet-public-evidence.json
             work/crypto/fixtures/**/solana-financial-session-allocation-public-evidence.json
+            work/crypto/fixtures/**/solana-financial-preparation-public-evidence.json
+            work/crypto/fixtures/**/solana-financial-signature-public-evidence.json
+            work/crypto/fixtures/**/solana-financial-signature-before_record-public-evidence.json
+            work/crypto/fixtures/**/solana-financial-signature-audit_and_cache_loss-public-evidence.json
+            work/crypto/fixtures/**/solana-financial-finality-success-public-evidence.json
+            work/crypto/fixtures/**/solana-financial-finality-lost_ack-public-evidence.json
+            work/crypto/fixtures/**/solana-financial-finality-settlement_audit-public-evidence.json
             work/ton-review/mpc-tvm-evidence.json
             work/ton-review/validator-network-evidence.json
             work/ton-review/django-validator-evidence.json

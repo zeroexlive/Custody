@@ -1,4 +1,4 @@
-# Current project status — 2026-10-29
+# Current project status — 2026-11-02
 
 Verified `zeroexlive/Custody` main is **`587e0969a216102879d17cadb6ffeee8dfb8b6c6`**,
 merged [PR #1](https://github.com/zeroexlive/Custody/pull/1). Its parents are the
@@ -9,6 +9,27 @@ main ref and exact tree identity were independently confirmed.
 authorized this bounded development checkpoint merge and continuation within6G-C.
 It supersedes retaining the entire unfinished phase in one Draft PR. Phase7–9
 remain planned; production/mainnet/customer-fund activation remains unauthorized.
+
+Latest committed Draft PR #2 checkpoint `99a055e` passed exact
+[Fast41361207460](https://github.com/zeroexlive/Custody/actions/runs/41361207460)
+and [selected Solana41361259277](https://github.com/zeroexlive/Custody/actions/runs/41361259277).
+Downloaded artifacts verify59 unique selected/called scenarios, zero skips,
+inventory276/shared hash and57 allowlisted Solana files. This is not ALL and
+does not cover subsequent uncommitted execution work. See
+[bounded CI evidence](evidence/phase6gc-financial-allocation-ci-99a055e.json).
+
+Current uncommitted native financial execution adds exact-wire Custody and
+independent HOT Policy approval, one-shot protected dispatch, authenticated
+public recovery and permanent signature ownership before broadcast. Finalized
+original-wire effects separate Claim principal from Root-paid fees and settle
+through the existing ledger.124 focused PG/SQLite/TLS cases pass146.21s; three
+actual FROST/PG/Agave sweep cases pass141.72s, including lost broadcast ACK and
+settlement-audit rollback/recovery. Sweep funding/snapshot are synthetic and do
+not establish deposit credit or customer liability acceptance. Independent129 focused cases150.692s and3genuine cases141.350s pass with
+stable22-source/3-binary hashes and no remaining identified bounded P0/P1. Full
+backend and exact-source CI remain required. Seeded deposits remain
+closed; native deposit-to-withdrawal acceptance, SPL, repaired-identity new Claims,
+fresh-DKG drain/retirement and final whole-phase gates remain unfinished.
 
 Final reviewed head `78394fc2e5ae585cd265c195f1d02557cb062e21` passed
 [Fast40683968092](https://github.com/zeroexlive/Custody/actions/runs/40683968092)

@@ -8,6 +8,7 @@ from urllib.parse import urlencode, urlsplit
 import requests
 from cryptography import x509
 from django.conf import settings
+from django.utils import timezone
 
 
 def coordinator_tls_context():
@@ -24,7 +25,7 @@ def coordinator_tls_context():
     return context
 
 
-def coordinator_request(method, path, *, json_payload=None, params=None):
+def coordinator_request(method, path, *, json_payload=None, params=None, dispatch_deadline=None):
     context = coordinator_tls_context()
     url = urlsplit(settings.MPC_COORDINATOR_URL)
     if not path.startswith("/") or path.startswith("//"):
@@ -46,6 +47,8 @@ def coordinator_request(method, path, *, json_payload=None, params=None):
         if params:
             path += "?" + urlencode(params)
         body = None if json_payload is None else json.dumps(json_payload).encode()
+        if dispatch_deadline is not None and timezone.now() >= dispatch_deadline:
+            raise ValueError("MPC dispatch deadline expired before HTTP payload release")
         connection.request(method, path, body=body, headers={"Content-Type": "application/json"})
         response = connection.getresponse()
         if response.status == 404:

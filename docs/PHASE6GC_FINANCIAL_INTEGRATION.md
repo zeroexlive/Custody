@@ -388,3 +388,66 @@ component case. Final59 local cases57.56s and independent59 cases57.528s/genuine
 7.989s/stable11-source/3-binary hashes pass. The946-case run predates this minimal
 SQLite guard; final committed-source CI remains required. No prepared financial
 or production activation is implied.
+
+
+## Native preparation, signature recovery and settlement development
+
+Uncommitted0040–0042 extend the existing allocation boundary. Preparation freezes
+standard System TransferWithSeed bytes, blockhash/height, exact fee and immutable
+business/source/approval identity. Custody signs the canonical whole content;
+separate installed HOT Policy authority approves that same content. Backend owns
+no Policy or lifecycle private key. Only READY can commit one protected dispatch
+before HTTP. A post-TLS release deadline prevents an expired query/Intent from
+starting private work; HTTP uncertainty retains the original hold and UUIDs.
+
+Recovery authenticates every original public Node report against the captured W
+roster and independently installed archival public certificate rings, redelivers
+actual missing reports through the courier, and consumes a fresh pinned W
+SignedPending result. Two independent Ed25519 verifiers authenticate the final
+signature. Original signed bytes, message and signature ownership commit before
+broadcast; coordinator cache loss never authorizes a second private execution.
+Recovery uses original public history without requiring a new private grant.
+
+Initial broadcast requires current original-Root Active/SignedPending W evidence,
+unchanged exact fee and trusted genesis, separate source/base liquidity, and fresh
+original blockhash. The broadcast marker and audit commit first. Deadline is
+checked again after the last genesis/freshness RPC immediately before releasing
+sendTransaction. A lost ACK, expired blockhash, preflight rejection or missing
+chain result stays reserved and cannot create a new signature/blockhash or an
+automatic second broadcast. Public finality reconciliation remains available.
+
+Settlement validates the canonical original signed transaction, finalized status,
+slot and exact effects. Success moves Claim principal to the intended destination
+and debits the separate Root base only for the exact fee; failure must demonstrate
+principal rollback and that fee alone. Immutable accepted effects, original
+Attempt/parent/business terminal state, existing withdrawal settle/release journal,
+actual network-fee journal and audit commit atomically. SQL checks exact posting
+sets, amounts and owners, original terminal txhash, terminal immutability and
+fresh broadcast-query commit. READ COMMITTED precedes protected-link absence
+checks so an older snapshot cannot hide a newly committed reservation. Accepted
+effect slots floor later liquidity observations even during a manual hold.
+
+A destination newly recognized as custody after signing retains the business hold
+for explicit reconciliation. Local NoSignature rows permit another crypto attempt
+under the original hold; they do not prove whole-business non-signature after a
+database restore and cannot release it. Generic paths and direct seeded deposit
+credit remain fenced. This is isolated development/HOT integration only.
+
+Root124 focused cases pass146.21s. Actual FROST/PG/Agave cases pass3/141.72s:
+normal finalized sweep, lost send ACK without resending, and settlement-audit
+rollback followed by public recovery. The sweep snapshot and faucet funding are
+synthetic: these cases establish chain execution/fee accounting, not deposit credit
+or customer-liability conservation. Earlier separate preparation and signature
+reviews/reruns are recorded in the execution evidence; the combined current
+boundary now independently passes129 cases150.692s and3genuine141.350s with
+unchanged22-source/3-binary hashes and no remaining identified bounded P0/P1.
+Full backend and exact-source CI remain required.
+See [local execution evidence](evidence/phase6gc-native-financial-execution-local.json).
+
+Corrected uncommitted failures are retained: the signature-cache fault harness
+first placed an unexpected backup inside the strict coordinator directory and was
+corrected by moving it outside; a proposed journal-xmin check rejected legitimate
+nested savepoints and was replaced by deferred exact posting-set verification;
+a PL/pgSQL amount-name collision was renamed. An older regression expected the
+previous denial text; its assertion now checks the new typed-terminal denial.
+No guard or test scenario was disabled to make these reruns pass.

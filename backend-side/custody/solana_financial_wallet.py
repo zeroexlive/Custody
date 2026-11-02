@@ -1,8 +1,8 @@
 """Original native financial-wallet membership with independent issuance grants.
 
 ACTIVE here is an immutable publication/ownership record. It posts no balances,
-does not authorize private signing, and does not enable the unfinished seeded
-deposit-credit or financial-session paths. Treasury never creates a UserWallet.
+does not authorize private signing or deposit credit by itself. Dedicated typed
+financial services enforce their own admission. Treasury never creates a UserWallet.
 """
 
 import secrets

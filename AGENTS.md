@@ -106,6 +106,20 @@ A proposed feature is not an implemented feature. A merged implementation is not
 6. Supply changed files, commit SHA, CI links, migrations, residual P0/P1/P2 risks, and proof of no production flag relaxation.
 7. Obtain genuine independent review for cryptographic, authorization and sensitive financial changes. The owner’s adopted Master Development Directive v2.0 authorizes development merges only after acceptance, exact-final-SHA CI, required reviews and repository rules all pass, with no blocking P0/P1. Never bypass protections or fabricate approvals. Complete and merge the current phase before advancing. Production/customer-fund activation remains separately authorized.
 
+Latest99a055e allocation checkpoint passed Fast41361207460 and selected Solana
+41361259277:59 selected/called,0skips,verified inventory276 and57 public files;
+not ALL and before subsequent execution changes. Current uncommitted0040–0042
+add native exact-wire approval, protected signing/public recovery, original-wire
+broadcast/finality and existing-ledger settlement.124 focused cases146.21s and
+three genuine FROST/PG/Agave sweep cases141.72s pass (success,lostACK,auditrollback).
+Final independent129 cases150.692s and3genuine141.350s/stable22source+3bins pass;
+no remaining identified bounded P0/P1. Fullbackend/current-source CI remain pending. Synthetic
+sweep funding/snapshot are not deposit/customer-liability acceptance. NoSignature
+permits another crypto attempt under the same hold; it cannot release a business
+hold from local history alone. Seeded credit, whole native financial acceptance,
+SPL, repaired-identity new Claims, fresh-DKG retirement and final phase gates remain
+unfinished. See PHASE6GC_FINANCIAL_INTEGRATION.md.
+
 ## Latest owner-approved Phase 7B scope
 
 Optional, default-disabled, administrator-managed manual withdrawal address blacklist only. Audit changes, recheck before execution and at independent signer authorization, fail closed for unavailable enabled policy, and preserve reservations/history. No deposit screening, deposit holds, external AML/KYT services or automatic address feeds. Preserve unrelated financial/finality/security controls. This is a planned feature, not existing enforcement.

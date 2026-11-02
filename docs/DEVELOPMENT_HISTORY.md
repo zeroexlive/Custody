@@ -772,3 +772,24 @@ Full SQLite migration and legacy reserve/release/settle plus PG-only protected
 denial now run as the59th component case.59 local cases57.56s and independent59
 cases57.528s/genuine7.989s/stable11-source/3-binary hashes passed.946 predates that
 minimal non-PG guard; exact committed-source CI remains required.
+
+
+2026-11-02: verified exact99a055e Fast41361207460 and selectedSolana41361259277
+artifacts:59 unique selected/called,0skips,XML3367.443s,inventory276/shared hash,
+57 allowlisted public Solana files,preflight8/38.554s. This is not ALL and excludes
+fixed3d32 compatibility/current uncommitted execution additions.
+
+Native financial0040–0042 development now freezes exact SDK wire/Custody+independent
+HOT Policy, commits one protected dispatch, authenticates original public reports,
+recovers W signature truth after missing result/audit/cache loss, and binds permanent
+message/signature ownership before broadcast. Finalized original-wire principal and
+separate base-paid fee effects settle through existing journals atomically with
+accepted effect/Attempt/parent/business/audit. Unknown retains holds. NoSignature
+cannot release a business hold based on local history after DB restore. Review
+identified/fixed exact fee recheck, terminal-without-effect, exact journal posting
+sets/txhash and old-snapshot journal guards. Root124 focused cases146.21s and three
+actual FROST/PG/Agave native sweep cases141.72s pass, including lostACK/noresend and
+settlement-audit rollback/recovery. Synthetic funding/snapshot do not establish
+customer deposit/liability acceptance. Independent129 cases150.692s and3genuine141.350s/stable22-source/3-binary hashes
+pass with no remaining identified bounded P0/P1; fullbackend/CI remain pending; phase remains unfinished. Failure history and limits are in
+PHASE6GC_FINANCIAL_INTEGRATION.md and the local execution evidence.

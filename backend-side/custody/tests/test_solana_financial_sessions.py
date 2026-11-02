@@ -325,7 +325,8 @@ def test_generic_paths_cannot_consume_protected_finances(financial, action):
 def test_raw_failed_attempt_does_not_allow_retry(financial):
     c = financial
     first = session(c)
-    OnchainTransactionAttempt.objects.filter(pk=first.attempt_id).update(status="FAILED")
+    with pytest.raises(DatabaseError, match="requires finalized effect"), transaction.atomic():
+        OnchainTransactionAttempt.objects.filter(pk=first.attempt_id).update(status="FAILED")
     assert session(c).pk == first.pk
     with pytest.raises(MpcBindingError, match="pair"):
         session(c, selected_signers=["signer-a", "signer-c"])
@@ -406,6 +407,8 @@ def test_sweep_has_explicit_treasury_and_never_creates_customer_reserve(financia
 
 def frozen(c, row, payload=b"synthetic-structural-wire"):
     intent = {
+        "issued_at": int(time.time()),
+        "expires_at": int(time.time()) + 120,
         "version": "solana_seeded_intent_v1",
         "session_id": str(row.pk),
         "crypto_execution_id": str(row.crypto_execution_id),
@@ -623,7 +626,7 @@ def test_expired_terminal_query_cannot_be_consumed_or_extended(financial):
 def test_raw_journal_cannot_bypass_protected_hold(financial):
     c = financial
     op = operation(c)
-    with pytest.raises(DatabaseError, match="not enabled"), transaction.atomic():
+    with pytest.raises(DatabaseError, match="typed terminal evidence"), transaction.atomic():
         accounts = lock_user_accounts(op.principal.ledger_owner_id, "SOL")
         post_transaction(
             event_key=f"withdrawal:{c['withdrawal'].pk}:release",

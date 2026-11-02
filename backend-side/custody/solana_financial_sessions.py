@@ -6,6 +6,7 @@ Query/command export follows a committed UUID allocation. Lifecycle commands
 are signed and submitted independently; this module owns no Lifecycle key.
 """
 
+import copy
 import secrets
 from datetime import timedelta
 
@@ -324,12 +325,13 @@ def request_query(*, session_id, tenant_id, purpose, operator_ref):
 def complete_no_signature(*, session_id, tenant_id, challenge, evidence, operator_ref):
     """Only an original pinned W terminal reply permits a fresh attempt.
 
-    Current implementation handles unprepared allocations only. Once an exact
-    intent exists, original-binding recovery requires the typed signer path.
-    It never releases a business hold or posts a ledger event.
+    Permanent abandonment closes even an allocated but never opened execution.
+    A known execution must have terminal NoSignature for the captured exact
+    intent/pair. It never releases a business hold or posts a ledger event.
     """
     _standalone()
     _runtime()
+    evidence = copy.deepcopy(evidence)
     session_id, tenant_id = _uuid(session_id), _uuid(tenant_id)
     operator_ref = _text(operator_ref, "operator audit reference")
     with transaction.atomic():
@@ -346,21 +348,45 @@ def complete_no_signature(*, session_id, tenant_id, challenge, evidence, operato
         value = _verify("WITNESS_QUERY_REPLY_V1", evidence)
         anchor, key_id, _ = _pin()
         claim = operation.source.claim
+        execution = value.get("execution")
+        abandoned = value.get("abandoned") is True and execution is None
+        known_no_signature = (
+            bool(row.intent)
+            and value.get("abandoned") is False
+            and isinstance(execution, dict)
+            and execution.get("status") == "NoSignature"
+            and execution.get("signature") is None
+            and execution.get("binding_fingerprint")
+            == _fingerprint(
+                "WITNESS_EXECUTION_V1",
+                [
+                    _fingerprint("WITNESS_INTENT_V1", [row.intent, bytes(row.payload).hex()]),
+                    row.selected_signers,
+                ],
+            )
+        )
         if (
-            row.status != "ALLOCATED"
-            or row.intent
+            row.status
+            not in {
+                "ALLOCATED",
+                "WAITING_POLICY",
+                "READY",
+                "IN_PROGRESS",
+                "RECONCILIATION_REQUIRED",
+            }
             or row.signature_hex
             or value.get("query") != lease.query
             or evidence["key_id"] != lease.witness_key_id
             or (anchor, key_id) != (lease.witness_anchor_id, lease.witness_key_id)
             or value.get("root", {}).get("original") != claim.root.statement
             or value.get("claim") != claim.evidence
-            or value.get("abandoned") is not True
-            or value.get("execution") is not None
+            or not (abandoned or known_no_signature)
             or type(value.get("sequence")) is not int
             or value["sequence"] <= 0
         ):
-            raise MpcBindingError("original unprepared execution abandonment proof required")
+            raise MpcBindingError(
+                "original execution abandonment or exact NoSignature proof required"
+            )
         if timezone.now() >= lease.expires_at:
             raise MpcBindingError(
                 "terminal query expired; retain original session and business hold"

@@ -154,6 +154,36 @@ def test_phase6gc_financial_session_allocation_and_unprepared_witness_abandonmen
     run_financial_sessions(tmp_path)
 
 
+@pytest.mark.django_db(transaction=True)
+def test_phase6gc_backend_native_wire_and_class_policy_rust_authorization(tmp_path):
+    from financial_preparation_acceptance import run_financial_preparation
+
+    run_financial_preparation(tmp_path)
+
+
+@pytest.mark.django_db(transaction=True)
+def test_phase6gc_backend_protected_frost_and_permanent_signature_ownership(tmp_path):
+    from financial_signing_acceptance import run_financial_signing
+
+    run_financial_signing(tmp_path)
+
+
+@pytest.mark.django_db(transaction=True)
+@pytest.mark.parametrize("fault", ["before_record", "audit_and_cache_loss"])
+def test_phase6gc_backend_signature_recovery_preserves_original_holds(tmp_path, fault):
+    from financial_signing_acceptance import run_financial_signing
+
+    run_financial_signing(tmp_path, fault=fault)
+
+
+@pytest.mark.django_db(transaction=True)
+@pytest.mark.parametrize("fault", [None, "lost_ack", "settlement_audit"])
+def test_phase6gc_backend_original_native_sweep_finality_and_existing_ledger_fee(tmp_path, fault):
+    from financial_finality_acceptance import run_financial_finality
+
+    run_financial_finality(tmp_path, fault=fault)
+
+
 @pytest.mark.parametrize(
     "fault",
     (

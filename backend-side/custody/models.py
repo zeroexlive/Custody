@@ -1070,6 +1070,27 @@ class MpcSolanaSignatureOwner(models.Model):
         ]
 
 
+class MpcSolanaFinancialEffect(models.Model):
+    """Immutable finalized original-wire observation, never a second balance ledger."""
+
+    attempt = models.OneToOneField(
+        OnchainTransactionAttempt, on_delete=models.PROTECT, primary_key=True
+    )
+    signature_owner = models.OneToOneField(MpcSolanaSignatureOwner, on_delete=models.PROTECT)
+    slot = models.PositiveBigIntegerField()
+    outcome = models.CharField(max_length=16)
+    evidence = models.JSONField()
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        constraints = [
+            models.CheckConstraint(
+                condition=Q(outcome__in=["CONFIRMED", "FAILED"], slot__gt=0) & ~Q(evidence={}),
+                name="sol_fin_effect_shape",
+            )
+        ]
+
+
 class MpcSigningSession(models.Model):
     """Durable, idempotent link between a prepared attempt and one MPC execution."""
 

@@ -32,16 +32,25 @@ from test_dkg import encrypted_files
 from witness_acceptance import verify
 
 
-def run_financial_wallets(root_path, *, after_wallets=None):
+def run_financial_wallets(root_path, *, after_wallets=None, freeze_before_completion=True):
     def publish(g, root_path, tenant, customer_claim, arguments):
-        records = publish_native_wallets(g, root_path, tenant, customer_claim, arguments)
+        records = publish_native_wallets(
+            g,
+            root_path,
+            tenant,
+            customer_claim,
+            arguments,
+            freeze_before_completion=freeze_before_completion,
+        )
         if after_wallets is not None:
             after_wallets(g, root_path, tenant, records)
 
     run_financial_mode_import(root_path, after_mode=publish)
 
 
-def publish_native_wallets(g, root_path, tenant, customer_claim, arguments):
+def publish_native_wallets(
+    g, root_path, tenant, customer_claim, arguments, *, freeze_before_completion=True
+):
     ciphertexts = encrypted_files(g.net, g.dkg_binding)
     before = LedgerTransaction.objects.count()
     treasury = register_financial_principal(
@@ -84,8 +93,9 @@ def publish_native_wallets(g, root_path, tenant, customer_claim, arguments):
         assert recovered_ack["value"]["value_fingerprint"] == ack["value"]["value_fingerprint"]
         assert recovered_ack["value"]["sequence"] == before_retry
     assert g.w.query()["sequence"] == before_retry
-    frozen = g.w.command({"kind": "Freeze"}, g.w.query()["root"]["revision"])
-    assert g.w.request("command", frozen)[0] == 200
+    if freeze_before_completion:
+        frozen = g.w.command({"kind": "Freeze"}, g.w.query()["root"]["revision"])
+        assert g.w.request("command", frozen)[0] == 200
     records = []
     for claim, request in zip(claims, requests, strict=True):
         with override_settings(
@@ -95,7 +105,9 @@ def publish_native_wallets(g, root_path, tenant, customer_claim, arguments):
             MPC_SOLANA_WITNESS_COURIER_KEY=str(g.w.courier / "tls.key"),
         ):
             proof = query_witness(request["query"])
-        assert proof["value"]["root"]["phase"] == "Frozen"
+        assert proof["value"]["root"]["phase"] == (
+            "Frozen" if freeze_before_completion else "Active"
+        )
         verify(g.w.identity, "WITNESS_QUERY_REPLY_V1", proof)
         complete_args = {
             "reservation_id": claim.pk,
@@ -142,7 +154,7 @@ def publish_native_wallets(g, root_path, tenant, customer_claim, arguments):
                 "customer_and_treasury_have_original_all_three_claim_receipts": True,
                 "financial_intents_and_native_issuers_committed_before_lifecycle_grants": True,
                 "original_command_ack_fingerprints_recovered_after_witness_restart": True,
-                "original_publication_completed_after_freeze": True,
+                "original_publication_completed_after_freeze": freeze_before_completion,
                 "after_remote_grant_db_failure_preserved_original_pending_ids": True,
                 "customer_owner_and_claim_address_preserved": True,
                 "treasury_user_wallets": 0,

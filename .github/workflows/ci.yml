@@ -92,6 +92,8 @@ jobs:
       - run: ruff check custody/solana_financial_wallet.py custody/migrations/0038_solana_financial_wallets.py
       - run: ruff format --check custody/solana_financial_sessions.py custody/migrations/0039_solana_financial_sessions.py
       - run: ruff check custody/solana_financial_sessions.py custody/migrations/0039_solana_financial_sessions.py
+      - run: ruff format --check custody/solana_financial_preparation.py custody/solana_financial_signing.py custody/solana_financial_finality.py custody/solana_financial_outbound.py custody/migrations/004[0-2]*
+      - run: ruff check custody/solana_financial_preparation.py custody/solana_financial_signing.py custody/solana_financial_finality.py custody/solana_financial_outbound.py custody/migrations/004[0-2]*
       - run: ruff format --check custody/solana_witness_client.py
       - run: ruff check custody/solana_witness_client.py
       - run: ruff format --check ../mpc-side/protocol/tests/fixtures/generate_solana_intent.py

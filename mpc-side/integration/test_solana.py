@@ -192,6 +192,13 @@ def test_phase6gc_native_deposit_sweep_approved_withdrawal_single_ledger(tmp_pat
     run_native_financial_flow(tmp_path, incoming=incoming)
 
 
+@pytest.mark.django_db(transaction=True)
+def test_phase6gc_classic_token_publication_deposit_sweep_and_approved_withdrawals(tmp_path):
+    from financial_token_acceptance import run_token_financial_flow
+
+    run_token_financial_flow(tmp_path)
+
+
 @pytest.mark.parametrize(
     "fault",
     (
@@ -305,6 +312,12 @@ def test_phase6gc_protected_atomic_classic_spl_creation_and_all_pairs(tmp_path):
     from protected_acceptance import run_token_pairs
 
     run_token_pairs(tmp_path)
+
+
+def test_phase6gc_protected_seeded_spl_treasury_sweep_and_external_transfer(tmp_path):
+    from seeded_token_acceptance import run_seeded_token_sweeps
+
+    run_seeded_token_sweeps(tmp_path)
 
 
 def test_phase6gc_protected_warm_independent_approval_credentials(tmp_path):

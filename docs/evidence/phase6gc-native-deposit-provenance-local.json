@@ -22,7 +22,17 @@
     "total": 286,
     "tron": 5
   },
-  "exact_source_fast_ci": "pending",
+  "exact_source_fast_ci": {
+    "backend_seconds_reported": 521.11,
+    "backend_tests": 1097,
+    "conclusion": "success",
+    "executed_jobs": 4,
+    "head_sha": "55e245e6c39299759c74f43b657abbbf174fb8d1",
+    "run_id": 41445276955,
+    "scenario_suite_limit": "Fast only; crypto suites/ALL and fixed3d32 compatibility not selected; excludes subsequent SPL primitive changes",
+    "tree": "d59f974d00546937a77ebab1d5d08f0f6baf0602",
+    "url": "https://github.com/zeroexlive/Custody/actions/runs/41445276955"
+  },
   "genuine_invariants": {
     "all_three_threshold_pairs_covered": true,
     "balance_difference_never_credit_authority": true,

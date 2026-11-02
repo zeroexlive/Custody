@@ -797,6 +797,144 @@
       },
       "message_hex": "01000508bffa9deaae22db6a14ad738bd8fe32249c4ea61e1a820d15903273a84cb777d6145b88995baa906fd3ad4c284fd16bda5387399bad0c6d8fbd5715949df889218a972aabd96f48e1dd4f3b9b7c6e7552b0f7703cbf2a48fc5c116b3aaff260bc000000000000000000000000000000000000000000000000000000000000000006ddf6e1d765a193d9cbe146ceeb79ac1cb485ed5f5b37913a8cf5857eff00a921212121212121212121212121212121212121212121212121212121212121218c97258f4e2489f1bb3d1029148e0d830b5a1399daff1084048e7bd8dbe9f859f7248b0edbc62b13b7a397663013e0f7266ab8e422dca924b97a6e6ab7235080111111111111111111111111111111111111111111111111111111111111111102060600010507030401010404020701000a0c393000000000000006",
       "custody_message_sha256": "38a82d4e9f36df007daf9c7c2ff4fdddc8d3f025886386f5939b7f31a7edc3b4"
+    },
+    {
+      "intent": {
+        "version": "solana_seeded_intent_v1",
+        "claim": {
+          "asset": {
+            "kind": "ClassicToken",
+            "mint": "Hdk2BQUewLX5unzQFfSVzpwpw77CmMYHT6S5JUEzCJBq",
+            "decimals": 6
+          },
+          "index": 0,
+          "owner_ref": "p1:8ef035f2-8b55-4a38-90ae-6cace18cd4f7",
+          "reservation_id": "2d3e68db-8a8e-488c-8f92-f055b6e13dc6",
+          "idempotency_key": "classic-mint"
+        },
+        "generation": {
+          "epoch": 0,
+          "ceremony_id": "b9e62a52-8752-4c9a-81e9-d563099f1e79",
+          "public_key_package_sha256": "0c8501266b793cfad3d20cb63d10d92fad9511201a240ac71e431ce15341d521"
+        },
+        "session_id": "e2c67f2a-de87-5a1c-b198-b9b1952086c1",
+        "crypto_execution_id": "430bb81b-4241-5ac1-b2c7-b7c249adaef6",
+        "attempt_id": 101,
+        "operation_id": 102,
+        "operation_type": "SWEEP",
+        "asset_key": "REGISTRY-SPL",
+        "financial_source": "7hYXnimqbWTwaa8ipZLPRbsYM5jenLmiudaHiqpxJBmd",
+        "fee_payer": "DvQWzWbQzwGysGqwDWyaLgTmztSC9iqAEFvwGUpPNPsb",
+        "rent_payer": null,
+        "action": {
+          "kind": "ClassicSeededTransfer",
+          "destination_base": "DvQWzWbQzwGysGqwDWyaLgTmztSC9iqAEFvwGUpPNPsb",
+          "destination_index": 1,
+          "amount": 12345
+        },
+        "recent_blockhash": "29d2S7vB453rNYFdR5Ycwt7y9haRT5fwVwL9zTmBhfV2",
+        "last_valid_block_height": 200,
+        "policy_version": 7,
+        "expected_fee_lamports": 5000,
+        "expected_rent_lamports": 0,
+        "issued_at": 995,
+        "expires_at": 1075,
+        "message_fingerprint": "4758c93c7d183f981f8a76858f94cceb2c07c38a90d208c9e7bddaf5bd2b59bc"
+      },
+      "message_hex": "01000205bffa9deaae22db6a14ad738bd8fe32249c4ea61e1a820d15903273a84cb777d663890185bdcc16a346928a5ea0bbb69e6316f596192ecbb8aba182ad760ff57c771ad68427f8b4ea3f4aa4126b792f97092a0cd4e1853653c7add9dc7ec7451606ddf6e1d765a193d9cbe146ceeb79ac1cb485ed5f5b37913a8cf5857eff00a9f7248b0edbc62b13b7a397663013e0f7266ab8e422dca924b97a6e6ab72350801111111111111111111111111111111111111111111111111111111111111111010304010402000a0c393000000000000006",
+      "custody_message_sha256": "dcaf7948918de262b9f2566353e2b63c281f419c0760eb5bd942d87752b0d4d8"
+    },
+    {
+      "intent": {
+        "version": "solana_seeded_intent_v1",
+        "claim": {
+          "asset": {
+            "kind": "ClassicToken",
+            "mint": "Hdk2BQUewLX5unzQFfSVzpwpw77CmMYHT6S5JUEzCJBq",
+            "decimals": 6
+          },
+          "index": 1,
+          "owner_ref": "p1:8ef035f2-8b55-4a38-90ae-6cace18cd4f7",
+          "reservation_id": "2d3e68db-8a8e-488c-8f92-f055b6e13dc6",
+          "idempotency_key": "classic-mint"
+        },
+        "generation": {
+          "epoch": 0,
+          "ceremony_id": "b9e62a52-8752-4c9a-81e9-d563099f1e79",
+          "public_key_package_sha256": "0c8501266b793cfad3d20cb63d10d92fad9511201a240ac71e431ce15341d521"
+        },
+        "session_id": "71901b12-6cd0-5b5c-88f1-19851181def4",
+        "crypto_execution_id": "69a3d7b5-1e70-5459-a6dc-10c91be93c21",
+        "attempt_id": 101,
+        "operation_id": 102,
+        "operation_type": "SWEEP",
+        "asset_key": "\u0622\u0632\u0645\u0627\u06cc\u0634-SPL",
+        "financial_source": "91wFba9LDYaVLqtm8mPMmWsWMLdsBgQaABqZhg3vMgAZ",
+        "fee_payer": "DvQWzWbQzwGysGqwDWyaLgTmztSC9iqAEFvwGUpPNPsb",
+        "rent_payer": null,
+        "action": {
+          "kind": "ClassicSeededTransfer",
+          "destination_base": "DvQWzWbQzwGysGqwDWyaLgTmztSC9iqAEFvwGUpPNPsb",
+          "destination_index": 2,
+          "amount": 12345
+        },
+        "recent_blockhash": "29d2S7vB453rNYFdR5Ycwt7y9haRT5fwVwL9zTmBhfV2",
+        "last_valid_block_height": 200,
+        "policy_version": 7,
+        "expected_fee_lamports": 5000,
+        "expected_rent_lamports": 0,
+        "issued_at": 995,
+        "expires_at": 1075,
+        "message_fingerprint": "93452128fe917e8de0680393ea1c3d2aee2f7e6d020d2eb72d5d709cca1b4fa8"
+      },
+      "message_hex": "01000205bffa9deaae22db6a14ad738bd8fe32249c4ea61e1a820d15903273a84cb777d6497a85e420727ccb55f1bbf9d9353c606920ed6261f3762faf70f34bc7603802771ad68427f8b4ea3f4aa4126b792f97092a0cd4e1853653c7add9dc7ec7451606ddf6e1d765a193d9cbe146ceeb79ac1cb485ed5f5b37913a8cf5857eff00a9f7248b0edbc62b13b7a397663013e0f7266ab8e422dca924b97a6e6ab72350801111111111111111111111111111111111111111111111111111111111111111010304020401000a0c393000000000000006",
+      "custody_message_sha256": "402412b79542411e51b762bf51394ee95b3731a61252b0cdc45fe5aef4284448"
+    },
+    {
+      "intent": {
+        "version": "solana_seeded_intent_v1",
+        "claim": {
+          "asset": {
+            "kind": "ClassicToken",
+            "mint": "Hdk2BQUewLX5unzQFfSVzpwpw77CmMYHT6S5JUEzCJBq",
+            "decimals": 6
+          },
+          "index": 9223372036854775807,
+          "owner_ref": "p1:8ef035f2-8b55-4a38-90ae-6cace18cd4f7",
+          "reservation_id": "2d3e68db-8a8e-488c-8f92-f055b6e13dc6",
+          "idempotency_key": "classic-mint"
+        },
+        "generation": {
+          "epoch": 0,
+          "ceremony_id": "b9e62a52-8752-4c9a-81e9-d563099f1e79",
+          "public_key_package_sha256": "0c8501266b793cfad3d20cb63d10d92fad9511201a240ac71e431ce15341d521"
+        },
+        "session_id": "93ff002d-a841-5a4a-ad24-fde3484ee10d",
+        "crypto_execution_id": "c771d583-37aa-5b26-a4ce-2554c6a7ac19",
+        "attempt_id": 101,
+        "operation_id": 102,
+        "operation_type": "SWEEP",
+        "asset_key": "REGISTRY-SPL",
+        "financial_source": "AKzxPCFGErzJGw6bLXsZRHPfWSW8xuB7XVq8kW5ApBKR",
+        "fee_payer": "DvQWzWbQzwGysGqwDWyaLgTmztSC9iqAEFvwGUpPNPsb",
+        "rent_payer": null,
+        "action": {
+          "kind": "ClassicSeededTransfer",
+          "destination_base": "DvQWzWbQzwGysGqwDWyaLgTmztSC9iqAEFvwGUpPNPsb",
+          "destination_index": 9223372036854775806,
+          "amount": 12345
+        },
+        "recent_blockhash": "29d2S7vB453rNYFdR5Ycwt7y9haRT5fwVwL9zTmBhfV2",
+        "last_valid_block_height": 200,
+        "policy_version": 7,
+        "expected_fee_lamports": 5000,
+        "expected_rent_lamports": 0,
+        "issued_at": 995,
+        "expires_at": 1075,
+        "message_fingerprint": "75cee8282a186e2e0f13e31232f07a8e9ace24fe2092548625084344377eff9b"
+      },
+      "message_hex": "01000205bffa9deaae22db6a14ad738bd8fe32249c4ea61e1a820d15903273a84cb777d631e98c7cb9f0c94e1fb2e124416314d8a90a957dcbccdccd41697e088b36d5568a972aabd96f48e1dd4f3b9b7c6e7552b0f7703cbf2a48fc5c116b3aaff260bc06ddf6e1d765a193d9cbe146ceeb79ac1cb485ed5f5b37913a8cf5857eff00a9f7248b0edbc62b13b7a397663013e0f7266ab8e422dca924b97a6e6ab72350801111111111111111111111111111111111111111111111111111111111111111010304020401000a0c393000000000000006",
+      "custody_message_sha256": "deaaf96b31fa78fae7bc3d0f57a44c238433c4373300601be83c5e31c8ab6c31"
     }
   ]
 }

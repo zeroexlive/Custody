@@ -839,6 +839,7 @@ class OnchainTransactionAttempt(models.Model):
         ("WITHDRAWAL", "WITHDRAWAL"),
         ("SWEEP", "SWEEP"),
         ("GAS_TOPUP", "GAS_TOPUP"),
+        ("PROVISION", "PROVISION"),
     ]
     STATUSES = [
         (value, value)
@@ -898,11 +899,62 @@ class OnchainTransactionAttempt(models.Model):
                 name="uq_onchain_source_sequence",
             ),
             models.CheckConstraint(
-                condition=models.Q(amount__gt=0) & models.Q(base_unit_amount__gt=0),
+                condition=(~Q(operation_type="PROVISION") & Q(amount__gt=0, base_unit_amount__gt=0))
+                | Q(operation_type="PROVISION", chain_id="SOL", amount=0, base_unit_amount=0),
                 name="onchain_attempt_positive_amount",
             ),
         ]
         indexes = [models.Index(fields=["status", "chain_id"])]
+
+
+class MpcSolanaTokenProvision(models.Model):
+    """One explicit initialization business; no token principal or USER liability.
+
+    Failed finalized attempts retain history. A later explicit business may
+    retry; an unresolved or successful original cannot be silently replaced.
+    """
+
+    claim = models.ForeignKey(MpcSolanaClaim, on_delete=models.PROTECT)
+    idempotency_key = models.CharField(max_length=128)
+    status = models.CharField(max_length=32, default="CREATED")
+    tx_hash = models.CharField(max_length=128, null=True, blank=True)
+    created_at = models.DateTimeField(auto_now_add=True)
+    completed_at = models.DateTimeField(null=True, blank=True)
+
+    class Meta:
+        constraints = [
+            models.CheckConstraint(
+                condition=Q(
+                    status__in=[
+                        "CREATED",
+                        "PROCESSING",
+                        "BROADCASTED",
+                        "RECONCILIATION_REQUIRED",
+                        "CONFIRMED",
+                        "FAILED",
+                    ]
+                ),
+                name="sol_token_provision_state",
+            ),
+            models.UniqueConstraint(
+                fields=["claim"],
+                condition=~Q(status="FAILED"),
+                name="sol_token_one_live_or_successful_init",
+            ),
+            models.UniqueConstraint(
+                fields=["claim", "idempotency_key"], name="sol_token_provision_retry_identity"
+            ),
+        ]
+
+
+class MpcSolanaTokenPublication(models.Model):
+    """Immutable finalized initialization and actual account proof at publication."""
+
+    claim = models.OneToOneField(MpcSolanaClaim, primary_key=True, on_delete=models.PROTECT)
+    effect = models.OneToOneField("MpcSolanaFinancialEffect", on_delete=models.PROTECT)
+    account_context_slot = models.PositiveBigIntegerField()
+    account_evidence = models.JSONField()
+    created_at = models.DateTimeField(auto_now_add=True)
 
 
 class MpcSolanaFinancialOperation(models.Model):
@@ -911,6 +963,7 @@ class MpcSolanaFinancialOperation(models.Model):
     reservation_id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
     withdrawal = models.OneToOneField("WithdrawalRequest", null=True, on_delete=models.PROTECT)
     sweep = models.OneToOneField("SweepJob", null=True, on_delete=models.PROTECT)
+    provision = models.OneToOneField(MpcSolanaTokenProvision, null=True, on_delete=models.PROTECT)
     principal = models.ForeignKey(CustodyPrincipal, on_delete=models.PROTECT)
     source = models.ForeignKey(
         MpcSolanaFinancialWallet, on_delete=models.PROTECT, related_name="outgoing_operations"
@@ -934,19 +987,40 @@ class MpcSolanaFinancialOperation(models.Model):
         constraints = [
             models.CheckConstraint(
                 condition=Q(
-                    withdrawal__isnull=False, sweep__isnull=True, treasury_destination__isnull=True
+                    withdrawal__isnull=False,
+                    sweep__isnull=True,
+                    provision__isnull=True,
+                    treasury_destination__isnull=True,
                 )
                 | Q(
-                    withdrawal__isnull=True, sweep__isnull=False, treasury_destination__isnull=False
+                    withdrawal__isnull=True,
+                    sweep__isnull=False,
+                    provision__isnull=True,
+                    treasury_destination__isnull=False,
+                )
+                | Q(
+                    withdrawal__isnull=True,
+                    sweep__isnull=True,
+                    provision__isnull=False,
+                    treasury_destination__isnull=True,
                 ),
                 name="sol_fin_operation_business_shape",
             ),
             models.CheckConstraint(
-                condition=Q(
-                    amount__gt=0,
-                    base_unit_amount__gt=0,
-                    base_unit_amount__lte=18446744073709551615,
-                    fee_budget_lamports__gt=0,
+                condition=Q(fee_budget_lamports__gt=0)
+                & (
+                    Q(
+                        provision__isnull=True,
+                        amount__gt=0,
+                        base_unit_amount__gt=0,
+                        base_unit_amount__lte=18446744073709551615,
+                    )
+                    | Q(
+                        provision__isnull=False,
+                        amount=0,
+                        base_unit_amount=0,
+                        rent_budget_lamports__gt=0,
+                    )
                 ),
                 name="sol_fin_operation_amount_shape",
             ),
@@ -1115,6 +1189,8 @@ class MpcSolanaDepositProvenance(models.Model):
     signature = models.CharField(max_length=88)
     event_index = models.CharField(max_length=64)
     source_address = models.CharField(max_length=44)
+    source_owner_address = models.CharField(max_length=44, null=True, blank=True)
+    source_owner_history = models.JSONField(default=list)
     slot = models.PositiveBigIntegerField()
     block_hash = models.CharField(max_length=44)
     observation_sha256 = models.CharField(max_length=64)
@@ -1232,6 +1308,7 @@ class LedgerAccount(models.Model):
         ("TREASURY_ASSET", "TREASURY_ASSET"),
         ("NETWORK_FEE_EXPENSE", "NETWORK_FEE_EXPENSE"),
         ("ATA_RENT_ASSET", "ATA_RENT_ASSET"),
+        ("TOKEN_ACCOUNT_RENT_ASSET", "TOKEN_ACCOUNT_RENT_ASSET"),
         ("TOKEN_GAS_EXPENSE", "TOKEN_GAS_EXPENSE"),
     ]
     owner_type = models.CharField(max_length=16, choices=OWNER_TYPES)
@@ -1258,6 +1335,7 @@ class LedgerAccount(models.Model):
                             "TREASURY_ASSET",
                             "NETWORK_FEE_EXPENSE",
                             "ATA_RENT_ASSET",
+                            "TOKEN_ACCOUNT_RENT_ASSET",
                             "TOKEN_GAS_EXPENSE",
                         ],
                     )
@@ -1288,6 +1366,7 @@ class LedgerAccount(models.Model):
                 "TREASURY_ASSET",
                 "NETWORK_FEE_EXPENSE",
                 "ATA_RENT_ASSET",
+                "TOKEN_ACCOUNT_RENT_ASSET",
                 "TOKEN_GAS_EXPENSE",
             }
         )
@@ -1310,6 +1389,7 @@ class LedgerTransaction(models.Model):
         ("WITHDRAWAL_SETTLE", "WITHDRAWAL_SETTLE"),
         ("NETWORK_FEE", "NETWORK_FEE"),
         ("ATA_RENT", "ATA_RENT"),
+        ("TOKEN_ACCOUNT_RENT", "TOKEN_ACCOUNT_RENT"),
         ("TOKEN_GAS", "TOKEN_GAS"),
     ]
     event_key = models.CharField(max_length=160, unique=True)

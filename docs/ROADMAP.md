@@ -19,6 +19,14 @@ share repair, fresh-root rotation/drain/late-deposit rescue, finalized SPL
 publication and protected backend financial integration remain unfinished.
 See [current status](PROJECT_STATUS.md).
 
+Current continuation: native financial execution/provenance is committed at
+55e245e with exact Fast41445276955. Default-off classic SPL financial workflows
+now have component and one genuine full-flow result; independent runtime and
+current-source CI are pending. See [SPL boundary](PHASE6GC_SPL_FINANCIAL.md).
+Repaired-identity new Claims and fresh-DKG drain/retirement/late-address rescue
+remain required before whole6G-C acceptance. Historical paragraphs below retain
+their original checkpoint scope.
+
 The intermediate checkpoint paragraphs below retain their historical scope;
 the current facts above and PROJECT_STATUS.md take precedence.
 

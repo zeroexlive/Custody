@@ -69,6 +69,13 @@ pub enum Operation {
         decimals: u8,
         create_ata: bool,
     },
+    SeededToken {
+        mint: Key,
+        destination_base: Key,
+        destination_index: u64,
+        amount: u64,
+        decimals: u8,
+    },
 }
 #[derive(Debug)]
 struct Instruction {
@@ -129,6 +136,28 @@ fn expected(base: Key, index: u64, op: &Operation) -> Result<Vec<Instruction>> {
                 program: token,
                 accounts: vec![(source, false, true), (*mint, false, false)],
                 data: [&[18], base.as_slice()].concat(),
+            });
+        }
+        Operation::SeededToken {
+            mint,
+            destination_base,
+            destination_index,
+            amount,
+            decimals,
+        } => {
+            ensure!(*amount > 0 && *decimals <= 18, "token amount/precision");
+            let source = address(&base, index, true)?;
+            let target = address(destination_base, *destination_index, true)?;
+            ensure!(source != target, "same token source and destination");
+            out.push(Instruction {
+                program: token,
+                accounts: vec![
+                    (source, false, true),
+                    (*mint, false, false),
+                    (target, false, true),
+                    (base, true, false),
+                ],
+                data: [&[12], amount.to_le_bytes().as_slice(), &[*decimals]].concat(),
             });
         }
         Operation::Token {

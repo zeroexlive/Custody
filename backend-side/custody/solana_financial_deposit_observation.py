@@ -44,7 +44,7 @@ def _block_identity(block, signature, slot):
     return block_hash
 
 
-def observe_deposit_transaction(signature, *, transport=None):
+def observe_deposit_transaction(signature, *, transport=None, classic_asset=None):
     """Fetch and authenticate canonical wire/status and explicit block membership.
 
     Missing/pruned data can use another trusted endpoint. Conflicting evidence
@@ -144,6 +144,17 @@ def observe_deposit_transaction(signature, *, transport=None):
                 ],
                 "loaded_addresses": meta.get("loadedAddresses") or {"writable": [], "readonly": []},
             }
+            if classic_asset is not None:
+                from .solana_seeded_token_deposits import normalized_token_balances
+
+                material["kind"] = "SOLANA_CLASSIC_TOKEN_DEPOSIT_V1"
+                material["asset"] = {
+                    "asset_key": classic_asset.asset_key,
+                    "mint": classic_asset.contract_address,
+                    "decimals": classic_asset.decimals,
+                }
+                material["meta"].update(normalized_token_balances(meta, tx.message.account_keys))
+                evidence["classic_asset"] = material["asset"].copy()
             digest = hashlib.sha256(
                 json.dumps(
                     material, sort_keys=True, separators=(",", ":"), allow_nan=False

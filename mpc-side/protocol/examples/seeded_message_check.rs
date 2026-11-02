@@ -26,6 +26,13 @@ fn main() {
             decimals: u8::try_from(c["decimals"].as_u64().unwrap()).unwrap(),
             create_ata: c["create_ata"].as_bool().unwrap(),
         },
+        "seeded_token" => Operation::SeededToken {
+            mint: key("mint"),
+            destination_base: key("destination_base"),
+            destination_index: c["destination_index"].as_u64().unwrap(),
+            amount: c["amount"].as_u64().unwrap(),
+            decimals: u8::try_from(c["decimals"].as_u64().unwrap()).unwrap(),
+        },
         _ => panic!("unsupported public operation"),
     };
     let raw = decode_hex(c["message_hex"].as_str().unwrap()).unwrap();

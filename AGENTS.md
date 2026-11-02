@@ -117,17 +117,25 @@ no remaining identified bounded P0/P1. ExactFast41425030949 and full local backe
 1017 cases538.917s pass at c233a04. Synthetic
 sweep funding/snapshot are not deposit/customer-liability acceptance. NoSignature
 permits another crypto attempt under the same hold; it cannot release a business
-hold from local history alone. Subsequent uncommitted0043–0044 add native finalized
+hold from local history alone. Subsequent committed55e245e/0043–0044 add native finalized
 deposit provenance, actual legacy/v0/PDA source attribution and pre-allocation
 financial private-routing/legacy-history gates. Seeded credit remains default-off;
 live finalized scanning and explicit permanent operator-funding classification
 are required. Ordinary shared-hot-wallet signing cannot service an enrolled
 financial customer. Independent209 cases206.063s and3 genuine legacy/v0/PDA full
 flows332.263s pass with stable54-source/3-binary hashes and no remaining bounded
-P0/P1. Root80 component cases58.966s, Django checks/drift and lint pass. Current-
-source broader backend/CI, SPL,
+P0/P1. Root80 component cases58.966s, Django checks/drift and lint pass. Exact
+Fast41445276955 passes four jobs including1097 backend tests521.11s; it excludes
+subsequent uncommitted SPL primitives. Final whole-phase ALL/compatibility, SPL,
 repaired-identity new Claims, fresh-DKG retirement and final phase gates remain
 unfinished. See PHASE6GC_FINANCIAL_INTEGRATION.md.
+
+Subsequent default-off classic SPL financial source now reuses original operation/
+session/ownership and ledger records for initialization, publication, seeded
+treasury sweep, external withdrawal and instruction-attributed deposit credit.
+Root103 targeted cases130.43s pass; genuine complete flow166.60s passed before
+the historical-owner race correction. Revised independent runtime/current-source
+CI are pending. Read PHASE6GC_SPL_FINANCIAL.md; no whole-phase completion follows.
 
 ## Latest owner-approved Phase 7B scope
 

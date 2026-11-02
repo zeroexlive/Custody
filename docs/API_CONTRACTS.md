@@ -287,3 +287,17 @@ Fresh recipient profiles are dedicated to one original Root; generic DKG and
 original-generation signing are unavailable there. RepairReady cannot authorize
 activation. Explicit migration of old immutable profiles remains unfinished; see
 [implemented boundary and remaining acceptance](PHASE6GC_RECOVERY.md).
+
+### Phase6G-C classic SPL financial operator workflow (unmerged development)
+
+The privileged local `solana_financial` command adds `provision-allocate` with
+original Claim reservation, explicit idempotency key, fee and rent budgets.
+`wallet-request` reports `initialization_required` and no witness action before
+owned finality; afterward it exports `IssueClassicClaim` bound to the original
+initialization execution. Existing session/query/prepare/approve/execute/recover/
+broadcast/reconcile commands retain their authority and uncertainty semantics.
+`withdrawal-allocate --rent-budget-lamports` is mandatory for token creation risk;
+native withdrawals require zero rent. `deposit-scan` selects original verified
+asset membership and actual finalized instruction provenance. Default-off SPL
+activation is separate from these CLI schemas. These commands are privileged
+operator tools, not tenant/API authentication. See PHASE6GC_SPL_FINANCIAL.md.

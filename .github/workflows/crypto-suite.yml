@@ -220,6 +220,8 @@ jobs:
             work/crypto/fixtures/**/solana-native-financial-legacy-public-evidence.json
             work/crypto/fixtures/**/solana-native-financial-v0-public-evidence.json
             work/crypto/fixtures/**/solana-native-financial-pda-public-evidence.json
+            work/crypto/fixtures/**/solana-seeded-token-sweep-public-evidence.json
+            work/crypto/fixtures/**/solana-token-financial-public-evidence.json
             work/ton-review/mpc-tvm-evidence.json
             work/ton-review/validator-network-evidence.json
             work/ton-review/django-validator-evidence.json

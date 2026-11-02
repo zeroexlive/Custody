@@ -59,7 +59,7 @@ def _parent(parent, row, status):
     parent.status = status
     parent.tx_hash = row.attempt.network_tx_id
     fields = ["status", "tx_hash"]
-    if row.operation.sweep_id and status in {"CONFIRMED", "FAILED"}:
+    if (row.operation.sweep_id or row.operation.provision_id) and status in {"CONFIRMED", "FAILED"}:
         parent.completed_at = timezone.now()
         fields.append("completed_at")
     parent.save(update_fields=fields)
@@ -134,7 +134,13 @@ def broadcast_session(*, session_id, tenant_id, operator_ref, transport=None):
         attempt.save(
             update_fields=["status", "broadcast_started_at", "confirmation_metadata", "updated_at"]
         )
-        _parent(parent, row, "PROCESSING" if row.operation.withdrawal_id else "SWEEP_PROCESSING")
+        _parent(
+            parent,
+            row,
+            "PROCESSING"
+            if (row.operation.withdrawal_id or row.operation.provision_id)
+            else "SWEEP_PROCESSING",
+        )
         _audit("SOL_FIN_BROADCAST_BEGIN", attempt, operator_ref)
         deadline = min(
             lease.expires_at,
@@ -172,7 +178,9 @@ def broadcast_session(*, session_id, tenant_id, operator_ref, transport=None):
                 _parent(
                     parent,
                     current,
-                    "BROADCASTED" if current.operation.withdrawal_id else "SWEEP_BROADCASTED",
+                    "BROADCASTED"
+                    if (current.operation.withdrawal_id or current.operation.provision_id)
+                    else "SWEEP_BROADCASTED",
                 )
                 _audit("SOL_FIN_BROADCAST_ACK", attempt, operator_ref)
             return attempt

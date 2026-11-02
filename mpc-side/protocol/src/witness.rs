@@ -311,6 +311,11 @@ pub enum CommandAction {
         reservation_id: Uuid,
         issuance_id: Uuid,
     },
+    IssueClassicClaim {
+        reservation_id: Uuid,
+        issuance_id: Uuid,
+        initialization_execution_id: Uuid,
+    },
     Freeze,
     EnableFinancialMode {
         approvals: Box<crate::solana_financial::FinancialModeApprovals>,
@@ -464,6 +469,9 @@ pub struct ClaimIssuance {
     pub reservation_id: Uuid,
     pub issuance_id: Uuid,
     pub command_id: Uuid,
+    /// Original MPC initialization identity, not proof of chain finality.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub initialization_execution_id: Option<Uuid>,
 }
 #[derive(Clone, Debug, Serialize, Deserialize)]
 #[serde(deny_unknown_fields)]

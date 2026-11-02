@@ -32,7 +32,7 @@ not establish deposit credit or customer liability acceptance. Independent129 fo
 stable22-source/3-binary hashes and no remaining identified bounded P0/P1.
 These results cover c233a04, not the subsequent incoming/routing source.
 
-Current uncommitted0043–0044 implement finalized native deposit provenance and
+Committed55e245e/0043–0044 implement finalized native deposit provenance and
 pre-allocation financial routing. Credit uses actual canonical legacy/v0 wire,
 finalized status/block membership, explicit transfer instructions and original
 Claim/owner identity. Known custody and registered operator sources create no
@@ -43,9 +43,23 @@ private fallback is fenced before allocation; unresolved legacy history blocks
 enrollment, and existing holds retain their original release/settlement gates.
 Current-source independent209 cases206.063s and3 genuine legacy/v0/PDA full native
 flows332.263s pass with54-source/3-binary hashes unchanged and no remaining
-identified bounded P0/P1. Root component80 cases58.966s also passes. Broader backend
-and exact-source CI are required. SPL, repaired-identity new Claims, fresh-DKG drain/retirement and
+identified bounded P0/P1. Root component80 cases58.966s also passes. Exact
+[Fast41445276955](https://github.com/zeroexlive/Custody/actions/runs/41445276955)
+passes all four executed jobs, including1097 backend tests521.11s. This is Fast
+only and excludes subsequent SPL changes. SPL, repaired-identity new Claims, fresh-DKG drain/retirement and
 final whole-phase gates remain unfinished. No whole-phase completion is claimed.
+
+The next Draft PR #2 boundary implements default-off classic SPL initialization,
+publication, seeded treasury sweeps, external ATA withdrawals and incoming token
+provenance through the existing ledger. Root103 focused cases130.43s pass, and
+one complete genuine FROST/PG/Agave flow passed166.60s before the subsequent
+owner-history race correction. Independent source review found/fixed atomic
+forwarding availability and historical-owner classification races; revised
+independent runtime and exact-source CI are pending. The interrupted broad run
+reported617 passes218.64s and is not full-suite acceptance. See
+[SPL scope and evidence](PHASE6GC_SPL_FINANCIAL.md). Repaired-identity new Claims,
+fresh-DKG migration/drain/retirement, old-address rescue and final whole-phase
+ALL/original-store compatibility/merge gates remain unfinished.
 
 Final reviewed head `78394fc2e5ae585cd265c195f1d02557cb062e21` passed
 [Fast40683968092](https://github.com/zeroexlive/Custody/actions/runs/40683968092)

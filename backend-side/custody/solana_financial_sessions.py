@@ -44,7 +44,19 @@ from .solana_witness_client import _verify
 PAIRS = (["signer-a", "signer-b"], ["signer-a", "signer-c"], ["signer-b", "signer-c"])
 
 
+def operation_identity(operation):
+    if operation.withdrawal_id:
+        return "WITHDRAWAL", operation.withdrawal_id
+    if operation.sweep_id:
+        return "SWEEP", operation.sweep_id
+    if operation.provision_id:
+        return "PROVISION", operation.provision_id
+    raise MpcBindingError("one explicit financial business subtype required")
+
+
 def reject_generic_business(operation_type, operation_id):
+    if operation_type == "PROVISION":
+        raise MpcBindingError("protected token provisioning requires typed proof handling")
     parent = {"WITHDRAWAL": WithdrawalRequest, "SWEEP": SweepJob}.get(operation_type)
     if parent and connection.vendor == "postgresql":
         source = "chain_id" if operation_type == "WITHDRAWAL" else "user_wallet__chain_id"
@@ -101,17 +113,31 @@ def _external_destination(address):
         )
 
 
-def _existing(row, source_id, budget, destination_id=None):
-    if (row.source_id, row.fee_budget_lamports, row.treasury_destination_id) != (
+def _existing(row, source_id, budget, destination_id=None, rent=0):
+    if (
+        row.source_id,
+        row.fee_budget_lamports,
+        row.treasury_destination_id,
+        row.rent_budget_lamports,
+    ) != (
         source_id,
         budget,
         destination_id,
+        rent,
     ) or row.status != "HELD":
         raise MpcBindingError("original business reservation/source/budget cannot change")
     return row
 
 
-def allocate_withdrawal(*, withdrawal_id, source_id, tenant_id, fee_budget_lamports, operator_ref):
+def allocate_withdrawal(
+    *,
+    withdrawal_id,
+    source_id,
+    tenant_id,
+    fee_budget_lamports,
+    operator_ref,
+    rent_budget_lamports=0,
+):
     """Reuse the original USER reserve; allocate no second balance/hold journal."""
     _standalone()
     _runtime()
@@ -122,12 +148,21 @@ def allocate_withdrawal(*, withdrawal_id, source_id, tenant_id, fee_budget_lampo
     )
     with transaction.atomic():
         source = _wallet(source_id, tenant_id, "TENANT_TREASURY")
+        if source.claim.asset.is_native:
+            if rent_budget_lamports != 0 or type(rent_budget_lamports) is not int:
+                raise MpcBindingError("native withdrawal cannot reserve token rent")
+            rent = 0
+        else:
+            from .solana_token_provisioning import rent_budget, require_spl_enabled
+
+            require_spl_enabled()
+            rent = rent_budget(rent_budget_lamports)
         req = WithdrawalRequest.objects.select_for_update().get(pk=withdrawal_id)
         existing = (
             MpcSolanaFinancialOperation.objects.select_for_update().filter(withdrawal=req).first()
         )
         if existing:
-            return _existing(existing, source_id, budget)
+            return _existing(existing, source_id, budget, rent=rent)
         principal = CustodyPrincipal.objects.get(tenant_id=tenant_id, ledger_owner_id=req.user_id)
         if not CustodyPrincipalRole.objects.filter(principal=principal, role="CUSTOMER").exists():
             raise MpcBindingError("explicit customer reservation owner required")
@@ -154,6 +189,7 @@ def allocate_withdrawal(*, withdrawal_id, source_id, tenant_id, fee_budget_lampo
             ),
             destination_address=req.to_address,
             fee_budget_lamports=budget,
+            rent_budget_lamports=rent,
         )
         _audit("SOL_FIN_WITHDRAWAL_RESERVE", row, operator_ref)
         return row
@@ -255,11 +291,16 @@ def allocate_session(*, reservation_id, tenant_id, selected_signers, operator_re
         claim = operation.source.claim
         if claim.root.keyset.status != "ACTIVE":
             raise MpcBindingError("new session requires active original source")
-        validate_financial_wallet(operation.source)
-        operation_type = "WITHDRAWAL" if operation.withdrawal_id else "SWEEP"
+        if operation.provision_id:
+            from .solana_token_provisioning import validate_pending_source
+
+            validate_pending_source(operation.source)
+        else:
+            validate_financial_wallet(operation.source)
+        operation_type, operation_id = operation_identity(operation)
         attempt = OnchainTransactionAttempt.objects.create(
             operation_type=operation_type,
-            operation_id=operation.withdrawal_id or operation.sweep_id,
+            operation_id=operation_id,
             attempt_number=MpcSolanaFinancialSession.objects.filter(operation=operation).count()
             + 1,
             chain_id="SOL",

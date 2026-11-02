@@ -1,0 +1,69 @@
+{
+  "algorithm_changes": false,
+  "exact_source_ci": "PENDING",
+  "genuine_scope_limit": "Whole SPL flow success predates the owner-history race correction and added B-zero provenance assertions; revised independent run required.",
+  "independent_revised_pg_and_genuine": "PENDING",
+  "independent_source_findings_corrected": [
+    "P1 valid atomic forwarding rejected by redundant source net debit check",
+    "P1 historical owner lost between observation and locked classification/credit",
+    "P2 witness classic issuance financial mode/binding consistency",
+    "P2 SQL publication raw mint and required rent fields"
+  ],
+  "interrupted_full_backend": {
+    "errors": 0,
+    "failures": 0,
+    "seconds": 217.873,
+    "skipped": 0,
+    "tests": 617,
+    "xml_sha256": "0df2cad5f8d396f0d92efebe8b0f64a58a788ba57fb0a740f6fc5f1919b28b72"
+  },
+  "interrupted_full_backend_limit": "Intentionally SIGINT interrupted for owner-history fix after617 passes; not full-suite acceptance.",
+  "merge_claimed": false,
+  "phase": "6G-C",
+  "phase_status": "IN PROGRESS",
+  "production_flags_enabled": false,
+  "recorded_at": "2026-11-02T21:47:11.022277+03:30",
+  "remaining_phase_work": [
+    "repaired-identity new Claim progression",
+    "fresh DKG migration/drain/retirement",
+    "old-address late-deposit rescue",
+    "final whole-phase independent review/Fast/ALL/fixed3d32 compatibility/merge/main verification"
+  ],
+  "root_combined": {
+    "errors": 0,
+    "failures": 0,
+    "seconds": 130.405,
+    "skipped": 0,
+    "tests": 103,
+    "xml_sha256": "aa959509bbe552469b8ec297d2d357f12abe2eeed3adeb2a127d8135adb0c1cf"
+  },
+  "root_genuine_pre_history_fix": {
+    "errors": 0,
+    "failures": 0,
+    "seconds": 166.581,
+    "skipped": 0,
+    "tests": 1,
+    "xml_sha256": "6b031610319264539cbb7c7cae31ea46793a9ee44c417316ce06634951b40a4a"
+  },
+  "root_hardening": {
+    "errors": 0,
+    "failures": 0,
+    "seconds": 37.702,
+    "skipped": 0,
+    "tests": 20,
+    "xml_sha256": "48ec0e00d782e569a43fa07963b3086fc57890863bff33ecd0fbda0dd02734f2"
+  },
+  "root_pure": {
+    "errors": 0,
+    "failures": 0,
+    "seconds": 0.189,
+    "skipped": 0,
+    "tests": 21,
+    "xml_sha256": "07e46d1472e1c31b910ab5d93296429a524e844fde5f4adcc50d878ab849d782"
+  },
+  "scope": "unmerged default-off classic SPL financial continuation; isolated development only",
+  "source_freeze_v2": {
+    "manifest_sha256": "895aecb58eccfc352d5207a9f9efde286b33a5e07ba9bce964b8f78ae8d1c9c3",
+    "paths": 82
+  }
+}

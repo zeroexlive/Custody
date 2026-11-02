@@ -35,6 +35,7 @@ from .models import (
     MpcSolanaFinancialQuery,
     MpcSolanaFinancialSession,
     MpcSolanaMessageOwner,
+    MpcSolanaTokenProvision,
     SweepJob,
     WithdrawalRequest,
 )
@@ -42,7 +43,7 @@ from .mpc_binding import MpcBindingError
 from .mpc_request_auth import _authorize_message
 from .mpc_solana_network import guarded_solana_rpc, network_identity, require_fresh
 from .native_tx import InsufficientBalance, PreparedNativeTransaction, RequestsTransport, _cap
-from .solana_financial_sessions import _external_destination, _locked_operation
+from .solana_financial_sessions import _external_destination, _locked_operation, operation_identity
 from .solana_financial_wallet import validate_financial_wallet
 from .solana_issuance import _canonical, _locked_claim, _pin
 from .solana_policy import account_data
@@ -103,6 +104,8 @@ def _locked(snapshot, tenant_id):
         (WithdrawalRequest, operation.withdrawal_id)
         if operation.withdrawal_id
         else (SweepJob, operation.sweep_id)
+        if operation.sweep_id
+        else (MpcSolanaTokenProvision, operation.provision_id)
     )
     parent = model.objects.select_for_update().get(pk=pk)
     operation = _locked_operation(operation.pk, tenant_id)
@@ -114,6 +117,19 @@ def _locked(snapshot, tenant_id):
 
 
 def _business(operation, parent):
+    if operation.provision_id:
+        from .solana_token_provisioning import validate_pending_source
+
+        wallet = validate_pending_source(operation.source)
+        if (
+            operation.status != "HELD"
+            or parent.status != "CREATED"
+            or parent.claim_id != wallet.claim_id
+            or operation.amount != 0
+            or operation.base_unit_amount != 0
+        ):
+            raise MpcBindingError("original held zero-principal token initializer required")
+        return wallet
     wallet = validate_financial_wallet(operation.source)
     if operation.status != "HELD" or wallet.claim.root.keyset.status != "ACTIVE":
         raise MpcBindingError("held reservation and active original source required")
@@ -174,7 +190,8 @@ def _fresh_witness(row, lease, evidence):
         or root.get("prepared") is not None
         or root.get("financial_mode") != expected_mode
         or value.get("claim") != source.claim.evidence
-        or value.get("claim_issuance") != source.evidence["value"]["claim_issuance"]
+        or value.get("claim_issuance")
+        != (None if row.operation.provision_id else source.evidence["value"]["claim_issuance"])
         or value.get("execution") is not None
         or value.get("abandoned") is not False
         or type(value.get("sequence")) is not int
@@ -217,6 +234,10 @@ def _fresh_witness(row, lease, evidence):
 
 
 def _quote(row, transport, *, fixed=False):
+    if not row.operation.source.claim.asset.is_native:
+        from .solana_token_provisioning import token_quote
+
+        return token_quote(row, transport, fixed=fixed)
     operation, claim = row.operation, row.operation.source.claim
     spec = get_chain_spec("SOL")
     network = network_identity("SOL")
@@ -339,7 +360,13 @@ def _holds(root_id):
     rows = (
         MpcSolanaFinancialOperation.objects.filter(status="HELD", source__claim__root_id=root_id)
         .order_by("reservation_id")
-        .values_list("reservation_id", "source_id", "base_unit_amount", "fee_budget_lamports")
+        .values_list(
+            "reservation_id",
+            "source_id",
+            "base_unit_amount",
+            "fee_budget_lamports",
+            "rent_budget_lamports",
+        )
     )
     return hashlib.sha256(_canonical([[str(v) for v in row] for row in rows])).hexdigest()
 
@@ -358,16 +385,23 @@ def _liquidity(operation, prepared):
         "total"
     ]
     budget = held.filter(source__claim__root_id=operation.source.claim.root_id).aggregate(
-        total=Sum("fee_budget_lamports")
-    )["total"]
+        total=Sum("fee_budget_lamports"), rent=Sum("rent_budget_lamports")
+    )
     fees = prepared.fee_metadata
-    source_left = int(fees["source_balance_lamports"]) - int(units)
+    source_left = int(fees.get("source_balance_units", fees["source_balance_lamports"])) - int(
+        units
+    )
     base_left = (
-        int(fees["base_balance_lamports"]) - int(budget) - int(fees["native_reserve_lamports"])
+        int(fees["base_balance_lamports"])
+        - int(budget["total"] or 0)
+        - int(budget["rent"] or 0)
+        - int(fees["native_reserve_lamports"])
     )
     minimum = int(fees["source_rent_minimum_lamports"])
-    if min(source_left, base_left) < 0 or any(
-        0 < remaining < minimum for remaining in [source_left, base_left]
+    if (
+        min(source_left, base_left) < 0
+        or (not fees.get("source_is_token") and 0 < source_left < minimum)
+        or 0 < base_left < int(fees.get("base_rent_minimum_lamports", minimum))
     ):
         raise InsufficientBalance(
             "separate source principal and Root fee budgets must cover all held businesses"
@@ -408,7 +442,7 @@ def prepare_session(*, session_id, tenant_id, challenge, evidence, operator_ref,
             raise MpcBindingError("original allocation/current policy required")
         _liquidity(operation, prepared)
         now = int(timezone.now().timestamp())
-        kind = "WITHDRAWAL" if operation.withdrawal_id else "SWEEP"
+        kind, operation_id = operation_identity(operation)
         intent = {
             "version": "solana_seeded_intent_v1",
             "claim": claim.statement,
@@ -416,7 +450,7 @@ def prepare_session(*, session_id, tenant_id, challenge, evidence, operator_ref,
             "session_id": str(row.pk),
             "crypto_execution_id": str(row.crypto_execution_id),
             "attempt_id": row.attempt_id,
-            "operation_id": operation.withdrawal_id or operation.sweep_id,
+            "operation_id": operation_id,
             "operation_type": kind,
             "asset_key": claim.asset.asset_key,
             "financial_source": claim.address,
@@ -444,18 +478,30 @@ def prepare_session(*, session_id, tenant_id, challenge, evidence, operator_ref,
                 "source_owner_ref": claim.principal.ledger_owner_id,
                 "source_role": wallet.role,
                 "operation_type": kind,
-                "operation_id": operation.withdrawal_id or operation.sweep_id,
+                "operation_id": operation_id,
                 "asset_key": claim.asset.asset_key,
             },
         }
-        validate_native_transfer(
-            prepared.unsigned_payload["message"],
-            claim.root.base_address,
-            claim.index,
-            operation.destination_address,
-            int(operation.base_unit_amount),
-            intent["recent_blockhash"],
-        )
+        if claim.asset.is_native:
+            validate_native_transfer(
+                prepared.unsigned_payload["message"],
+                claim.root.base_address,
+                claim.index,
+                operation.destination_address,
+                int(operation.base_unit_amount),
+                intent["recent_blockhash"],
+            )
+        else:
+            from .solana_seeded_token_effects import validate_token_intent_message
+
+            intent.update(
+                action=prepared.unsigned_payload["seeded_action"],
+                rent_payer=claim.root.base_address
+                if (operation.provision_id or operation.withdrawal_id)
+                else None,
+                expected_rent_lamports=int(prepared.fee_metadata["ata_rent_lamports"]),
+            )
+            validate_token_intent_message(intent, prepared.unsigned_payload["message"])
         row.intent, row.payload = intent, prepared.signing_payload
         row.custody_authorization = _authorize_message(
             b"Wallet-MPC/CUSTODY_SOLANA_SEEDED_INTENT_V1\0" + _content(row),

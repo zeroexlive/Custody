@@ -1,4 +1,4 @@
-"""Seeded-native finalized provenance and the existing deposit journal.
+"""Seeded finalized provenance and the existing deposit journal.
 
 The indexer selects this default-disabled controller from the stored seeded
 wallet identity. Generic credit remains fenced. No caller-supplied amount,
@@ -12,6 +12,7 @@ from decimal import Decimal
 import base58
 from django.conf import settings
 from django.db import transaction
+from django.db.models import Q
 from django.utils import timezone
 from solders.pubkey import Pubkey
 
@@ -39,7 +40,7 @@ from .solana_deposits import transfer_events
 from .solana_financial_deposit_observation import observe_deposit_transaction
 from .solana_financial_wallet import validate_financial_wallet
 from .solana_issuance import _locked_claim
-from .solana_policy import account_data
+from .solana_policy import account_data, validate_mint, validate_token_account
 from .solana_provisioning import _audit, _runtime
 from .solana_wire import SYSTEM_PROGRAM, uint
 
@@ -67,7 +68,10 @@ def register_operator_funding_source(*, address, reference, operator_ref):
                 raise MpcBindingError("original funding classification is immutable")
             return existing
         if MpcSolanaDepositProvenance.objects.filter(
-            genesis_hash=genesis, source_address=address
+            Q(source_address=address)
+            | Q(source_owner_address=address)
+            | Q(source_owner_history__contains=[address]),
+            genesis_hash=genesis,
         ).exists():
             raise MpcBindingError(
                 "already attributed external source needs explicit reconciliation"
@@ -108,12 +112,16 @@ def _wallet(user_wallet_id, tenant_id):
         user_wallet_id=user_wallet_id, claim__root__tenant_id=tenant_id
     )
     row = validate_financial_wallet(row)
-    if row.role != "CUSTOMER_DEPOSIT" or row.claim.asset.asset_key != "SOL":
-        raise MpcBindingError("original native customer financial membership required")
+    if row.role != "CUSTOMER_DEPOSIT":
+        raise MpcBindingError("original customer financial membership required")
+    if not row.claim.asset.is_native:
+        from .solana_token_provisioning import require_spl_enabled
+
+        require_spl_enabled()
     wallet = UserWallet.objects.get(pk=row.user_wallet_id)
     if wallet.status != "ACTIVE":
         raise MpcBindingError("customer deposit wallet unavailable")
-    validate_chain_asset("SOL", "SOL", "deposit")
+    validate_chain_asset("SOL", row.claim.asset.asset_key, "deposit")
     return row, wallet
 
 
@@ -140,19 +148,35 @@ def _internal_sources():
 
 
 def _observe(row, wallet, signature, transport):
-    tx, meta, evidence, digest = observe_deposit_transaction(signature, transport=transport)
+    asset = row.claim.asset
+    tx, meta, evidence, digest = observe_deposit_transaction(
+        signature, transport=transport, classic_asset=None if asset.is_native else asset
+    )
     if evidence["network"] != row.claim.root.network_identity:
         raise MpcBindingError("deposit observation differs from original genesis/network")
-    events = transfer_events(
-        tx,
-        meta,
-        evidence["slot"],
-        signature,
-        wallet,
-        row.claim.asset,
-        internal_addresses=_internal_sources(),
-        allow_runtime_cpi=True,
-    )
+    if asset.is_native:
+        events = transfer_events(
+            tx,
+            meta,
+            evidence["slot"],
+            signature,
+            wallet,
+            asset,
+            internal_addresses=_internal_sources(),
+            allow_runtime_cpi=True,
+        )
+    else:
+        from .solana_seeded_token_deposits import transfer_events as token_events
+
+        events = token_events(
+            tx,
+            meta,
+            evidence["slot"],
+            signature,
+            wallet,
+            row.claim,
+            internal_addresses=_internal_sources(),
+        )
     for event in events:
         event.block_hash = evidence["block_hash"]
     return evidence, [(event, evidence, digest) for event in events]
@@ -160,6 +184,9 @@ def _observe(row, wallet, signature, transport):
 
 def _locked_wallet(row, tenant_id):
     _locked_claim(row.claim_id, tenant_id)
+    # Serialize every asset's attribution with permanent funding classification.
+    # Root/Claim locks retain the established order before the common SOL lock.
+    Asset.objects.select_for_update().get(asset_key="SOL", chain_id="SOL", is_native=True)
     current, wallet = _wallet(row.user_wallet_id, tenant_id)
     wallet = UserWallet.objects.select_for_update().get(pk=wallet.pk)
     return current, wallet
@@ -177,13 +204,22 @@ def _ingest_observed(row, wallet, observations, operator_ref):
         signature = evidence["signature"]
         if (
             event.source_address in internal
+            or getattr(event, "source_owner_address", None) in internal
+            or internal.intersection(getattr(event, "source_owner_history", []))
             or OnchainTransactionAttempt.objects.filter(
                 chain_id="SOL", network_tx_id=signature
             ).exists()
         ):
             continue
-        if event.asset_key != "SOL" or event.block != evidence["slot"] or not event.source_address:
-            raise MpcBindingError("original native instruction provenance required")
+        asset_key = row.claim.asset.asset_key
+        source_owner = getattr(event, "source_owner_address", None)
+        owner_history = getattr(event, "source_owner_history", [])
+        if (
+            event.asset_key != asset_key
+            or event.block != evidence["slot"]
+            or not event.source_address
+        ):
+            raise MpcBindingError("original instruction provenance required")
         genesis = evidence["network"]["genesis_hash"]
         previous = MpcSolanaDepositProvenance.objects.filter(
             genesis_hash=genesis, signature=signature, event_index=event.event_index
@@ -195,6 +231,8 @@ def _ingest_observed(row, wallet, observations, operator_ref):
                 or previous.observation_sha256 != digest
                 or deposit.amount != event.amount
                 or previous.source_address != event.source_address
+                or previous.source_owner_address != source_owner
+                or previous.source_owner_history != owner_history
             ):
                 raise MpcBindingError("original deposit attribution/provenance changed")
             results.append((deposit, False))
@@ -205,7 +243,7 @@ def _ingest_observed(row, wallet, observations, operator_ref):
             raise MpcBindingError("existing deposit without original provenance cannot be adopted")
         deposit = Deposit.objects.create(
             user_wallet=wallet,
-            asset_key="SOL",
+            asset_key=asset_key,
             tx_hash=signature,
             event_index=event.event_index,
             amount=event.amount,
@@ -213,7 +251,12 @@ def _ingest_observed(row, wallet, observations, operator_ref):
             block_hash=evidence["block_hash"],
             confirmations=event.confirmations,
             status="PENDING",
-            chain_evidence={"kind": "SOLANA_SEEDED_NATIVE_V1", "observation_sha256": digest},
+            chain_evidence={
+                "kind": "SOLANA_SEEDED_NATIVE_V1"
+                if row.claim.asset.is_native
+                else "SOLANA_SEEDED_CLASSIC_V1",
+                "observation_sha256": digest,
+            },
         )
         MpcSolanaDepositProvenance.objects.create(
             deposit=deposit,
@@ -221,21 +264,23 @@ def _ingest_observed(row, wallet, observations, operator_ref):
             signature=signature,
             event_index=event.event_index,
             source_address=event.source_address,
+            source_owner_address=source_owner,
+            source_owner_history=owner_history,
             slot=evidence["slot"],
             block_hash=evidence["block_hash"],
             observation_sha256=digest,
             evidence=evidence,
         )
-        accounts = lock_user_accounts(wallet.user_id, "SOL")
+        accounts = lock_user_accounts(wallet.user_id, asset_key)
         post_transaction(
             event_key=f"deposit:{deposit.pk}:credit",
             event_type="DEPOSIT_CREDIT",
-            asset_key="SOL",
+            asset_key=asset_key,
             ref_type="Deposit",
             ref_id=deposit.pk,
             postings=[
                 (accounts["AVAILABLE"], deposit.amount),
-                (clearing_account("SOL"), -deposit.amount),
+                (clearing_account(asset_key), -deposit.amount),
             ],
         )
         deposit.status = "CONFIRMED"
@@ -262,7 +307,7 @@ def ingest_financial_event(*, user_wallet_id, tenant_id, event, operator_ref, tr
         raise MpcBindingError("event is not one attributable external native instruction")
     actual = matching[0][0]
     if (
-        event.asset_key != "SOL"
+        event.asset_key != row.claim.asset.asset_key
         or event.amount != actual.amount
         or event.block != actual.block
         or event.block_hash != matching[0][1]["block_hash"]
@@ -304,11 +349,28 @@ def scan_financial_wallet(*, user_wallet_id, tenant_id, operator_ref, transport=
             head = original_cursor.get("head_slot") or uint(
                 rpc("getSlot", [{"commitment": "finalized"}])
             )
-            account = rpc(
+            options = {"encoding": "base64", "commitment": "finalized"}
+            if not row.claim.asset.is_native:
+                options["minContextSlot"] = head
+            response = rpc(
                 "getAccountInfo",
-                [wallet.deposit_address, {"encoding": "base64", "commitment": "finalized"}],
-            )["value"]
-            if account is None:
+                [wallet.deposit_address, options],
+            )
+            account = response["value"]
+            if not row.claim.asset.is_native:
+                if uint(response["context"]["slot"]) < head:
+                    raise MpcBindingError("SPL deposit snapshot predates finalized head")
+                units = validate_token_account(
+                    account,
+                    row.claim.root.base_address,
+                    row.claim.asset.contract_address,
+                    row.claim.asset.decimals,
+                )
+                mint = rpc("getAccountInfo", [row.claim.asset.contract_address, options])
+                if uint(mint["context"]["slot"]) < head:
+                    raise MpcBindingError("SPL deposit mint predates finalized head")
+                validate_mint(mint["value"], row.claim.asset.decimals)
+            elif account is None:
                 units = 0
             else:
                 account_data(account, SYSTEM_PROGRAM, 0)
@@ -385,7 +447,8 @@ def scan_financial_wallet(*, user_wallet_id, tenant_id, operator_ref, transport=
         current.save(update_fields=["solana_scan_cursor", "last_scanned_at", "last_scanned_block"])
         _audit("SOL_FIN_DEPOSIT_SCAN", current, operator_ref)
     result = BalanceResult(
-        Decimal(units) / Decimal(10**9), last_scanned_block=head if complete else None
+        Decimal(units) / Decimal(10**row.claim.asset.decimals),
+        last_scanned_block=head if complete else None,
     )
     result.scan_complete, result.scan_cursor = complete, cursor
     return result

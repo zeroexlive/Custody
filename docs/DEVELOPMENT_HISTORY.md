@@ -825,3 +825,23 @@ legacy fixtures; all8 corrected ordinary-customer cases10.18s pass before the
 combined209 rerun. Django checks/drift and lint pass; broader backend/exact-source
 CI and whole-phase gates remain required. See the financial
 integration report for corrected ALT/wait/transaction-fixture failures and limits.
+
+Native checkpoint55e245e/treed59f974d was independently tied to all54 reviewed
+source blobs and3 binary hashes, pushed to the same Draft PR2; main stays587e0969.
+Exact Fast41445276955 passes four executed jobs including1097 backend cases521.11s.
+This is not ALL/fixed3d32 compatibility or whole-phase acceptance and predates
+the subsequent uncommitted seeded-SPL transfer/initialization primitives.
+
+## 2026-11-02 — classic SPL financial continuation (unmerged)
+
+Default-off seeded SPL now reuses protected operation/session/permanent ownership
+and the existing journal for zero-principal initialization, finalized publication,
+customer deposits, treasury sweeps and approved external withdrawals. Root103
+focused cases130.43s pass. One actual FROST/PG/Agave whole flow passed166.60s before
+subsequent historical-owner race correction; revised independent runtime and
+current-source CI remain pending. Independent source review found/fixed valid
+atomic-forwarding rejection and observation/credit owner-classification races.
+The full backend v1 run was deliberately interrupted at617 passes218.64s to apply
+the latter fix; it is not a complete gate. See PHASE6GC_SPL_FINANCIAL.md. Repaired-
+identity new Claims, fresh-DKG drain/retirement/rescue and whole-phase acceptance
+remain unfinished. No production flag is enabled or algorithm changed.

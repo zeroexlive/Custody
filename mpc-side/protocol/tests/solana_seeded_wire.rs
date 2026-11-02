@@ -43,7 +43,9 @@ fn independent_solders_sdk_wire_and_addresses() {
         assert!(wire::validate(&raw, base, index, wrongblock, &op).is_err());
         let mut wrong_op = op.clone();
         match &mut wrong_op {
-            Operation::Native { amount, .. } | Operation::Token { amount, .. } => *amount += 1,
+            Operation::Native { amount, .. }
+            | Operation::Token { amount, .. }
+            | Operation::SeededToken { amount, .. } => *amount += 1,
             Operation::CreateToken { rent, .. } => *rent += 1,
         }
         assert!(wire::validate(&raw, base, index, block, &wrong_op).is_err());

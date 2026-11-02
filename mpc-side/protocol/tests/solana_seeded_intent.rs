@@ -29,7 +29,7 @@ fn policy(intent: &Intent) -> ValidationPolicy {
 #[test]
 fn sdk_wire_and_python_canonical_intent_match() {
     let cases = fixtures();
-    assert_eq!(cases.len(), 12);
+    assert_eq!(cases.len(), 15);
     for case in cases {
         let intent: Intent = serde_json::from_value(case["intent"].clone()).unwrap();
         let payload = case["message_hex"].as_str().unwrap();
@@ -241,7 +241,10 @@ fn withdrawals_share_wire_but_have_a_distinct_machine_intent() {
             1000,
             &policy(&original),
         );
-        if matches!(withdrawal.action, Action::CreateClassicToken { .. }) {
+        if matches!(
+            withdrawal.action,
+            Action::CreateClassicToken { .. } | Action::ClassicSeededTransfer { .. }
+        ) {
             assert!(result.is_err());
         } else {
             result.unwrap();

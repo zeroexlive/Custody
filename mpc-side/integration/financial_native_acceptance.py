@@ -51,11 +51,21 @@ def run_native_financial_flow(root_path, *, incoming="legacy"):
     run_financial_wallets(root_path, after_wallets=complete, freeze_before_completion=False)
 
 
-def _finish(g, tenant, operation, pair, *, expected_source, expected_destination, expected_units):
+def _finish(
+    g,
+    tenant,
+    operation,
+    pair,
+    *,
+    expected_source,
+    expected_destination,
+    expected_units,
+    expected_action=None,
+):
     row = allocate_session(
         reservation_id=operation.pk,
         tenant_id=tenant.pk,
-        selected_signers=pair,
+        selected_signers=list(pair),
         operator_ref="integration",
     )
 
@@ -76,8 +86,11 @@ def _finish(g, tenant, operation, pair, *, expected_source, expected_destination
     # The independent test Policy driver checks the intended economic action;
     # it does not blindly approve an arbitrary backend payload.
     assert row.intent["financial_source"] == expected_source
-    assert row.intent["action"]["destination"] == expected_destination
-    assert int(row.intent["action"]["amount"]) == expected_units
+    if expected_action is None:
+        assert row.intent["action"]["destination"] == expected_destination
+    else:
+        assert row.intent["action"] == expected_action
+    assert int(row.intent["action"].get("amount", 0)) == expected_units
     assert row.intent["expected_fee_lamports"] == 5000
     cert = x509.load_pem_x509_certificate((g.w.policy / "tls.crt").read_bytes())
     # Independent test driver, not backend configuration, owns this Policy key.

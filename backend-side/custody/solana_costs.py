@@ -1,4 +1,4 @@
-"""Exactly-once observed Solana fees and ATA rent using the shared journal."""
+"""Exactly-once observed Solana fees and account rent using the shared journal."""
 
 from decimal import Decimal
 
@@ -11,9 +11,14 @@ def post_execution_costs(attempt, evidence):
     treasury, _ = LedgerAccount.objects.get_or_create(
         owner_type="SYSTEM", owner_id="custody", asset_key="SOL", bucket="TREASURY_ASSET"
     )
+    initialized = evidence.get("effect") == "classic_seeded_initialization"
     for name, bucket, kind in (
         ("fee_lamports", "NETWORK_FEE_EXPENSE", "NETWORK_FEE"),
-        ("rent_lamports", "ATA_RENT_ASSET", "ATA_RENT"),
+        (
+            "rent_lamports",
+            "TOKEN_ACCOUNT_RENT_ASSET" if initialized else "ATA_RENT_ASSET",
+            "TOKEN_ACCOUNT_RENT" if initialized else "ATA_RENT",
+        ),
     ):
         units = uint(evidence[name])
         if not units:

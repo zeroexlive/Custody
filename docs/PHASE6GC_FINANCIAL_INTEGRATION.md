@@ -9,6 +9,11 @@ Subsequent incoming/routing implementation and whole-phase acceptance are still
 being verified. No production/customer-fund approval follows from these isolated
 development cases.
 
+The classic SPL continuation uses the same financial contracts and journal;
+see [initialization, publication, token provenance and transfer scope](PHASE6GC_SPL_FINANCIAL.md).
+Its independent runtime/current-source CI remain pending. Native evidence below
+retains its original source boundaries.
+
 ## Read-only authority query
 
 The existing authenticated courier channel may carry a `WITNESS_QUERY_V1` signed
@@ -531,7 +536,9 @@ legacy90.729s/v0+actualALT114.147s/PDA127.165s. All54 captured source files and
 remaining identified P0/P1 in this bounded native scope. The
 root's earlier genuine legacy/v0/PDA full flows pass3 cases332.802s, before the
 final legacy-only no-session correction. Django checks/migration drift and lint
-pass; broader backend/exact-source CI and final whole-phase gates remain required. See
+pass. Committed55e245e exact Fast41445276955 passes all four executed jobs,
+including1097 backend cases521.11s. This is Fast only, excludes subsequent SPL
+changes and does not satisfy final ALL/fixed3d32 compatibility. See
 [incoming evidence](evidence/phase6gc-native-deposit-provenance-local.json).
 Corrected harness
 failures remain recorded: finalized-commitment ALT construction selected a slot

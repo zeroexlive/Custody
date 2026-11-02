@@ -24,6 +24,7 @@ from custody.solana_seeded import (
     account_address,
     build_native_transfer,
     build_token_creation,
+    build_token_seeded_transfer,
     build_token_transfer,
 )
 from custody.spl import derive_ata
@@ -195,7 +196,16 @@ class Group:
         return binding
 
     def token_binding(
-        self, c, receipts, operation=1, pair=PARTIES[:2], *, create=False, create_ata=False
+        self,
+        c,
+        receipts,
+        operation=1,
+        pair=PARTIES[:2],
+        *,
+        create=False,
+        create_ata=False,
+        seeded_destination=None,
+        amount=1000000,
     ):
         authorized = self.w.binding(c, receipts)["authorized"]
         i = authorized["intent"]
@@ -219,6 +229,29 @@ class Group:
                 expected_rent_lamports=rent,
             )
             raw = build_token_creation(base, c["index"], mint, rent, i["recent_blockhash"])
+        elif seeded_destination is not None:
+            destination_base, destination_index = seeded_destination
+            i.update(
+                operation_type="SWEEP",
+                action={
+                    "kind": "ClassicSeededTransfer",
+                    "destination_base": destination_base,
+                    "destination_index": destination_index,
+                    "amount": amount,
+                },
+                rent_payer=None,
+                expected_rent_lamports=0,
+            )
+            raw = build_token_seeded_transfer(
+                base,
+                c["index"],
+                mint,
+                destination_base,
+                destination_index,
+                amount,
+                c["asset"]["decimals"],
+                i["recent_blockhash"],
+            )
         else:
             owner = str(Pubkey.from_bytes(hashlib.sha256(b"protected-spl-target").digest()))
             target = derive_ata(owner, mint)
@@ -233,7 +266,7 @@ class Group:
                 action={
                     "kind": "ClassicTransfer",
                     "destination_owner": owner,
-                    "amount": 1000000,
+                    "amount": amount,
                     "create_ata": create_ata,
                 },
                 rent_payer=base if create_ata else None,
@@ -244,7 +277,7 @@ class Group:
                 c["index"],
                 mint,
                 owner,
-                1000000,
+                amount,
                 c["asset"]["decimals"],
                 i["recent_blockhash"],
                 create_ata=create_ata,

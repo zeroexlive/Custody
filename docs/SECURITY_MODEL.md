@@ -254,3 +254,19 @@ normal-path CI is insufficient. scc/RUSTSEC-2026-0205 remains P1 OPEN.
 ## Continuation security scope — 2026-10-27
 
 The current fork/main and historical corrected findings are qualified in INITIAL_REPOSITORY_AUDIT.md. Tokio/scc remediation is present in the lockfile; atomic-polyfill remains development-only P2 maintenance debt per the exported final review, with production assessment outstanding. The local initial retirement correction is command-level fail-closed safety, not independently authorized rotation, compromise handling, an SQL-level lifecycle invariant or signer-state revocation. The continuation denies keyset add/change/delete in Django admin while preserving authorized viewing. DB administrators, direct model writes and signer administrators remain trusted. The optional manual blacklist restricts only outgoing withdrawal destinations; it must never screen/hold incoming deposits. Disabling it must preserve unrelated authorization, finality and ledger protections. No external AML/KYT service is permitted.
+
+## Phase6G-C classic SPL continuation (unmerged development)
+
+Initialization has zero principal and no USER liability. Financial publication
+requires both original owned finalized initialization and a separate permanent
+Lifecycle witness grant, plus current exact binary account/mint/authority/rent
+proof. Financial external withdrawals authorize full possible ATA creation rent
+and post only actual cost. Dedicated incoming attribution uses actual executed
+classic Token transfers; it preserves every source owner through account owner
+changes, closure and reinitialization. Credit rechecks complete history under the
+common funding-classification lock; late operator classification cannot rewrite
+prior external attribution. This uses pinned trusted finalized RPC metadata,
+not a light-client proof. Prefunded deterministic source addresses fail closed
+without adoption. Independent runtime/current-source CI and whole-phase lifecycle
+acceptance remain pending; neither SPL nor deposit flags are enabled by default.
+See PHASE6GC_SPL_FINANCIAL.md for bounded evidence and residual limits.

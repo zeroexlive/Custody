@@ -4,7 +4,7 @@ use serde_json::{json, Value};
 use wallet_mpc_protocol::{
     solana_intent::{Action, Intent},
     solana_provisioning::Asset,
-    solana_seeded::{associated_address, key},
+    solana_seeded::{address, associated_address, key},
 };
 use wallet_mpc_transport::solana_rpc::SolanaRpc;
 
@@ -45,8 +45,14 @@ fn data(account: &Value, owner: &str, len: usize) -> Result<Vec<u8>> {
 fn token(account: &Value, mint: &str, owner: &str) -> Result<u64> {
     let b = data(account, TOKEN, 165)?;
     ensure!(
-        b[..32] == key(mint)? && b[32..64] == key(owner)? && b[108] == 1,
-        "token mint/authority/state mismatch"
+        b[..32] == key(mint)?
+            && b[32..64] == key(owner)?
+            && b[108] == 1
+            && b[72..76] == [0; 4]
+            && b[109..113] == [0; 4]
+            && b[121..129] == [0; 8]
+            && b[129..133] == [0; 4],
+        "token mint/authority/state/delegate/native/close-authority mismatch"
     );
     Ok(u64::from_le_bytes(b[64..72].try_into()?))
 }
@@ -156,9 +162,44 @@ pub(super) async fn verify(rpc: &SolanaRpc, i: &Intent, payload: &[u8]) -> Resul
                         .as_u64()
                         .context("ATA rent")?
                     };
+                    let required = if *create_ata && i.financial.is_some() {
+                        // A financial ATA may be closed after this observation.
+                        // Reserve/approve its creation maximum even if it exists.
+                        rpc.call(
+                            "getMinimumBalanceForRentExemption",
+                            json!([165,{"commitment":"finalized"}]),
+                        )
+                        .await?
+                        .as_u64()
+                        .context("financial ATA creation maximum")?
+                    } else {
+                        required
+                    };
                     ensure!(
                         required == i.expected_rent_lamports,
                         "independent ATA rent mismatch"
+                    );
+                }
+                Action::ClassicSeededTransfer {
+                    destination_base,
+                    destination_index,
+                    amount,
+                } => {
+                    ensure!(
+                        token(&source.context("token source absent")?, mint, &i.fee_payer)?
+                            >= *amount,
+                        "insufficient token source"
+                    );
+                    let target_address =
+                        bs58::encode(address(&key(destination_base)?, *destination_index, true)?)
+                            .into_string();
+                    let target = account(rpc, &target_address)
+                        .await?
+                        .context("original initialized seeded token destination absent")?;
+                    token(&target, mint, destination_base)?;
+                    ensure!(
+                        i.expected_rent_lamports == 0,
+                        "seeded token sweep cannot create or pay rent for destination"
                     );
                 }
                 _ => anyhow::bail!("token action mismatch"),
@@ -167,4 +208,34 @@ pub(super) async fn verify(rpc: &SolanaRpc, i: &Intent, payload: &[u8]) -> Resul
         _ => anyhow::bail!("financial source asset mismatch"),
     }
     Ok(())
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    fn token_account() -> Value {
+        let mut bytes = vec![0; 165];
+        bytes[..32].copy_from_slice(&[2; 32]);
+        bytes[32..64].copy_from_slice(&[3; 32]);
+        bytes[64..72].copy_from_slice(&123u64.to_le_bytes());
+        bytes[108] = 1;
+        json!({"owner":TOKEN,"data":[base64::encode(bytes),"base64"]})
+    }
+    #[test]
+    fn independent_token_accounts_reject_delegate_wrapper_close_and_frozen_state() {
+        let mint = bs58::encode([2; 32]).into_string();
+        let owner = bs58::encode([3; 32]).into_string();
+        assert_eq!(token(&token_account(), &mint, &owner).unwrap(), 123);
+        for offset in [72, 108, 109, 121, 129] {
+            let mut account = token_account();
+            let mut bytes = base64::decode(account["data"][0].as_str().unwrap()).unwrap();
+            bytes[offset] = if offset == 108 { 2 } else { 1 };
+            account["data"][0] = json!(base64::encode(bytes));
+            assert!(
+                token(&account, &mint, &owner).is_err(),
+                "accepted offset {offset}"
+            );
+        }
+        assert!(token(&token_account(), &owner, &mint).is_err());
+    }
 }

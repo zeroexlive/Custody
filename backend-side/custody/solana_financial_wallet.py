@@ -1,4 +1,4 @@
-"""Original native financial-wallet membership with independent issuance grants.
+"""Original financial-wallet membership with independent issuance grants.
 
 ACTIVE here is an immutable publication/ownership record. It posts no balances,
 does not authorize private signing or deposit credit by itself. Dedicated typed
@@ -61,7 +61,7 @@ def _grant(mode, issuance, signed):
 
 
 def _view(row):
-    return {
+    view = {
         "financial_wallet_id": str(row.claim_id),
         "status": row.status,
         "role": row.role,
@@ -73,6 +73,12 @@ def _view(row):
         },
         "query": _query(row.issuance),
     }
+    if not row.claim.asset.is_native:
+        from .solana_token_provisioning import publication_action
+
+        view["witness_action"] = publication_action(row)
+        view["initialization_required"] = view["witness_action"] is None
+    return view
 
 
 def financial_wallet_request(*, reservation_id, tenant_id, operator_ref):
@@ -84,6 +90,10 @@ def financial_wallet_request(*, reservation_id, tenant_id, operator_ref):
     anchor, key_id, _ = _pin()
     with transaction.atomic():
         claim = _locked_claim(reservation_id, tenant_id)
+        if not claim.asset.is_native:
+            from .solana_token_provisioning import require_spl_enabled
+
+            require_spl_enabled()
         mode, role = _membership(claim)
         row = MpcSolanaFinancialWallet.objects.select_for_update().filter(claim=claim).first()
         if row is None:
@@ -154,6 +164,13 @@ def validate_financial_wallet(row):
     ):
         raise MpcBindingError("original active financial wallet membership required")
     _grant(mode, issuance, row.evidence)
+    if not row.claim.asset.is_native:
+        from .models import MpcSolanaTokenPublication
+        from .solana_token_provisioning import accepted_initialization
+
+        _, effect = accepted_initialization(row.claim_id)
+        if not MpcSolanaTokenPublication.objects.filter(claim=row.claim, effect=effect).exists():
+            raise MpcBindingError("original finalized classic token publication proof required")
     if role == "TENANT_TREASURY":
         if (
             row.user_wallet_id is not None
@@ -177,7 +194,7 @@ def validate_financial_wallet(row):
             or wallet.derivation_path != f"solana:{claim.root.keyset.keyset_id}:{claim.index}"
             or wallet.address_index != claim.index
             or wallet.custody_account_id is not None
-            or wallet.asset_account_address is not None
+            or wallet.asset_account_address != (None if claim.asset.is_native else claim.address)
             or wallet.memo is not None
         ):
             raise MpcBindingError("original customer financial wallet identity mismatch")
@@ -189,7 +206,16 @@ def complete_financial_wallet(*, reservation_id, tenant_id, evidence, operator_r
     _runtime()
     reservation_id, tenant_id = _uuid(reservation_id), _uuid(tenant_id)
     operator_ref = _text(operator_ref, "operator audit reference")
-    verify_solana_rpc_endpoints("SOL", transport or RequestsTransport())
+    transport = transport or RequestsTransport()
+    verify_solana_rpc_endpoints("SOL", transport)
+    snapshot = MpcSolanaFinancialWallet.objects.select_related("claim__root", "claim__asset").get(
+        claim_id=reservation_id, claim__root__tenant_id=tenant_id
+    )
+    initialized = None
+    if not snapshot.claim.asset.is_native and snapshot.status != "ACTIVE":
+        from .solana_token_provisioning import observe_publication_account
+
+        initialized = observe_publication_account(snapshot.claim, transport)
     with transaction.atomic():
         claim = _locked_claim(reservation_id, tenant_id)
         row = MpcSolanaFinancialWallet.objects.select_for_update().get(claim=claim)
@@ -209,6 +235,24 @@ def complete_financial_wallet(*, reservation_id, tenant_id, evidence, operator_r
             raise MpcBindingError("financial publication query expired; retain original IDs")
         issuance.status, issuance.evidence = "WITNESSED", evidence
         issuance.save(update_fields=["status", "evidence"])
+        if not claim.asset.is_native:
+            from .models import MpcSolanaTokenPublication
+            from .solana_financial_preparation import _effect_slot
+            from .solana_token_provisioning import accepted_initialization
+
+            session, effect = accepted_initialization(claim.pk)
+            if (
+                initialized is None
+                or (session.pk, effect.pk) != (initialized[0].pk, initialized[1].pk)
+                or initialized[2]["context_slot"] < _effect_slot(claim.root_id)
+            ):
+                raise MpcBindingError("original current classic initialization proof required")
+            MpcSolanaTokenPublication.objects.create(
+                claim=claim,
+                effect=effect,
+                account_context_slot=initialized[2]["context_slot"],
+                account_evidence=initialized[2],
+            )
         if role == "CUSTOMER_DEPOSIT":
             row.user_wallet = UserWallet.objects.create(
                 solana_claim=claim,
@@ -216,6 +260,7 @@ def complete_financial_wallet(*, reservation_id, tenant_id, evidence, operator_r
                 chain_id="SOL",
                 asset_key=claim.asset.asset_key,
                 deposit_address=claim.address,
+                asset_account_address=None if claim.asset.is_native else claim.address,
                 derivation_path=f"solana:{claim.root.keyset.keyset_id}:{claim.index}",
                 address_index=claim.index,
                 mpc_keyset=claim.root.keyset,

@@ -46,6 +46,11 @@ pub enum Action {
         amount: u64,
         create_ata: bool,
     },
+    ClassicSeededTransfer {
+        destination_base: String,
+        destination_index: u64,
+        amount: u64,
+    },
 }
 
 #[derive(Clone, Debug, Serialize, Deserialize, PartialEq, Eq)]
@@ -190,6 +195,28 @@ impl Intent {
                 Operation::CreateToken {
                     mint: key(mint)?,
                     rent: *rent_lamports,
+                }
+            }
+            (
+                Action::ClassicSeededTransfer {
+                    destination_base,
+                    destination_index,
+                    amount,
+                },
+                Asset::ClassicToken { mint, decimals },
+            ) => {
+                ensure!(
+                    self.operation_type == BusinessOperation::Sweep
+                        && self.rent_payer.is_none()
+                        && self.expected_rent_lamports == 0,
+                    "seeded token sweep requires an existing destination and no rent"
+                );
+                Operation::SeededToken {
+                    mint: key(mint)?,
+                    destination_base: key(destination_base)?,
+                    destination_index: *destination_index,
+                    amount: *amount,
+                    decimals: *decimals,
                 }
             }
             (

@@ -1137,6 +1137,15 @@ fn native_publication_requires_registered_claim_and_unique_active_grant() {
     s.command(&first).unwrap();
     assert_eq!(s.claim_issuances[&reservation].issuance_id, issuance);
     assert_eq!(s.claim_issuances[&reservation].command_id, first.request_id);
+    let old_shape = serde_json::json!({"reservation_id":reservation,
+        "issuance_id":issuance,"command_id":first.request_id});
+    assert_eq!(
+        serde_json::to_value(&s.claim_issuances[&reservation]).unwrap(),
+        old_shape
+    );
+    let recovered: wallet_mpc_protocol::witness::ClaimIssuance =
+        serde_json::from_value(old_shape).unwrap();
+    assert!(recovered.initialization_execution_id.is_none());
     assert!(!s.command(&first).unwrap());
     assert!(s
         .clone()
@@ -2076,5 +2085,143 @@ fn financial_root_activation_is_clean_explicit_irreversible_and_required_on_ever
             &node_keys()[PARTIES[0]],
             1000
         )
+        .is_err());
+}
+
+#[test]
+fn classic_publication_binds_exact_signed_original_initializer_not_finality() {
+    use wallet_mpc_protocol::solana_intent::{Action, BusinessOperation};
+    let native = binding();
+    let mut state = Snapshot::empty(Uuid::new_v4()).unwrap();
+    state
+        .command(&command(
+            &state,
+            &native,
+            CommandAction::Enroll {
+                evidence: Box::new(evidence(native.authorized.intent.claim.root.clone())),
+                node_keys: node_keys(),
+            },
+        ))
+        .unwrap();
+    let fixture: Value = serde_json::from_str(include_str!(
+        "../../../protocol/tests/fixtures/solana-seeded-intent-sdk.json"
+    ))
+    .unwrap();
+    let mut value = fixture["cases"][5]["intent"].clone();
+    value["claim"]["root"] = fixture["root"].clone();
+    let mut b = native.clone();
+    b.authorized.intent = serde_json::from_value(value).unwrap();
+    b.authorized.intent.claim.reservation_id = Uuid::new_v4();
+    b.authorized.intent.claim.idempotency_key = "classic-publication-unit".into();
+    b.authorized.claim_evidence = evidence(b.authorized.intent.claim.clone());
+    b.authorized.payload_hex = fixture["cases"][5]["message_hex"].as_str().unwrap().into();
+    state.journal_rules = 2;
+    let approvals = financial_approvals(&state, &b);
+    state
+        .command_at(
+            &command(
+                &state,
+                &b,
+                CommandAction::EnableFinancialMode {
+                    approvals: Box::new(approvals),
+                },
+            ),
+            1000,
+        )
+        .unwrap();
+    b.authorized.intent.financial = Some(financial_binding(&b));
+    register(&mut state, &native);
+    register(&mut state, &b);
+    let claim_id = b.authorized.intent.claim.reservation_id;
+    let execution_id = b.authorized.intent.crypto_execution_id;
+    let root_id = b.authorized.intent.claim.root.identity().unwrap();
+    let action = |claim, issuance, execution| CommandAction::IssueClassicClaim {
+        reservation_id: claim,
+        issuance_id: issuance,
+        initialization_execution_id: execution,
+    };
+    let issuance = Uuid::new_v4();
+    assert!(state
+        .clone()
+        .command(&command(
+            &state,
+            &b,
+            action(claim_id, issuance, execution_id)
+        ))
+        .is_err());
+    // Structural state fixture only: Trust and genuine FROST are separately
+    // exercised by real-process acceptance, never inferred from this insertion.
+    state.executions.insert(
+        execution_id,
+        Execution {
+            binding: b.clone(),
+            root_identity: root_id.clone(),
+            package: b.authorized.intent.claim.root.public_key_package.clone(),
+            node_keys: node_keys(),
+            grants: BTreeMap::new(),
+            reports: BTreeMap::new(),
+            signing_package: None,
+            status: ExecutionStatus::SignedPending,
+            signature: Some("11".repeat(64)),
+        },
+    );
+    for kind in 0..9 {
+        let mut changed = state.clone();
+        let e = changed.executions.get_mut(&execution_id).unwrap();
+        match kind {
+            0 => e.status = ExecutionStatus::Open,
+            1 => e.signature = None,
+            2 => e.root_identity = "ff".repeat(32),
+            3 => e.binding.authorized.intent.claim.reservation_id = Uuid::new_v4(),
+            4 => e.binding.authorized.intent.operation_type = BusinessOperation::Sweep,
+            5 => {
+                e.binding.authorized.intent.action = Action::ClassicTransfer {
+                    destination_owner: native.authorized.intent.fee_payer.clone(),
+                    amount: 1,
+                    create_ata: false,
+                }
+            }
+            6 => {
+                e.binding.authorized.intent.claim.asset =
+                    native.authorized.intent.claim.asset.clone()
+            }
+            7 => e.binding.authorized.intent.financial = None,
+            _ => changed.roots.get_mut(&root_id).unwrap().financial_mode = None,
+        }
+        assert!(
+            changed
+                .command(&command(
+                    &state,
+                    &b,
+                    action(claim_id, issuance, execution_id)
+                ))
+                .is_err(),
+            "accepted change{kind}"
+        );
+    }
+    let accepted = command(&state, &b, action(claim_id, issuance, execution_id));
+    state.command(&accepted).unwrap();
+    let grant = &state.claim_issuances[&claim_id];
+    assert_eq!(grant.initialization_execution_id, Some(execution_id));
+    assert!(!state.command(&accepted).unwrap());
+    assert!(state
+        .clone()
+        .command(&command(
+            &state,
+            &b,
+            action(claim_id, Uuid::new_v4(), execution_id)
+        ))
+        .is_err());
+    assert!(state
+        .clone()
+        .command(&command(
+            &state,
+            &native,
+            action(
+                native.authorized.intent.claim.reservation_id,
+                Uuid::new_v4(),
+                execution_id
+            )
+        ))
         .is_err());
 }

@@ -54,6 +54,17 @@ def main():
                 block,
                 create_ata=action["create_ata"],
             )
+        elif kind == "ClassicSeededTransfer":
+            raw = wire.build_token_seeded_transfer(
+                base,
+                index,
+                claim["asset"]["mint"],
+                action["destination_base"],
+                action["destination_index"],
+                action["amount"],
+                claim["asset"]["decimals"],
+                block,
+            )
         else:
             raise ValueError("unsupported public fixture action")
         intent["message_fingerprint"] = hashlib.sha256(raw).hexdigest()

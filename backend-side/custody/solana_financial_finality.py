@@ -33,14 +33,19 @@ def signed_identity(row):
         row.attempt.network_tx_id,
     ) or signature.signature != txid:
         raise MpcBindingError("permanent signature ownership/original signed bytes mismatch")
-    validate_native_transfer(
-        row.attempt.prepared_metadata["message"],
-        row.intent["fee_payer"],
-        row.intent["claim"]["index"],
-        row.operation.destination_address,
-        int(row.operation.base_unit_amount),
-        row.intent["recent_blockhash"],
-    )
+    if row.intent["claim"]["asset"]["kind"] == "Native":
+        validate_native_transfer(
+            row.attempt.prepared_metadata["message"],
+            row.intent["fee_payer"],
+            row.intent["claim"]["index"],
+            row.operation.destination_address,
+            int(row.operation.base_unit_amount),
+            row.intent["recent_blockhash"],
+        )
+    else:
+        from .solana_seeded_token_effects import validate_token_intent_message
+
+        validate_token_intent_message(row.intent, row.attempt.prepared_metadata["message"])
     return payload, txid
 
 
@@ -110,7 +115,12 @@ def observe_finality(row, transport):
             tx, meta, slot = finalized_transaction(response, signature, status)
             if slot < row.attempt.prepared_metadata["blockhashContextSlot"]:
                 raise MpcBindingError("finalized transaction predates original blockhash context")
-            effect = native_effect(row, tx, meta, slot)
+            if row.intent["claim"]["asset"]["kind"] == "Native":
+                effect = native_effect(row, tx, meta, slot)
+            else:
+                from .solana_seeded_token_effects import token_effect
+
+                effect = token_effect(row, tx, meta, slot)
             return ReconciliationResult(
                 ReconciliationState.CONFIRMED
                 if meta["err"] is None

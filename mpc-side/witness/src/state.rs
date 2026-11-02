@@ -562,6 +562,58 @@ impl Snapshot {
                             reservation_id: *reservation_id,
                             issuance_id: *issuance_id,
                             command_id: command.request_id,
+                            initialization_execution_id: None,
+                        },
+                    );
+                    self.issuance_ids.insert(*issuance_id, *reservation_id);
+                }
+                CommandAction::IssueClassicClaim {
+                    reservation_id,
+                    issuance_id,
+                    initialization_execution_id,
+                } => {
+                    let claim = self
+                        .claims
+                        .get(reservation_id)
+                        .context("original registered classic claim required")?;
+                    let execution = self
+                        .executions
+                        .get(initialization_execution_id)
+                        .context("original MPC token initialization required")?;
+                    let intent = &execution.binding.authorized.intent;
+                    ensure!(
+                        r.phase == Phase::Active
+                            && r.financial_mode.is_some()
+                            && intent.financial.is_some()
+                            && !issuance_id.is_nil()
+                            && !initialization_execution_id.is_nil()
+                            && issuance_id != initialization_execution_id
+                            && claim.statement.root == r.evidence.statement
+                            && matches!(
+                                claim.statement.asset,
+                                wallet_mpc_protocol::solana_provisioning::Asset::ClassicToken { .. }
+                            )
+                            && execution.root_identity == *id
+                            && execution.status == ExecutionStatus::SignedPending
+                            && execution.signature.is_some()
+                            && intent.claim == claim.statement
+                            && intent.operation_type
+                                == wallet_mpc_protocol::solana_intent::BusinessOperation::Provision
+                            && matches!(
+                                intent.action,
+                                wallet_mpc_protocol::solana_intent::Action::CreateClassicToken { .. }
+                            )
+                            && !self.claim_issuances.contains_key(reservation_id)
+                            && !self.issuance_ids.contains_key(issuance_id),
+                        "one original signed classic initializer and unique issuance required"
+                    );
+                    self.claim_issuances.insert(
+                        *reservation_id,
+                        wallet_mpc_protocol::witness::ClaimIssuance {
+                            reservation_id: *reservation_id,
+                            issuance_id: *issuance_id,
+                            command_id: command.request_id,
+                            initialization_execution_id: Some(*initialization_execution_id),
                         },
                     );
                     self.issuance_ids.insert(*issuance_id, *reservation_id);

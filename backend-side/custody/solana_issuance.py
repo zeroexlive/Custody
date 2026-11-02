@@ -1,8 +1,8 @@
-"""Operator-only native publication, with independent permanent witness grants.
+"""Original Claim validation and independent permanent publication grants.
 
 The backend never owns the lifecycle key. Export the durable public query/action
-to that authority and relay its signed witness response. No SPL publication is
-available here until initialization and finality have their own acceptance.
+to that authority and relay its signed witness response. Legacy publication is
+native-only; financial SPL publication separately requires owned finality proof.
 """
 
 import hashlib
@@ -117,15 +117,17 @@ def _claim(claim, tenant_id, *, historical=False):
         or root.status != "APPROVED"
         or claim.status != "APPROVED"
         or root.keyset.status not in ({"ACTIVE", "RETIRED"} if historical else {"ACTIVE"})
-        or asset != {"kind": "Native"}
         or namespace != claim.asset_namespace
         or expected != claim.statement
-        or claim.address != account_address(root.base_address, claim.index)
+        or claim.address
+        != account_address(root.base_address, claim.index, token=not claim.asset.is_native)
     ):
         raise MpcBindingError("exact approved native owner/root/network/asset/address required")
 
 
 def _customer_publication(claim):
+    if not claim.asset.is_native:
+        raise MpcBindingError("classic token Claim requires finalized financial publication")
     if CustodyPrincipalRole.objects.filter(
         principal_id=claim.principal_id, role="TREASURY"
     ).exists():
@@ -211,7 +213,17 @@ def _witness(row, signed):
         key.verify(bytes.fromhex(signed["signature"]), message, ec.ECDSA(hashes.SHA256()))
         value = signed["value"]
         grant = value["claim_issuance"]
+        if not isinstance(grant, dict):
+            raise ValueError
         root = value["root"]
+        grant_keys = {"reservation_id", "issuance_id", "command_id"}
+        if not row.claim.asset.is_native:
+            from .solana_token_provisioning import accepted_initialization
+
+            session, _ = accepted_initialization(row.claim_id)
+            grant_keys.add("initialization_execution_id")
+            if grant.get("initialization_execution_id") != str(session.crypto_execution_id):
+                raise ValueError
         if (
             value["query"] != _query(row)
             or value["claim"] != row.claim.evidence
@@ -223,7 +235,7 @@ def _witness(row, signed):
             or type(root["revision"]) is not int
             or root["revision"] <= 0
             or root["phase"] not in {"Active", "Frozen", "Prepared"}
-            or set(grant) != {"reservation_id", "issuance_id", "command_id"}
+            or set(grant) != grant_keys
             or grant["reservation_id"] != str(row.claim_id)
             or grant["issuance_id"] != str(row.pk)
             or str(UUID(grant["command_id"])) != grant["command_id"]

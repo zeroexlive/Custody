@@ -29,6 +29,7 @@ from custody.solana_financial_sessions import (
 )
 from custody.solana_financial_signing import execute_session, reconcile_session
 from custody.solana_financial_wallet import complete_financial_wallet, financial_wallet_request
+from custody.solana_token_provisioning import allocate_provision
 from custody.solana_witness_client import query_witness
 
 
@@ -71,6 +72,12 @@ class Command(BaseCommand):
             "deposit-scan": ["user-wallet-id"],
             "withdrawal-allocate": ["withdrawal-id", "source-id", "fee-budget-lamports"],
             "sweep-allocate": ["sweep-id", "destination-id", "fee-budget-lamports"],
+            "provision-allocate": [
+                "reservation-id",
+                "idempotency-key",
+                "fee-budget-lamports",
+                "rent-budget-lamports",
+            ],
             "session-allocate": ["reservation-id", "selected-signers"],
             "query": ["session-id", "purpose"],
             "prepare": ["session-id"],
@@ -99,9 +106,12 @@ class Command(BaseCommand):
                     "sweep-id",
                     "user-wallet-id",
                     "fee-budget-lamports",
+                    "rent-budget-lamports",
                 }:
                     kwargs["type"] = int
                 action.add_argument("--" + field, **kwargs)
+            if name == "withdrawal-allocate":
+                action.add_argument("--rent-budget-lamports", type=int, default=0)
 
     def handle(self, *args, **options):
         try:
@@ -161,14 +171,27 @@ class Command(BaseCommand):
                 "confirmed_balance": str(result.confirmed_balance),
                 "cursor": result.scan_cursor,
             }
-        if action in {"withdrawal-allocate", "sweep-allocate"}:
+        if action in {"withdrawal-allocate", "sweep-allocate", "provision-allocate"}:
             if action == "withdrawal-allocate":
                 row = allocate_withdrawal(
-                    **values("withdrawal_id", "source_id", "fee_budget_lamports"), **common
+                    **values(
+                        "withdrawal_id", "source_id", "fee_budget_lamports", "rent_budget_lamports"
+                    ),
+                    **common,
                 )
-            else:
+            elif action == "sweep-allocate":
                 row = allocate_sweep(
                     **values("sweep_id", "destination_id", "fee_budget_lamports"), **common
+                )
+            else:
+                row = allocate_provision(
+                    **values(
+                        "reservation_id",
+                        "idempotency_key",
+                        "fee_budget_lamports",
+                        "rent_budget_lamports",
+                    ),
+                    **common,
                 )
             return {"reservation_id": str(row.pk), "status": row.status}
         if action == "session-allocate":

@@ -133,9 +133,10 @@ unfinished. See PHASE6GC_FINANCIAL_INTEGRATION.md.
 Subsequent default-off classic SPL financial source now reuses original operation/
 session/ownership and ledger records for initialization, publication, seeded
 treasury sweep, external withdrawal and instruction-attributed deposit credit.
-Root103 targeted cases130.43s pass; genuine complete flow166.60s passed before
-the historical-owner race correction. Revised independent runtime/current-source
-CI are pending. Read PHASE6GC_SPL_FINANCIAL.md; no whole-phase completion follows.
+Root103 targeted cases130.43s and independent313 cases302.898s pass; current
+independent genuine SPL176.216s/Native3 331.088s pass with stable82-path hashes.
+Exact136d995 Fast41499260859 passes4 jobs/1201 backend tests705.55s. An accepted
+public-query-only lease retry helper still needs its new exact-head CI. Read PHASE6GC_SPL_FINANCIAL.md; no whole-phase completion follows.
 
 ## Latest owner-approved Phase 7B scope
 

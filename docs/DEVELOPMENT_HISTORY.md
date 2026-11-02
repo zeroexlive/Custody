@@ -845,3 +845,16 @@ The full backend v1 run was deliberately interrupted at617 passes218.64s to appl
 the latter fix; it is not a complete gate. See PHASE6GC_SPL_FINANCIAL.md. Repaired-
 identity new Claims, fresh-DKG drain/retirement/rescue and whole-phase acceptance
 remain unfinished. No production flag is enabled or algorithm changed.
+
+## 2026-11-03 — independent classic SPL financial acceptance (unmerged)
+
+Independent313 cases302.898s, genuine SPL176.216s and Native3 331.088s pass with
+zero failures/errors/skips. Final82 source/fixture/binary hashes are stable and
+match the frozen manifest. Source136d995 Fast41499260859 passes4 executed jobs,
+including1201 backend tests705.55s; full-crypto jobs were unselected. The sole
+subsequent executable delta is the independently reviewed public-only bounded
+publication-query retry under original Claim/issuance/initializer/grant IDs. The
+initial actual67.05s query-expiry failure and15pass/1setup-NOWAIT attempt remain
+recorded separately. New helper exact-head CI remains required. No remaining
+identified bounded P0/P1; repaired-identity new Claims, fresh-DKG drain/retirement/
+rescue and whole-phase gates remain open. See PHASE6GC_SPL_FINANCIAL.md.

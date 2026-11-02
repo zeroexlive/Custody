@@ -98,40 +98,44 @@ External ATA prefunding and uncertain/pruned history also fail closed. No
 automatic private resend, production/mainnet activation or customer-fund use is
 authorized by these development tests.
 
-## Validation checkpoint
+## Validation checkpoint — 2026-11-03
 
-The independently rerun primitive boundary passed protocol9, wire1, account
-negative1 and one genuine protected SPL case (138.924s), with stable16-source and
-three-binary hashes. This predates the financial backend changes and does not
-review or accept them.
+Root103 focused cases passed130.43s. Independent combined313 cases passed302.898s;
+one genuine complete SPL flow passed176.216s, and three genuine native legacy/
+v0/PDA regressions passed331.088s. All have zero failures/errors/skips. Independent
+before/after82-path hashes, including3 runtime binaries, match freeze3. The79
+source/fixture/workflow files tied to136d995 before the single accepted helper
+correction; final committed-helper/CI tie is the next checkpoint gate.
 
-Root backend initialization/publication plus native deposit regression passed69
-cases in81.71s. Dedicated deposit/pure attribution passed24 cases in21.92s;
-expanded pure ownership/order coverage passed21 in0.19s. Witness24 unit tests
-passed in0.10s, including unchanged native serialization and rejection of classic
-issuance without financial mode or financial initializer binding. Further
-concurrency, SQL mutation, complete genuine SPL financial execution, independent
-runtime, native regression and exact-source CI gates are still in progress.
+The actual SPL acceptance finalized2 original MPC initializers, permanent
+issuance/publication, actual A→B→customer with observed Bpre/post0,10m deposited
+units, seeded treasury sweep, two approved withdrawals totaling3m units,7m remaining
+liability backed by7m treasury units,25k Root fees and3 rent-funded accounts.
+Thirteen existing-ledger journals balance; treasury creates no UserWallet.
+Restart preserves all original3 DKG ciphertexts. The independently rerun primitive
+boundary also passed protocol9, wire1, account negative1 and a genuine protected
+SPL sweep case; current independent DB-free units passed protocol10, witness24,
+account negative1 and parser/effects29 before the later history correction.
 
-The latest root combined batch passes103 cases in130.43s with no failures/errors/
-skips, including concurrent initializer/publication, direct SQL rent mutation and
-downgrade refusal, failed initialization followed by a fresh business, expiry
-after locking, raw mint/rent proof checks and both historical-owner race orders.
-One genuine full financial SPL flow passed166.60s: two MPC initializers, permanent
-issuance grants, actual atomic external forwarding/deposit, seeded treasury sweep,
-two approved withdrawals,13 balanced journals, actual first-ATA rent/second-ATA
-zero rent, restart and unchanged original DKG ciphertexts. That run predates the
-subsequent historical-owner correction and added explicit intermediary metadata
-assertions; independent rerun is required. Broad backend run v1 was intentionally
-interrupted after617 passes218.64s for the race fix and is not full-suite evidence.
+Exact [Fast41499260859](https://github.com/zeroexlive/Custody/actions/runs/41499260859)
+at136d995 passed4 executed jobs, including1201 backend tests705.55s. Ten full-crypto
+jobs were unselected. This precedes the accepted public-only lease retry helper;
+its new exact-source CI remains required. The intentionally interrupted local
+broad run at617 passes218.64s is partial evidence only.
 
-Independent source review found and corrected an availability blocker: requiring
-a source's whole-transaction net debit rejected valid atomic forwarding and could
-stall scanning. Review of the revised bounded source found no additional concrete
-P0/P1; this is source review, not runtime acceptance or an external audit.
+Both independent initial failures remain recorded. One setup attempt stopped15
+passes/1NOWAIT error; a fresh disposable DB rerun passed313 without weakening the
+lock guard. The first genuine SPL attempt failed67.05s at the unchanged publication
+query-expiry guard. The corrected harness requests a fresh public query only after
+actual expiry, up to3 attempts under the same Claim/issuance/initializer/grant.
+It never repeats private execution or the Lifecycle command and extends no deadline.
+The subsequent actual full SPL rerun passed176.216s.
 
-A second review finding identified a classification race between observation and
-locked credit: owner-at-transfer alone lost an earlier owner after SetAuthority.
-The corrected immutable history field and locked/full-history rechecks passed
-both controlled timing orders. Source re-review found no remaining concrete
-P0/P1 in that correction; revised independent runtime is pending.
+Independent review corrected two blockers: redundant source net-debit validation
+rejected valid atomic forwarding, and owner-at-transfer alone lost earlier owner
+history between observation and locked credit. Complete immutable history and
+locked classification rechecks passed both timing orders. Witness mode/binding
+and SQL raw-mint/rent consistency checks were also tightened. No remaining
+identified bounded P0/P1 follows from source/runtime review; this is not an external
+audit, whole-phase acceptance or production approval. See the machine-readable
+[evidence record](evidence/phase6gc-spl-financial-local.json).

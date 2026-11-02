@@ -1,8 +1,70 @@
 {
   "algorithm_changes": false,
-  "exact_source_ci": "PENDING",
+  "bounded_independent_review": "No remaining identified P0/P1 in this bounded component; phase completion not implied.",
+  "exact_source_ci": {
+    "backend_seconds": 705.55,
+    "backend_tests": 1201,
+    "executed_jobs": 4,
+    "head": "136d99509560191dd5b3e1f06acb47d613c18613",
+    "result": "SUCCESS",
+    "run_id": 41499260859,
+    "scope_limit": "Predates the independently accepted public-only publication-query retry helper; new helper head CI pending.",
+    "unselected_crypto_jobs": 10,
+    "url": "https://github.com/zeroexlive/Custody/actions/runs/41499260859"
+  },
   "genuine_scope_limit": "Whole SPL flow success predates the owner-history race correction and added B-zero provenance assertions; revised independent run required.",
-  "independent_revised_pg_and_genuine": "PENDING",
+  "helper_correction": "At most3 actual query-expiry public retries under original Claim/issuance/initializer/grant; original15s deadline retained; no private or Life-command retry.",
+  "independent_final_hashes": {
+    "after_sha256": "67da6ee790e1b43ac26211970fe733faa7b5dd873f20a1f3e63d60db02dc0ea6",
+    "before_sha256": "67da6ee790e1b43ac26211970fe733faa7b5dd873f20a1f3e63d60db02dc0ea6",
+    "freeze3_sha256": "67da6ee790e1b43ac26211970fe733faa7b5dd873f20a1f3e63d60db02dc0ea6",
+    "paths": 82,
+    "production_and_runtime_bin_changes_during_review": 0
+  },
+  "independent_preserved_failed_attempts": {
+    "initial_actual_publication_query_expiry": {
+      "errors": 0,
+      "failures": 1,
+      "seconds": 67.033,
+      "skipped": 0,
+      "tests": 1,
+      "xml_sha256": "eb5b126937c98cfcc4b4f4c88dfa4929795471abea95bf99f1577f4dbce19029"
+    },
+    "initial_setup_nowait": {
+      "errors": 1,
+      "failures": 0,
+      "seconds": 16.885,
+      "skipped": 0,
+      "tests": 16,
+      "xml_sha256": "f34f8d497b5f78924d20a2b2108bc58e8d7b0f587fbe58135ce87f78d89a81b0"
+    }
+  },
+  "independent_revised_pg_and_genuine": {
+    "combined": {
+      "errors": 0,
+      "failures": 0,
+      "seconds": 302.898,
+      "skipped": 0,
+      "tests": 313,
+      "xml_sha256": "cbed5cceba9b398ba6a466ae0ad01fa40a814ef430b32709092591efb55c2c97"
+    },
+    "genuine_native_legacy_v0_pda": {
+      "errors": 0,
+      "failures": 0,
+      "seconds": 331.088,
+      "skipped": 0,
+      "tests": 3,
+      "xml_sha256": "581e6cdafaaf91be1a35dee139afbbe8944b1688241143bb4d15275fd26ddde9"
+    },
+    "genuine_spl": {
+      "errors": 0,
+      "failures": 0,
+      "seconds": 176.216,
+      "skipped": 0,
+      "tests": 1,
+      "xml_sha256": "9b32424efb5bd59525d9cfb3da026b5485c30dcac889a963f01794adc018b99a"
+    }
+  },
   "independent_source_findings_corrected": [
     "P1 valid atomic forwarding rejected by redundant source net debit check",
     "P1 historical owner lost between observation and locked classification/credit",
@@ -29,6 +91,7 @@
     "old-address late-deposit rescue",
     "final whole-phase independent review/Fast/ALL/fixed3d32 compatibility/merge/main verification"
   ],
+  "review_record_date": "2026-11-03 Asia/Tehran",
   "root_combined": {
     "errors": 0,
     "failures": 0,

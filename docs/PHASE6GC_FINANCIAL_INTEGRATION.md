@@ -11,7 +11,8 @@ development cases.
 
 The classic SPL continuation uses the same financial contracts and journal;
 see [initialization, publication, token provenance and transfer scope](PHASE6GC_SPL_FINANCIAL.md).
-Its independent runtime/current-source CI remain pending. Native evidence below
+Its independent313-case and genuine SPL/Native3 reruns pass; the accepted
+public-only helper correction still needs new exact-head CI. Native evidence below
 retains its original source boundaries.
 
 ## Read-only authority query

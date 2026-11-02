@@ -267,6 +267,6 @@ changes, closure and reinitialization. Credit rechecks complete history under th
 common funding-classification lock; late operator classification cannot rewrite
 prior external attribution. This uses pinned trusted finalized RPC metadata,
 not a light-client proof. Prefunded deterministic source addresses fail closed
-without adoption. Independent runtime/current-source CI and whole-phase lifecycle
-acceptance remain pending; neither SPL nor deposit flags are enabled by default.
+without adoption. Bounded independent313-case and genuine SPL/Native3 reruns pass; new helper
+exact-head CI and whole-phase lifecycle acceptance remain pending; neither SPL nor deposit flags are enabled by default.
 See PHASE6GC_SPL_FINANCIAL.md for bounded evidence and residual limits.

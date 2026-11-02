@@ -16,6 +16,7 @@ from custody.models import (
     SweepJob,
     UserWallet,
 )
+from custody.mpc_binding import MpcBindingError
 from custody.solana_financial_deposits import (
     register_operator_funding_source,
     scan_financial_wallet,
@@ -128,8 +129,25 @@ def token_financial_flow(g, root_path, tenant, native_records):
             assert request["witness_action"]["kind"] == "IssueClassicClaim"
             command = g.w.command(request["witness_action"], g.w.query()["root"]["revision"])
             assert g.w.request("command", command)[0] == 200
-            proof = query_witness(request["query"])
-            record = complete_financial_wallet(**args, evidence=proof)
+            original_issuance, original_action = request["issuance_id"], request["witness_action"]
+            for public_attempt in range(3):
+                # A still-live pending query may have little lifetime left after
+                # finality and the independent grant. Refresh only after actual
+                # expiry, retaining the original business, initializer and grant.
+                request = financial_wallet_request(**args)
+                assert (request["issuance_id"], request["witness_action"]) == (
+                    original_issuance,
+                    original_action,
+                )
+                proof = query_witness(request["query"])
+                try:
+                    record = complete_financial_wallet(**args, evidence=proof)
+                    break
+                except MpcBindingError as exc:
+                    if public_attempt == 2 or str(exc) != (
+                        "financial publication query expired; retain original IDs"
+                    ):
+                        raise
             assert record.status == "ACTIVE"
             assert complete_financial_wallet(**args, evidence=None).pk == record.pk
             records.append(record)

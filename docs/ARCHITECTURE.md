@@ -172,4 +172,4 @@ for fees/rent; pending accounts have no UserWallet until owned initialization,
 independent issuance and current account proof commit with audit. Dedicated token
 incoming normalization/attribution extends original Deposit provenance, including
 immutable source-owner history, and posts the same customer/clearing journals.
-See PHASE6GC_SPL_FINANCIAL.md; current independent runtime/CI are pending.
+See PHASE6GC_SPL_FINANCIAL.md; bounded independent runtime passes; new helper exact-head CI remains pending.

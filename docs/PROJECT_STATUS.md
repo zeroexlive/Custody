@@ -1,4 +1,4 @@
-# Current project status — 2026-11-02
+# Current project status — 2026-11-03
 
 Verified `zeroexlive/Custody` main is **`587e0969a216102879d17cadb6ffeee8dfb8b6c6`**,
 merged [PR #1](https://github.com/zeroexlive/Custody/pull/1). Its parents are the
@@ -55,7 +55,9 @@ provenance through the existing ledger. Root103 focused cases130.43s pass, and
 one complete genuine FROST/PG/Agave flow passed166.60s before the subsequent
 owner-history race correction. Independent source review found/fixed atomic
 forwarding availability and historical-owner classification races; revised
-independent runtime and exact-source CI are pending. The interrupted broad run
+independent313 cases302.898s, genuine SPL176.216s and Native3 cases331.088s now pass.
+Exact136d995 Fast41499260859 passes4 jobs/1201 backend tests705.55s; the accepted
+public-query-only helper correction still needs its exact-head CI. The interrupted broad run
 reported617 passes218.64s and is not full-suite acceptance. See
 [SPL scope and evidence](PHASE6GC_SPL_FINANCIAL.md). Repaired-identity new Claims,
 fresh-DKG migration/drain/retirement, old-address rescue and final whole-phase

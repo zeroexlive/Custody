@@ -321,6 +321,12 @@ def advance_mpc_signing(attempt_id: int, client=None):
     from .signer_adapter import assert_mpc_backend_runtime_safe, get_adapter
 
     snapshot = OnchainTransactionAttempt.objects.get(pk=attempt_id)
+    from .solana_financial_sessions import reject_generic_attempt
+
+    reject_generic_attempt(snapshot)
+    from .solana_financial_routing import requires_typed_private
+
+    public_only = requires_typed_private(snapshot.operation_type, snapshot.operation_id)
     assert_mpc_backend_runtime_safe(snapshot.chain_id)
     with attempt_execution_lock(attempt_id) as acquired:
         if not acquired:
@@ -348,7 +354,7 @@ def advance_mpc_signing(attempt_id: int, client=None):
                 return _consume_completed(attempt_id, session.pk)
             from .signer_adapter import CoordinatorSessionNotFound
 
-            if session.status == "CREATED":
+            if session.status == "CREATED" and not public_only:
                 _require_solana_fresh(snapshot, session)
                 if session.payload_type == "TRON_TXID":
                     from .tron_policy import require_fresh
@@ -362,6 +368,10 @@ def advance_mpc_signing(attempt_id: int, client=None):
                 try:
                     result = client.get_signing_session(str(session.session_id))
                 except CoordinatorSessionNotFound:
+                    if public_only:
+                        raise ValueError(
+                            "financial enrollment forbids a new legacy execution"
+                        ) from None
                     if session.crypto_execution_id is not None:
                         raise ValueError("coordinator lost a known execution") from None
                     if session.payload_type == "TRON_TXID":
@@ -371,7 +381,7 @@ def advance_mpc_signing(attempt_id: int, client=None):
                     _require_solana_fresh(snapshot, session)
                     result = client.create_signing_session(request)
             session = _persist_result(attempt_id, session.pk, request, result)
-            if session.status == "CREATED":
+            if session.status == "CREATED" and not public_only:
                 _require_solana_fresh(snapshot, session)
                 if session.payload_type == "TRON_TXID":
                     from .tron_policy import require_fresh

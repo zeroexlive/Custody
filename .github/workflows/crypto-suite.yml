@@ -48,6 +48,7 @@ jobs:
       PYTHONPATH: backend-side:mpc-side/integration
       PHASE6FB_SOLANA_BIN: /tmp/phase6fb-solana/solana-release/bin
       PHASE6GC_PROFILE_COMPAT_BIN: work/profile-compat-target/debug
+      PHASE6GC_SOLANA_PLATFORM_TOOLS: work/solana-platform-tools
     steps:
       - uses: actions/checkout@v4
         with:
@@ -110,6 +111,15 @@ jobs:
             tar -xjf /tmp/phase6fb-solana/release.tar.bz2 -C /tmp/phase6fb-solana
           fi
           "$PHASE6FB_SOLANA_BIN/solana-test-validator" --version
+      - name: Cache pinned upstream SBF compiler archive
+        if: inputs.suite == 'solana'
+        uses: actions/cache@v4
+        with:
+          path: work/solana-platform-tools-archive
+          key: solana-platform-v1.43-linux-x86_64-7a497174a0484bf8eee2d0a5a03a48f91ea0b5d1ba2d4055f37ef975a64ca8f6
+      - name: Verify and extract compiler for isolated CPI acceptance fixture
+        if: inputs.suite == 'solana'
+        run: python mpc-side/integration/solana_local/fetch_platform_tools.py --cache work/solana-platform-tools-archive --output "$PHASE6GC_SOLANA_PLATFORM_TOOLS"
       - if: inputs.suite == 'ton' || inputs.suite == 'integrated'
         uses: actions/setup-node@v4
         with:
@@ -207,6 +217,9 @@ jobs:
             work/crypto/fixtures/**/solana-financial-finality-success-public-evidence.json
             work/crypto/fixtures/**/solana-financial-finality-lost_ack-public-evidence.json
             work/crypto/fixtures/**/solana-financial-finality-settlement_audit-public-evidence.json
+            work/crypto/fixtures/**/solana-native-financial-legacy-public-evidence.json
+            work/crypto/fixtures/**/solana-native-financial-v0-public-evidence.json
+            work/crypto/fixtures/**/solana-native-financial-pda-public-evidence.json
             work/ton-review/mpc-tvm-evidence.json
             work/ton-review/validator-network-evidence.json
             work/ton-review/django-validator-evidence.json

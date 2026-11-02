@@ -791,5 +791,37 @@ sets/txhash and old-snapshot journal guards. Root124 focused cases146.21s and th
 actual FROST/PG/Agave native sweep cases141.72s pass, including lostACK/noresend and
 settlement-audit rollback/recovery. Synthetic funding/snapshot do not establish
 customer deposit/liability acceptance. Independent129 cases150.692s and3genuine141.350s/stable22-source/3-binary hashes
-pass with no remaining identified bounded P0/P1; fullbackend/CI remain pending; phase remains unfinished. Failure history and limits are in
+pass with no remaining identified bounded P0/P1. Committed c233a04 subsequently
+passed exact Fast41425030949 and full local backend1017 cases538.917s with zero
+failures/errors/skips. These gates predate the incoming/routing work below;
+phase remains unfinished. Failure history and limits are in
 PHASE6GC_FINANCIAL_INTEGRATION.md and the local execution evidence.
+
+2026-11-02: subsequent0043 adds finalized canonical native incoming provenance,
+stable observation digests, original owner/source attribution, known custody and
+operator-funding exclusion, and atomic existing-ledger credit/reversal/cursors.
+The dedicated default-off controller is wired to stored seeded indexer identity;
+generic credit and automatic legacy sweeping remain fenced. Actual runtime CPI
+supports external PDA transfers; balance changes alone never credit. Root's
+current genuine legacy/v0-with-ALT/PDA flows passed3 cases332.80s: external10m
+lamport deposit, separate operator1m excluded from liabilities, whole11m MPC sweep,
+manual approved2m MPC withdrawal, remaining8m USER liability and separate10k Root
+fees, exactly-once balanced journals and unchanged original DKG ciphertexts.
+These are isolated validator development cases, not production acceptance.
+
+New0044 fences financial customers before generic allocation/private signing,
+serializes enrollment with legacy history and requires exact original payout
+identity for later hold mutation.23 routing cases passed23.33s, including actual
+lock race orders, invalid linked history and original public GET-only recovery.
+Independent review then found a no-session branch accepting mere terminal strings
+for a new legacy monetary mutation; it now requires captured verifiable original
+MPC completion, with explicit release/settle negative coverage. A privileged local
+financial command wraps the same services, accepts only public approval evidence
+and obtains fresh durable queries without storing Life/Policy private keys.
+Root80 component cases58.966s and final independent209 cases206.063s plus3 genuine
+legacy/v0/PDA full flows332.263s pass with unchanged54-source/3-binary hashes and
+no remaining identified bounded P0/P1. The first independent run exposed obsolete
+legacy fixtures; all8 corrected ordinary-customer cases10.18s pass before the
+combined209 rerun. Django checks/drift and lint pass; broader backend/exact-source
+CI and whole-phase gates remain required. See the financial
+integration report for corrected ALT/wait/transaction-fixture failures and limits.

@@ -6,10 +6,24 @@
     "Old regression denial-text assertion adjusted to new typed-terminal denial; rejection itself was correct.",
     "Independent review found reserve-posting INSERT gap and duplicate-debit/credit exact-pair gap; covered WITHDRAWAL_RESERVE and added zero-sum conditions with five explicit negatives."
   ],
-  "current_source_ci": "pending",
+  "current_source_ci": {
+    "all_gate": false,
+    "fast_conclusion": "success",
+    "fast_run": 41425030949,
+    "note": "Later uncommitted deposit/provenance work is outside this checkpoint.",
+    "source_sha": "c233a049a4b36b497bdfe93bb422309efbc56737"
+  },
   "date": "2026-11-02 Asia/Tehran",
   "final_combined_independent_review": "All reported finality/journal/hold-release/deadline findings addressed; no remaining identified P0/P1 in outgoing native sweep/finality boundary.",
-  "full_backend": "pending",
+  "full_backend": {
+    "errors": 0,
+    "failures": 0,
+    "note": "Excluded only untracked unused observation unit module; remote exact-head Fast also passed.",
+    "skipped": 0,
+    "source_sha": "c233a049a4b36b497bdfe93bb422309efbc56737",
+    "tests": 1017,
+    "xml_seconds": 538.917
+  },
   "genuine_finality_cases": [
     "actual upstream FROST native sweep finalized once with separate Claim principal and Root fee",
     "actual send accepted then ACK lost; public finality recovered without resending",

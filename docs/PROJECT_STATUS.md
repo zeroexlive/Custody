@@ -10,7 +10,7 @@ authorized this bounded development checkpoint merge and continuation within6G-C
 It supersedes retaining the entire unfinished phase in one Draft PR. Phase7–9
 remain planned; production/mainnet/customer-fund activation remains unauthorized.
 
-Latest committed Draft PR #2 checkpoint `99a055e` passed exact
+Earlier Draft PR #2 allocation checkpoint `99a055e` passed exact
 [Fast41361207460](https://github.com/zeroexlive/Custody/actions/runs/41361207460)
 and [selected Solana41361259277](https://github.com/zeroexlive/Custody/actions/runs/41361259277).
 Downloaded artifacts verify59 unique selected/called scenarios, zero skips,
@@ -18,7 +18,10 @@ inventory276/shared hash and57 allowlisted Solana files. This is not ALL and
 does not cover subsequent uncommitted execution work. See
 [bounded CI evidence](evidence/phase6gc-financial-allocation-ci-99a055e.json).
 
-Current uncommitted native financial execution adds exact-wire Custody and
+Latest committed Draft PR #2 checkpoint `c233a04` passed
+[Fast41425030949](https://github.com/zeroexlive/Custody/actions/runs/41425030949)
+and the full local backend suite,1017 cases538.917s, zero failures/errors/skips.
+Its native financial execution adds exact-wire Custody and
 independent HOT Policy approval, one-shot protected dispatch, authenticated
 public recovery and permanent signature ownership before broadcast. Finalized
 original-wire effects separate Claim principal from Root-paid fees and settle
@@ -26,10 +29,23 @@ through the existing ledger.124 focused PG/SQLite/TLS cases pass146.21s; three
 actual FROST/PG/Agave sweep cases pass141.72s, including lost broadcast ACK and
 settlement-audit rollback/recovery. Sweep funding/snapshot are synthetic and do
 not establish deposit credit or customer liability acceptance. Independent129 focused cases150.692s and3genuine cases141.350s pass with
-stable22-source/3-binary hashes and no remaining identified bounded P0/P1. Full
-backend and exact-source CI remain required. Seeded deposits remain
-closed; native deposit-to-withdrawal acceptance, SPL, repaired-identity new Claims,
-fresh-DKG drain/retirement and final whole-phase gates remain unfinished.
+stable22-source/3-binary hashes and no remaining identified bounded P0/P1.
+These results cover c233a04, not the subsequent incoming/routing source.
+
+Current uncommitted0043–0044 implement finalized native deposit provenance and
+pre-allocation financial routing. Credit uses actual canonical legacy/v0 wire,
+finalized status/block membership, explicit transfer instructions and original
+Claim/owner identity. Known custody and registered operator sources create no
+customer liability; balance changes alone never credit. Actual System CPI may
+attribute PDA sources. The feature remains default-disabled, with live indexing
+and explicit funding-source configuration required. Generic shared-hot-wallet
+private fallback is fenced before allocation; unresolved legacy history blocks
+enrollment, and existing holds retain their original release/settlement gates.
+Current-source independent209 cases206.063s and3 genuine legacy/v0/PDA full native
+flows332.263s pass with54-source/3-binary hashes unchanged and no remaining
+identified bounded P0/P1. Root component80 cases58.966s also passes. Broader backend
+and exact-source CI are required. SPL, repaired-identity new Claims, fresh-DKG drain/retirement and
+final whole-phase gates remain unfinished. No whole-phase completion is claimed.
 
 Final reviewed head `78394fc2e5ae585cd265c195f1d02557cb062e21` passed
 [Fast40683968092](https://github.com/zeroexlive/Custody/actions/runs/40683968092)

@@ -190,6 +190,38 @@ def no_signature(c, row, request, evidence=None):
     )
 
 
+def legacy_request(c):
+    """Ordinary declared customer with no seeded financial membership/history."""
+    principal = register_financial_principal(
+        tenant_id=c["tenant"].pk,
+        reference="ordinary-legacy-customer",
+        role="CUSTOMER",
+        operator_ref="operator",
+    )
+    owner = principal.ledger_owner_id
+    ensure_accounts(owner, "SOL")
+    with transaction.atomic():
+        accounts = lock_user_accounts(owner, "SOL")
+        post_transaction(
+            event_key="synthetic-legacy-funding",
+            event_type="FIXTURE",
+            asset_key="SOL",
+            ref_type="Fixture",
+            ref_id="not-chain-evidence",
+            postings=[(accounts["AVAILABLE"], Decimal(5)), (clearing_account("SOL"), Decimal(-5))],
+        )
+        req = WithdrawalRequest.objects.create(
+            user_id=owner,
+            chain_id="SOL",
+            asset_key="SOL",
+            to_address=c["withdrawal"].to_address,
+            amount=Decimal(1),
+            status="APPROVED",
+        )
+        reserve_withdrawal(req)
+    return req
+
+
 def test_allocation_commits_ids_and_reuses_one_original_ledger_hold(financial):
     c = financial
     before = LedgerTransaction.objects.count()
@@ -515,8 +547,9 @@ def test_old_snapshot_cannot_hide_new_financial_parent_protection(financial, iso
 @pytest.mark.parametrize("isolation", ["REPEATABLE READ", "SERIALIZABLE"])
 def test_non_read_committed_legacy_solana_attempt_and_session_fail_closed(financial, isolation):
     c = financial
-    # Deliberately legacy, before a financial reservation. It cannot be adopted.
-    req = c["withdrawal"]
+    # An enrolled customer now correctly cannot start ANY generic attempt.
+    # Keep this separate isolation regression on an ordinary legacy customer.
+    req = legacy_request(c)
     attempt = OnchainTransactionAttempt.objects.create(
         operation_type="WITHDRAWAL",
         operation_id=req.pk,
@@ -588,7 +621,7 @@ def test_legacy_worker_that_passed_initial_absence_cannot_post_after_allocation(
 
 @pytest.mark.parametrize("action", ["release", "settle"])
 def test_prior_terminal_journal_cannot_be_adopted_as_held_operation(financial, action):
-    c = financial
+    c = dict(financial, withdrawal=legacy_request(financial))
     with transaction.atomic():
         (release_withdrawal if action == "release" else settle_withdrawal)(c["withdrawal"])
     with pytest.raises(MpcBindingError, match="terminal"):
@@ -753,6 +786,7 @@ def test_unprotected_legacy_session_birth_remains_available_in_read_committed(
 ):
     """SQL structural compatibility only; no actual legacy signing authorization."""
     c = financial
+    req = legacy_request(c)
     ecdsa = scope in {"EVM", "TRON"}
     keyset = MpcKeyset.objects.create(
         keyset_id=uuid4(),
@@ -763,7 +797,7 @@ def test_unprotected_legacy_session_birth_remains_available_in_read_committed(
     )
     attempt = OnchainTransactionAttempt.objects.create(
         operation_type="WITHDRAWAL",
-        operation_id=c["withdrawal"].pk,
+        operation_id=req.pk,
         chain_id=chain,
         asset_key="SOL",
         from_address="legacy-structural-source",

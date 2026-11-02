@@ -184,6 +184,14 @@ def test_phase6gc_backend_original_native_sweep_finality_and_existing_ledger_fee
     run_financial_finality(tmp_path, fault=fault)
 
 
+@pytest.mark.django_db(transaction=True)
+@pytest.mark.parametrize("incoming", ["legacy", "v0", "pda"])
+def test_phase6gc_native_deposit_sweep_approved_withdrawal_single_ledger(tmp_path, incoming):
+    from financial_native_acceptance import run_native_financial_flow
+
+    run_native_financial_flow(tmp_path, incoming=incoming)
+
+
 @pytest.mark.parametrize(
     "fault",
     (

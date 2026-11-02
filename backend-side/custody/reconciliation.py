@@ -83,6 +83,16 @@ def _reconcile_attempt(attempt_id: int):
     reject_generic_attempt(snapshot)
     if snapshot.status in {"CONFIRMED", "FAILED"}:
         return snapshot
+    from .solana_financial_routing import requires_typed_private
+
+    if (
+        requires_typed_private(snapshot.operation_type, snapshot.operation_id)
+        and not snapshot.signed_payload
+        and snapshot.status in {"SIGNING", "RECONCILIATION_REQUIRED"}
+    ):
+        from .mpc_signing import advance_mpc_signing
+
+        snapshot = advance_mpc_signing(attempt_id)  # Enrolled customers use public recovery only.
     if not snapshot.network_tx_id:
         return snapshot
     from django.conf import settings
@@ -148,6 +158,14 @@ def _reconcile_attempt(attempt_id: int):
         attempt = OnchainTransactionAttempt.objects.select_for_update().get(pk=attempt_id)
         if attempt.status in {"CONFIRMED", "FAILED"}:
             return attempt
+        from .solana_financial_routing import requires_typed_private
+
+        if requires_typed_private(attempt.operation_type, attempt.operation_id):
+            # Preserve a genuine pre-enrollment payout's public finality. The
+            # ledger gate consumes these exact fields in this same transaction.
+            attempt.status = result.state.value
+            attempt.confirmation_metadata = {"state": result.state.value, **result.evidence}
+            attempt.save(update_fields=["status", "confirmation_metadata", "updated_at"])
         if attempt.operation_type == "WITHDRAWAL":
             operation = WithdrawalRequest.objects.select_for_update().get(pk=attempt.operation_id)
             if result.state is ReconciliationState.CONFIRMED:

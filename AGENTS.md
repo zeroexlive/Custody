@@ -108,16 +108,25 @@ A proposed feature is not an implemented feature. A merged implementation is not
 
 Latest99a055e allocation checkpoint passed Fast41361207460 and selected Solana
 41361259277:59 selected/called,0skips,verified inventory276 and57 public files;
-not ALL and before subsequent execution changes. Current uncommitted0040–0042
+not ALL and before subsequent execution changes. Committed c233a04/0040–0042
 add native exact-wire approval, protected signing/public recovery, original-wire
 broadcast/finality and existing-ledger settlement.124 focused cases146.21s and
 three genuine FROST/PG/Agave sweep cases141.72s pass (success,lostACK,auditrollback).
 Final independent129 cases150.692s and3genuine141.350s/stable22source+3bins pass;
-no remaining identified bounded P0/P1. Fullbackend/current-source CI remain pending. Synthetic
+no remaining identified bounded P0/P1. ExactFast41425030949 and full local backend
+1017 cases538.917s pass at c233a04. Synthetic
 sweep funding/snapshot are not deposit/customer-liability acceptance. NoSignature
 permits another crypto attempt under the same hold; it cannot release a business
-hold from local history alone. Seeded credit, whole native financial acceptance,
-SPL, repaired-identity new Claims, fresh-DKG retirement and final phase gates remain
+hold from local history alone. Subsequent uncommitted0043–0044 add native finalized
+deposit provenance, actual legacy/v0/PDA source attribution and pre-allocation
+financial private-routing/legacy-history gates. Seeded credit remains default-off;
+live finalized scanning and explicit permanent operator-funding classification
+are required. Ordinary shared-hot-wallet signing cannot service an enrolled
+financial customer. Independent209 cases206.063s and3 genuine legacy/v0/PDA full
+flows332.263s pass with stable54-source/3-binary hashes and no remaining bounded
+P0/P1. Root80 component cases58.966s, Django checks/drift and lint pass. Current-
+source broader backend/CI, SPL,
+repaired-identity new Claims, fresh-DKG retirement and final phase gates remain
 unfinished. See PHASE6GC_FINANCIAL_INTEGRATION.md.
 
 ## Latest owner-approved Phase 7B scope

@@ -1091,6 +1091,48 @@ class MpcSolanaFinancialEffect(models.Model):
         ]
 
 
+class MpcSolanaOperatorFundingSource(models.Model):
+    """Permanent privileged source classification, never a customer balance."""
+
+    genesis_hash = models.CharField(max_length=44)
+    address = models.CharField(max_length=44)
+    reference = models.CharField(max_length=128)
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        constraints = [
+            models.UniqueConstraint(
+                fields=["genesis_hash", "address"], name="uq_sol_operator_source"
+            ),
+        ]
+
+
+class MpcSolanaDepositProvenance(models.Model):
+    """One finalized explicit instruction has exactly one original deposit owner."""
+
+    deposit = models.OneToOneField("Deposit", on_delete=models.PROTECT)
+    genesis_hash = models.CharField(max_length=44)
+    signature = models.CharField(max_length=88)
+    event_index = models.CharField(max_length=64)
+    source_address = models.CharField(max_length=44)
+    slot = models.PositiveBigIntegerField()
+    block_hash = models.CharField(max_length=44)
+    observation_sha256 = models.CharField(max_length=64)
+    evidence = models.JSONField()
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        constraints = [
+            models.UniqueConstraint(
+                fields=["genesis_hash", "signature", "event_index"],
+                name="uq_sol_deposit_instruction",
+            ),
+            models.CheckConstraint(
+                condition=Q(slot__gt=0) & ~Q(evidence={}), name="sol_deposit_provenance_shape"
+            ),
+        ]
+
+
 class MpcSigningSession(models.Model):
     """Durable, idempotent link between a prepared attempt and one MPC execution."""
 

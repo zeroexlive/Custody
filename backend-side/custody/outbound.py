@@ -115,6 +115,9 @@ def create_attempt(
     from .solana_financial_sessions import reject_generic_business
 
     reject_generic_business(operation_type, operation_id)
+    from .solana_financial_routing import reject_generic_private
+
+    reject_generic_private(operation_type, operation_id)
     from .config import validate_chain_asset
     from .models import Asset
 
@@ -189,6 +192,10 @@ def _execute_attempt(attempt_id: int, actor_id: str, signer: MpcSigner | None = 
     from .solana_financial_sessions import reject_generic_attempt
 
     reject_generic_attempt(attempt)
+    from .solana_financial_routing import reject_generic_private
+
+    if attempt.status not in {"BROADCASTED", "CONFIRMED", "FAILED"}:
+        reject_generic_private(attempt.operation_type, attempt.operation_id)
     assert_mpc_backend_runtime_safe(attempt.chain_id)
     signer = signer or get_signer()
     executor = _executor(attempt.chain_id, attempt.asset_key)

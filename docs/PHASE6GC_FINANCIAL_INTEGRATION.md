@@ -3,10 +3,11 @@
 The first implementation boundary adds a versioned financial identity and an
 explicit irreversible witness Root mode. A subsequent typed HOT coordinator has
 bounded genuine fault/recovery evidence. Native membership and explicit principal
-roles have separate bounded evidence below. Protected PostgreSQL operation/session
-bindings and existing ledger integration are still unfinished.
-No financial wallet activation or production/customer-fund approval follows from
-these cryptographic development cases.
+roles have separate bounded evidence below. Committed c233a04 adds protected
+PostgreSQL operation/session identity and native existing-ledger execution.
+Subsequent incoming/routing implementation and whole-phase acceptance are still
+being verified. No production/customer-fund approval follows from these isolated
+development cases.
 
 ## Read-only authority query
 
@@ -441,7 +442,10 @@ or customer-liability conservation. Earlier separate preparation and signature
 reviews/reruns are recorded in the execution evidence; the combined current
 boundary now independently passes129 cases150.692s and3genuine141.350s with
 unchanged22-source/3-binary hashes and no remaining identified bounded P0/P1.
-Full backend and exact-source CI remain required.
+At committed c233a04, full local backend passed1017 cases538.917s with zero
+failures/errors/skips, and exact Fast41425030949 passed all four executed jobs.
+These gates predate the incoming/routing source below; final ALL and fixed3d32
+original-store compatibility remain required for whole-phase acceptance.
 See [local execution evidence](evidence/phase6gc-native-financial-execution-local.json).
 
 Corrected uncommitted failures are retained: the signature-cache fault harness
@@ -451,3 +455,100 @@ nested savepoints and was replaced by deferred exact posting-set verification;
 a PL/pgSQL amount-name collision was renamed. An older regression expected the
 previous denial text; its assertion now checks the new typed-terminal denial.
 No guard or test scenario was disabled to make these reruns pass.
+
+## Native incoming provenance and financial routing (subsequent development)
+
+Migration0043 adds immutable original instruction provenance on the existing
+Deposit and a permanent privileged operator-funding source registry. There is
+one authoritative financial ledger. The dedicated scanner fetches finalized
+canonical transaction wire, signature/status and explicit finalized block
+membership from the pinned trusted RPC boundary. This is trusted RPC evidence,
+not a light-client proof. Caller event amounts and confirmation counts are only
+hints and cannot authorize credit. A normalized digest binds stable wire/effects
+while retaining the full original RPC evidence; optional RPC envelope changes do
+not create a different deposit identity.
+
+Incoming legacy and actual version0 messages resolve exact static/loaded account
+indices. Only explicit successful System transfer instructions are attributed;
+actual runtime CPI supports PDA senders. Duplicate inner identities, malformed
+indices/program/data, inconsistent destination effects and failed transactions
+cannot create customer credit. Arbitrary balance changes/refunds do not credit.
+The original root/tenant/principal/Claim/native asset/address remain mandatory.
+Canonical credits, reversals, provenance, scan cursor and mandatory audits are
+atomic; retries never re-credit a reversed or previously attributed instruction.
+Failed, pruned, inconsistent or incomplete history cannot advance a completed
+cursor. All remote calls occur outside database transactions.
+
+All registered Root bases, Claims including pending/unpublished/history, known
+MPC public keys, customer/hot wallets, owned outbound signatures and registered
+operator funding sources are internal. Classification follows the actual source,
+not the transaction fee payer. The source registry is platform funding metadata,
+not deposit screening or an AML/KYT blacklist. A configured nonempty registry does
+not prove completeness: the trusted operator must register every platform funding
+source, including funding PDAs, before enabling the scanner. An already credited
+external source cannot be silently reclassified; correction requires explicit
+same-ledger reconciliation. Root fees and noncustomer funding remain separate
+from USER liabilities.
+
+`MPC_SOLANA_SEEDED_DEPOSITS_ENABLED` defaults false. The dedicated controller also
+requires live indexing in both configuration and environment, current native
+deposit policy, ACTIVE original customer membership and explicit operator source
+configuration. The indexer uses stored wallet identity and tenant to select this
+controller; generic event credit remains fenced. Seeded sweeps require an explicit
+treasury and typed authorization instead of a legacy automatic private job.
+Read-only attribution permits a retired source keyset, while wallet monitoring
+currently requires ACTIVE UserWallet status; the remaining retirement/rescue
+contract must explicitly preserve old-address monitoring.
+
+Migration0044 closes the earlier pre-allocation fallback. Historical financial
+customer membership fences generic shared-hot-wallet preparation/private execution
+before a typed operation exists. SQL admission serializes membership against
+legacy attempt/session birth on the asset lock; unresolved or mismatched previous
+private history blocks enrollment. Original finalized history must match the
+parent chain, asset, amount, base units, recipient and signature. Public recovery
+reads the original execution without Create/Execute. Generic terminal journals
+require safe never-started denial or the original finalized payout, exact original
+posting sets and immutable identity. Typed operations retain their stricter
+separate mutation fence. Financial approval/denial audits are mandatory and atomic.
+
+The privileged local `manage.py solana_financial` command exposes explicit
+principal roles, Root mode import, wallet publication, funding registration,
+deposit scan, treasury allocation, session/query, prepare/approve/execute, public
+recovery, broadcast, finality and NoSignature completion. It wraps the same gated
+services; operator audit labels are not API credentials. Prepare/approve/execute
+obtain separate fresh durable read-only witness queries. The prepare result's
+`policy_content` is the immutable `{intent,payload_hex}` public object. An
+independent Policy authority must inspect the actual economic action and sign
+`Wallet-MPC/OPERATOR_SEEDED_SPEND_V1\0` plus its canonical JSON bytes; the command
+accepts only the resulting public authorization. It imports no Policy/Lifecycle
+private key. NoSignature completion preserves the original business hold.
+
+Root's combined incoming/routing/operator component passes80 cases58.966s.
+Independent combined financial regression passes209 cases206.063s with zero
+failures/errors/skips; all three independent genuine flows pass332.263s, with
+legacy90.729s/v0+actualALT114.147s/PDA127.165s. All54 captured source files and
+3 Rust binaries remain unchanged before/after. Independent review finds no
+remaining identified P0/P1 in this bounded native scope. The
+root's earlier genuine legacy/v0/PDA full flows pass3 cases332.802s, before the
+final legacy-only no-session correction. Django checks/migration drift and lint
+pass; broader backend/exact-source CI and final whole-phase gates remain required. See
+[incoming evidence](evidence/phase6gc-native-deposit-provenance-local.json).
+Corrected harness
+failures remain recorded: finalized-commitment ALT construction selected a slot
+outside the recent ancestry window, then same-slot ALT lookup failed before
+warmup, then the generic validator wait helper omitted the version0 response
+flag. The fixture now constructs the external ALT at confirmed commitment, waits
+for its actual finalized receipts and finalized warmup, and requests version0
+transaction support. Custody finality gates were not relaxed. A public-recovery
+unit fixture needed its lock-taking request build inside a transaction; its
+corrected23 routing cases pass23.33s. SPL and remaining lifecycle/retirement work
+are still separate whole-phase requirements.
+
+The first independent combined run stopped after36 passes on an older isolation
+fixture that tried to create a legacy attempt for an already enrolled financial
+customer. The isolation, four legacy-positive birth and two prior-terminal-journal
+fixtures now use an ordinary unenrolled customer and preserve their original
+assertions. All8 affected cases pass10.18s, followed by the independent209 pass.
+Routing was not weakened. A command scan unit fixture also needed its explicit
+synthetic RPC transport instead of the real default transport; that fixture fix
+does not change the scanner's live-mode or provenance requirements.

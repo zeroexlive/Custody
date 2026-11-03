@@ -83,8 +83,8 @@ The expiry correction changed only0046 and its test; prior527/runtime evidence
 carries forward qualified, with the other116 source/binary paths unchanged.
 Root's final current suite passes55 cases38.37s. Registration remains default-off,
 retains original approval/issuer/hold/session identities and uses no Life/Policy
-private key. See [scope and evidence](PHASE6GC_CURRENT_CLAIMS.md). Exact-source CI
-for this backend checkpoint is pending. Fresh-DKG fund migration, retirement,
+private key. See [scope and evidence](PHASE6GC_CURRENT_CLAIMS.md). Exact f58d219 Fast41624031631 passes all4 executed jobs, including1283 backend
+cases785.63s; full-crypto jobs were unselected. Fresh-DKG fund migration, retirement,
 late-deposit rescue and final whole-phase gates remain required.
 
 Final reviewed head `78394fc2e5ae585cd265c195f1d02557cb062e21` passed
@@ -558,3 +558,12 @@ SQLite vendor guard preserves legacy demo ledger flows while retaining PG-only
 protected allocation; final59 local cases57.56s and independent59 cases57.528s/
 genuine7.989s pass with stable11-source/3-binary hashes. The946-case run predates
 that non-PG-only correction; final committed-source CI remains required.
+
+The next0047 per-Root receipt-pin prerequisite has40 new PG/P256 cases19.96s,
+149 affected legacy cases117.48s and one actual two-cohort FROST DKG/Root/Claim
+archive case8.44s passing. All124 source/bin hashes stayed unchanged during the
+actual case. Explicit old archive import and new reservation preserve original
+receipts and all six encrypted shares. Independent189 backend cases135.216s and2 genuine cases158.945s pass with all124
+hashes unchanged and no remaining identified bounded P0/P1 or concrete P2 gap.
+This prerequisite has bounded development acceptance; exact-source CI is pending. Coordinator routing, actual fund migration,
+retirement/rescue and whole-phase gates remain open. See PHASE6GC_RECEIPT_PINS.md.

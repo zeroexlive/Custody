@@ -59,6 +59,13 @@ CAPS = {
 }
 
 
+@pytest.mark.django_db(transaction=True)
+def test_phase6gc_independent_receipt_pin_cohorts_and_archival_claims(tmp_path):
+    from receipt_pin_acceptance import run_receipt_pin_cohorts
+
+    run_receipt_pin_cohorts(tmp_path)
+
+
 def test_phase6gc_witness_replacement_reservation_and_original_signed_store_upgrade(tmp_path):
     from replacement_acceptance import run_reserved_upgrade
 

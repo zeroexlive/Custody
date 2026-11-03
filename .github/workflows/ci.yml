@@ -96,6 +96,8 @@ jobs:
       - run: ruff check custody/solana_financial_preparation.py custody/solana_financial_signing.py custody/solana_financial_finality.py custody/solana_financial_outbound.py custody/migrations/004[0-2]*
       - run: ruff format --check custody/solana_financial_deposits.py custody/solana_financial_deposit_observation.py custody/solana_financial_routing.py custody/solana_incoming_wire.py custody/solana_seeded_token_effects.py custody/solana_seeded_token_deposits.py custody/solana_token_provisioning.py custody/management/commands/solana_financial.py custody/migrations/004[3-5]*
       - run: ruff check custody/solana_financial_deposits.py custody/solana_financial_deposit_observation.py custody/solana_financial_routing.py custody/solana_incoming_wire.py custody/solana_seeded_token_effects.py custody/solana_seeded_token_deposits.py custody/solana_token_provisioning.py custody/management/commands/solana_financial.py custody/migrations/004[3-5]*
+      - run: ruff format --check custody/solana_receipt_pins.py custody/migrations/0047_solana_root_receipt_pins.py
+      - run: ruff check custody/solana_receipt_pins.py custody/migrations/0047_solana_root_receipt_pins.py
       - run: ruff format --check custody/solana_witness_client.py
       - run: ruff check custody/solana_witness_client.py
       - run: ruff format --check custody/models.py custody/solana_claim_authority.py custody/solana_claim_registration.py custody/management/commands/solana_current_claim.py custody/migrations/0046_solana_current_claim_registration.py custody/tests/test_solana_claim_authority.py custody/tests/test_solana_claim_registration.py

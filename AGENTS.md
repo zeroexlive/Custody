@@ -157,7 +157,8 @@ pass. A final narrow raw-SQL deadline fix changes only0046/test; independent1-ca
 fresh-DB regression4.105s passes, with116 other source/bin hashes unchanged.
 Earlier527/runtime evidence carries forward qualified, not rerun after that fix.
 Root55 current cases38.37s pass. No remaining identified bounded P0/P1 or concrete
-P2 gap; exact-source CI remains required. See PHASE6GC_CURRENT_CLAIMS.md.
+P2 gap. Exact f58d219 Fast41624031631 passes4 jobs/1283 backend cases785.63s;
+full-crypto jobs were unselected. See PHASE6GC_CURRENT_CLAIMS.md.
 Fresh-DKG migration/retirement/rescue and final whole-phase gates remain open.
 Preserve original proofs and all held/allocated IDs; reject prepared/consumed/
 uncertain proof migration. No Life/Policy private key or balance mutation is
@@ -172,3 +173,15 @@ Optional, default-disabled, administrator-managed manual withdrawal address blac
 Separate API identities and permissions for tenant/customer, exchange engine, merchant, operator, compliance, and signer. Matching-engine credentials only access narrow order-reserve/settlement authority, never generic balance mutation or arbitrary signing. Signed, durable, replayable outgoing event delivery is required. Stable schemas and backwards-compatible versioning are part of acceptance.
 
 See docs/DOCUMENTATION_GOVERNANCE.md for conflict resolution and required documentation updates.
+
+Uncommitted0047 per-Root receipt archives preserve old/new independent cohorts;
+initial pins come only from operator files, never coordinator-provided trust.
+Original Root/Claim validation resolves exactRoot archives; currentSome authority
+is separate. NewRoot immutable reservation flag/deferred snapshot commit, explicit
+approved legacy import, final Claim-lock reverify and populated downgrade guard
+have40 new/149 affected legacy PG cases and one actual two-cohort case8.44s with
+124 unchanged source/bin hashes. Independent189 backend cases135.216s and2
+genuine cases158.945s pass with unchanged124 hashes; no remaining identified
+bounded P0/P1 or concrete P2 gap. Exact-source CI remains required. No whole-phase
+acceptance follows. See PHASE6GC_RECEIPT_PINS.md. Preserve no-row-only
+legacy fallback; malformed/required-missing snapshots must fail before remote work.

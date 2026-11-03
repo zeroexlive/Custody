@@ -31,6 +31,11 @@ from .mpc_solana_network import (
 )
 from .native_tx import RequestsTransport
 from .signer_adapter import SelfHostedMpcAdapter, assert_mpc_backend_runtime_safe
+from .solana_receipt_pins import (
+    capture_new_root,
+    certificates_for_statement,
+    configured_cohorts,
+)
 from .solana_seeded import MAX_SEED_INDEX, account_address
 from .token_metadata import assert_verified_token
 
@@ -111,7 +116,12 @@ def _verify(kind, statement, evidence):
             or evidence["statement"] != statement
         ):
             raise ValueError
-        verify_receipts(f"solana_{kind}", statement, evidence["participant_agreement"])
+        verify_receipts(
+            f"solana_{kind}",
+            statement,
+            evidence["participant_agreement"],
+            certificates=certificates_for_statement(kind, statement),
+        )
     except (TypeError, KeyError, ValueError) as exc:
         raise MpcBindingError("unverifiable original seeded approval") from exc
 
@@ -148,6 +158,17 @@ def register_root(*, keyset_id, tenant_id, operator_ref, client=None, transport=
             if root.tenant_id != tenant_id or root.network_identity != network:
                 raise MpcBindingError("original tenant/network cannot be replaced")
             _validate_root(root)
+            if root.status == "PENDING":
+                # Validate reserved archival trust before retrying any remote
+                # dedication, including after configuration removal or restore.
+                certificates_for_statement("root", root.statement)
+            if root.status == "PENDING" and str(keyset_id) in configured_cohorts():
+                from .models import MpcSolanaReceiptPins
+
+                if not MpcSolanaReceiptPins.objects.filter(root=root).exists():
+                    raise MpcBindingError(
+                        "cannot adopt unknown pending Root into a new receipt cohort"
+                    )
         else:
             if keyset.status != "ACTIVE" or not CustodyTenant.objects.filter(pk=tenant_id).exists():
                 raise MpcBindingError("active root and registered tenant required")
@@ -161,7 +182,9 @@ def register_root(*, keyset_id, tenant_id, operator_ref, client=None, transport=
                 network_identity=network,
                 dkg_public_evidence=metadata,
                 base_address=str(Pubkey.from_bytes(bytes.fromhex(keyset.public_key))),
+                receipt_pins_reserved=str(keyset_id) in configured_cohorts(),
             )
+            capture_new_root(root)
             _audit("SOLANA_ROOT_RESERVE", root, operator_ref)
         if root.status == "APPROVED":
             _verify("root", root.statement, root.evidence)
@@ -332,6 +355,10 @@ def approve_claim(*, reservation_id, tenant_id, operator_ref, client=None, trans
     with transaction.atomic():
         claim = MpcSolanaClaim.objects.select_for_update().get(pk=reservation_id)
         if claim.status == "PENDING":
+            # Archival pin import locks this Claim too. Consume the response
+            # under the final row lock so a concurrent import cannot change
+            # its receipt authority between verification and approval commit.
+            _verify("claim", claim.statement, evidence)
             claim.status, claim.evidence = "APPROVED", evidence
             claim.save(update_fields=["status", "evidence"])
             _audit("SOLANA_CLAIM_APPROVE", claim, operator_ref)

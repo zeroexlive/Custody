@@ -165,6 +165,6 @@ Root's complete current suite passed55 cases38.37s after that correction.
 
 The earlier527 cases and genuine flow carry forward with this explicitly qualified
 stronger deadline change; they were not rerun afterward. No remaining identified
-bounded P0/P1 or concrete P2 gap remains in this registration path. Exact-source
-CI is pending for this commit. Fresh-DKG migration/retirement/rescue and final
+bounded P0/P1 or concrete P2 gap remains in this registration path. Exact f58d219 Fast41624031631 passed4 executed jobs, including1283 backend
+tests785.63s; ten full-crypto jobs were unselected. Fresh-DKG migration/retirement/rescue and final
 whole-phase gates remain required; this is not phase or production acceptance.

@@ -240,6 +240,7 @@ jobs:
             work/crypto/fixtures/**/solana-current-claim-faults-public-evidence.json
             work/crypto/fixtures/**/solana-current-claim-upgrade-public-evidence.json
             work/crypto/fixtures/**/solana-current-claim-financial-public-evidence.json
+            work/crypto/fixtures/**/solana-receipt-pin-cohorts-public-evidence.json
             work/crypto/fixtures/**/solana-repaired-current-claim-public-evidence.json
             work/ton-review/mpc-tvm-evidence.json
             work/ton-review/validator-network-evidence.json

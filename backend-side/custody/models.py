@@ -285,6 +285,8 @@ class MpcSolanaRoot(models.Model):
     base_address = models.CharField(max_length=44, unique=True)
     status = models.CharField(max_length=16, default="PENDING")
     evidence = models.JSONField(default=dict)
+    # Set only at original creation; the Root guard makes it immutable.
+    receipt_pins_reserved = models.BooleanField(default=False)
     # Includes the exhausted sentinel 2**63 after the final signed-bigint index.
     next_index = models.DecimalField(max_digits=20, decimal_places=0, default=0)
     created_at = models.DateTimeField(auto_now_add=True)
@@ -299,6 +301,23 @@ class MpcSolanaRoot(models.Model):
                 condition=Q(status="PENDING", evidence={})
                 | (Q(status="APPROVED") & ~Q(evidence={})),
                 name="sol_root_approval_shape",
+            ),
+        ]
+
+
+class MpcSolanaReceiptPins(models.Model):
+    """Immutable installed public identities for this original Root's receipts."""
+
+    root = models.OneToOneField(MpcSolanaRoot, on_delete=models.PROTECT, primary_key=True)
+    source = models.CharField(max_length=20)
+    certificates_der_hex = models.JSONField()
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        constraints = [
+            models.CheckConstraint(
+                condition=Q(source__in=["RESERVATION", "ARCHIVAL_IMPORT"]),
+                name="sol_receipt_pin_source",
             ),
         ]
 

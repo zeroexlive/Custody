@@ -334,3 +334,15 @@ Complete consumes only an exact fresh independently signed W registered proof.
 It creates no financial publication or private grant. Original approved Evidence
 is archival; the immutable registration supplies effective Evidence to financial
 consumers. See the0046 development and acceptance status above.
+
+### Solana original receipt archives (0047 development prerequisite)
+
+Default-empty `MPC_SOLANA_ROOT_SIGNER_CERTIFICATES` selects independently installed
+three-party public leaves by original keyset UUID. New mapped Roots capture an
+immutable archive before enrollment; existing APPROVED Roots require privileged
+`solana_provisioning archive-pins --keyset-id --tenant-id --operator-ref` import,
+verifying original Root and approved original-domain Claims before commit. Unknown
+pending enrollment cannot adopt new pins. No new public/customer HTTP endpoint,
+wallet issuance, private permission or ledger mutation is introduced. Original
+Root/Claim domains and effective current-Claim authority stay unchanged. See
+[trust, SQL guards and remaining gates](PHASE6GC_RECEIPT_PINS.md).

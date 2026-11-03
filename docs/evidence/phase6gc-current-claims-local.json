@@ -123,7 +123,17 @@
     "unchanged_during_each_run": true,
     "qualified_carryforward": "527 contracts and genuine flow were not rerun after final strictly stronger commit-expiry guard; only0046 and its test changed, other116 paths including4 binaries unchanged. Independent final raw-SQL regression passed on freshDB.",
     "review": "No remaining identified bounded P0/P1 or concrete P2 gap. No whole-phase acceptance.",
-    "exact_source_ci": "PENDING",
+    "exact_source_ci": {
+      "head": "f58d219b82cf18c4a19ef1c01eff10ea53a4cbed",
+      "run_id": 41624031631,
+      "url": "https://github.com/zeroexlive/Custody/actions/runs/41624031631",
+      "result": "SUCCESS",
+      "executed_jobs": 4,
+      "backend_tests": 1283,
+      "backend_seconds": 785.63,
+      "unselected_crypto_jobs": 10,
+      "scope_limit": "Predates0047 receipt-pin prerequisite; not whole-phase ALL or compatibility."
+    },
     "production_activation": false
   }
 }

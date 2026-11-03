@@ -1,3 +1,22 @@
+## 2026-11-03 — immutable original receipt pins for independent cohorts (unmerged)
+
+Migration0047 adds per-Root public receipt archives from independently installed
+operator certificates, explicit verified legacy import and new reservation before
+remote enrollment. Original statements/receipts/shares and separate Life-authorized
+current Claims are preserved. SQL makes archives permanent and requires new Root/
+reserved pins to commit together. Review caught/fixed old pending no-op adoption,
+nested-savepoint availability and import/approval verification races; required
+missing/corrupt pins also reject pending enrollment before RPC.
+
+Independent189 backend/PG cases135.216s and2 genuine cases158.945s pass, with all124
+source/bin hashes unchanged. Two independent FROST DKG cohorts verify their original
+Root/Claim archives without global pin paths, and the repaired native/SPL financial
+flow still passes. No remaining identified bounded P0/P1 or concrete P2 gap.
+Exact-source CI is pending. Root-bound routing, actual fresh-key fund migration,
+retirement/rescue and final whole-phase gates remain unfinished. Prior f58d219
+Fast41624031631 passes4 jobs/1283 backend cases785.63s, not ALL. See
+[receipt-pin scope](PHASE6GC_RECEIPT_PINS.md).
+
 ## 2026-11-03 — current-identity Claim financial registration checkpoint (unmerged)
 
 Migration0046 preserves original approvals and immutable W-registered effective
@@ -9,8 +28,8 @@ execution157.113s pass with118 stable source/binary paths. Review caught a raw-S
 commit-deadline gap; a two-file stronger guard/test correction passed an independent
 fresh-DB regression4.105s, with the other116 paths unchanged. Earlier broad/runtime
 evidence carries forward qualified; Root55 final current cases38.37s pass.
-No remaining identified bounded P0/P1 or concrete P2 gap remains. Exact-source CI
-is pending for this checkpoint. Parent e1664ed Fast41594758324 passed4 jobs/1228
+No remaining identified bounded P0/P1 or concrete P2 gap remains. Exact f58d219 Fast41624031631 passed4 executed jobs and1283 backend
+cases785.63s; full-crypto jobs were unselected. Parent e1664ed Fast41594758324 passed4 jobs/1228
 backend cases670.51s. Fresh-DKG migration/retirement/rescue and final whole-phase
 Fast/ALL/original3d32 compatibility/review/merge remain open. No production activation.
 

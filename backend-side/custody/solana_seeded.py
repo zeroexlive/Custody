@@ -182,6 +182,47 @@ def build_token_transfer(
     )
 
 
+def token_seeded_transfer_instructions(
+    base, index, mint, destination_base, destination_index, units, decimals
+):
+    """TransferChecked to an already initialized standard seeded token account.
+
+    Caller/node policy must independently verify its exact mint and authority.
+    This never creates/adopts a destination or treats its base as the account.
+    """
+    if type(decimals) is not int or not 0 <= decimals <= 18:
+        raise ValueError("reviewed classic SPL precision required")
+    payer, recipient = _base(base), _base(destination_base)
+    source = _key(account_address(base, index, token=True))
+    destination = _key(account_address(str(recipient), destination_index, token=True))
+    if source == destination:
+        raise ValueError("seeded token source and destination must differ")
+    return [
+        Instruction(
+            _key(CLASSIC_TOKEN_PROGRAM),
+            b"\x0c" + struct.pack("<Q", uint(units, positive=True)) + bytes([decimals]),
+            [
+                AccountMeta(source, False, True),
+                AccountMeta(_key(mint), False, False),
+                AccountMeta(destination, False, True),
+                AccountMeta(payer, True, False),
+            ],
+        )
+    ]
+
+
+def build_token_seeded_transfer(
+    base, index, mint, destination_base, destination_index, units, decimals, blockhash
+):
+    return _message(
+        base,
+        blockhash,
+        token_seeded_transfer_instructions(
+            base, index, mint, destination_base, destination_index, units, decimals
+        ),
+    )
+
+
 def _validate_exact_message(encoded, expected):
     """Compare a persisted canonical message to freshly rebuilt bound parameters."""
     raw, message, decoded = decode_message(encoded)
@@ -209,5 +250,16 @@ def validate_token_transfer(
         encoded,
         build_token_transfer(
             base, index, mint, destination_owner, units, decimals, blockhash, create_ata=create_ata
+        ),
+    )
+
+
+def validate_token_seeded_transfer(
+    encoded, base, index, mint, destination_base, destination_index, units, decimals, blockhash
+):
+    return _validate_exact_message(
+        encoded,
+        build_token_seeded_transfer(
+            base, index, mint, destination_base, destination_index, units, decimals, blockhash
         ),
     )

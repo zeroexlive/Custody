@@ -11,6 +11,7 @@ import threading
 import time
 from concurrent.futures import ThreadPoolExecutor
 from decimal import Decimal
+from pathlib import Path
 from unittest.mock import patch
 
 import pytest
@@ -58,6 +59,406 @@ CAPS = {
 }
 
 
+@pytest.mark.django_db(transaction=True)
+def test_phase6gc_root_bound_coordinator_cohorts(tmp_path):
+    from coordinator_route_acceptance import run_coordinator_cohorts
+
+    run_coordinator_cohorts(tmp_path)
+
+
+@pytest.mark.django_db(transaction=True)
+def test_phase6gc_routed_native_finances_and_witness_only_recovery(tmp_path):
+    from coordinator_route_acceptance import run_routed_finances
+
+    run_routed_finances(tmp_path)
+
+
+@pytest.mark.django_db(transaction=True)
+def test_phase6gc_independent_receipt_pin_cohorts_and_archival_claims(tmp_path):
+    from receipt_pin_acceptance import run_receipt_pin_cohorts
+
+    run_receipt_pin_cohorts(tmp_path)
+
+
+def test_phase6gc_witness_replacement_reservation_and_original_signed_store_upgrade(tmp_path):
+    from replacement_acceptance import run_reserved_upgrade
+
+    run_reserved_upgrade(tmp_path)
+
+
+def test_phase6gc_profile_migration_current_dual_authority_and_fresh_witness_time(tmp_path):
+    from profile_migration_acceptance import run_public_registration
+
+    run_public_registration(tmp_path)
+
+
+def test_phase6gc_original_profile_terminal_fence_and_successor_history_import(tmp_path):
+    from profile_migration_acceptance import run_terminal_fence
+
+    run_terminal_fence(
+        tmp_path,
+        Path(os.environ["PHASE6GC_PROFILE_COMPAT_BIN"]).resolve(),
+        Path("mpc-side/target/debug").resolve(),
+        import_successor=True,
+    )
+
+
+def test_phase6gc_migrated_profile_two_root_runtime_refresh_and_restart(tmp_path):
+    from profile_migration_acceptance import run_migrated_runtime
+
+    run_migrated_runtime(
+        tmp_path,
+        Path(os.environ["PHASE6GC_PROFILE_COMPAT_BIN"]).resolve(),
+        Path("mpc-side/target/debug").resolve(),
+    )
+
+
+def test_phase6gc_migrated_profile_cold_two_root_courier_runtime(tmp_path):
+    from profile_migration_acceptance import run_migrated_runtime
+
+    run_migrated_runtime(
+        tmp_path,
+        Path(os.environ["PHASE6GC_PROFILE_COMPAT_BIN"]).resolve(),
+        Path("mpc-side/target/debug").resolve(),
+        custody_class="COLD",
+    )
+
+
+def test_phase6gc_legacy_refresh_local_identifier_cross_field_fence(tmp_path):
+    from refresh_acceptance import run_historical_identifier_fence
+
+    run_historical_identifier_fence(
+        tmp_path,
+        Path(os.environ["PHASE6GC_PROFILE_COMPAT_BIN"]).resolve(),
+        Path("mpc-side/target/debug").resolve(),
+    )
+
+
+def test_phase6gc_class_custody_read_query_without_private_or_lifecycle_authority(tmp_path):
+    from protected_financial_acceptance import run_custody_read_query
+
+    run_custody_read_query(tmp_path)
+
+
+def test_phase6gc_irreversible_financial_root_mode_and_explicit_reservation_crypto(tmp_path):
+    from protected_financial_acceptance import run_financial_mode
+
+    run_financial_mode(tmp_path)
+
+
+def test_phase6gc_protected_coordinator_all_pairs_and_durable_public_recovery(tmp_path):
+    from protected_coordinator_acceptance import run_coordinator
+
+    run_coordinator(tmp_path)
+
+
+@pytest.mark.django_db(transaction=True)
+def test_phase6gc_financial_root_mode_import_before_claims_with_actual_witness(tmp_path):
+    from financial_root_acceptance import run_financial_mode_import
+
+    run_financial_mode_import(tmp_path)
+
+
+@pytest.mark.django_db(transaction=True)
+def test_phase6gc_native_financial_customer_treasury_publication_and_unknown_grant_recovery(
+    tmp_path,
+):
+    from financial_wallet_acceptance import run_financial_wallets
+
+    run_financial_wallets(tmp_path)
+
+
+@pytest.mark.django_db(transaction=True)
+def test_phase6gc_financial_session_allocation_and_unprepared_witness_abandonment(tmp_path):
+    from financial_session_acceptance import run_financial_sessions
+
+    run_financial_sessions(tmp_path)
+
+
+@pytest.mark.django_db(transaction=True)
+def test_phase6gc_backend_native_wire_and_class_policy_rust_authorization(tmp_path):
+    from financial_preparation_acceptance import run_financial_preparation
+
+    run_financial_preparation(tmp_path)
+
+
+@pytest.mark.django_db(transaction=True)
+def test_phase6gc_backend_protected_frost_and_permanent_signature_ownership(tmp_path):
+    from financial_signing_acceptance import run_financial_signing
+
+    run_financial_signing(tmp_path)
+
+
+@pytest.mark.django_db(transaction=True)
+@pytest.mark.parametrize("fault", ["before_record", "audit_and_cache_loss"])
+def test_phase6gc_backend_signature_recovery_preserves_original_holds(tmp_path, fault):
+    from financial_signing_acceptance import run_financial_signing
+
+    run_financial_signing(tmp_path, fault=fault)
+
+
+@pytest.mark.django_db(transaction=True)
+@pytest.mark.parametrize("fault", [None, "lost_ack", "settlement_audit"])
+def test_phase6gc_backend_original_native_sweep_finality_and_existing_ledger_fee(tmp_path, fault):
+    from financial_finality_acceptance import run_financial_finality
+
+    run_financial_finality(tmp_path, fault=fault)
+
+
+@pytest.mark.django_db(transaction=True)
+@pytest.mark.parametrize("incoming", ["legacy", "v0", "pda"])
+def test_phase6gc_native_deposit_sweep_approved_withdrawal_single_ledger(tmp_path, incoming):
+    from financial_native_acceptance import run_native_financial_flow
+
+    run_native_financial_flow(tmp_path, incoming=incoming)
+
+
+@pytest.mark.django_db(transaction=True)
+def test_phase6gc_classic_token_publication_deposit_sweep_and_approved_withdrawals(tmp_path):
+    from financial_token_acceptance import run_token_financial_flow
+
+    run_token_financial_flow(tmp_path)
+
+
+def test_phase6gc_current_claim_authority_recovers_original_prepare_and_candidate_aliases(tmp_path):
+    from current_claim_authority_acceptance import run_current_claim_authority
+
+    run_current_claim_authority(tmp_path)
+
+
+def test_phase6gc_current_claim_receipts_refresh_restart_and_historical_spend(tmp_path):
+    from current_claim_acceptance import run_current_claim
+
+    run_current_claim(tmp_path)
+
+
+def test_phase6gc_current_claim_receipts_cold_explicit_courier(tmp_path):
+    from current_claim_acceptance import run_current_claim
+
+    run_current_claim(tmp_path, custody_class="COLD")
+
+
+def test_phase6gc_repaired_identity_current_claim_receipts_and_real_spend(tmp_path):
+    from current_claim_acceptance import run_repaired_current_claim
+
+    run_repaired_current_claim(tmp_path)
+
+
+def test_phase6gc_repaired_identity_current_claim_cold_courier(tmp_path):
+    from current_claim_acceptance import run_repaired_current_claim
+
+    run_repaired_current_claim(tmp_path, custody_class="COLD")
+
+
+def test_phase6gc_current_claim_storage_write_and_maintenance_faults(tmp_path):
+    from current_claim_acceptance import run_current_claim_faults
+
+    run_current_claim_faults(tmp_path)
+
+
+def test_phase6gc_current_claim_upgrade_genuine_rules2_repaired_store(tmp_path):
+    from current_claim_acceptance import run_historical_repair_upgrade
+
+    run_historical_repair_upgrade(tmp_path)
+
+
+@pytest.mark.django_db(transaction=True)
+def test_phase6gc_current_claim_financial_publication_and_native_spl_execution_after_repair(tmp_path):
+    from current_claim_financial_acceptance import run_current_claim_financial
+
+    run_current_claim_financial(tmp_path)
+
+
+@pytest.mark.parametrize(
+    "fault",
+    (
+        "last_r2",
+        "before_record",
+        "first_r2",
+        "round1",
+        "client_disconnect",
+        "coordinator_restart",
+        "write_failure",
+        "invalid_share",
+    ),
+)
+def test_phase6gc_protected_coordinator_ambiguous_private_outcomes(tmp_path, fault):
+    from protected_coordinator_acceptance import run_coordinator_fault
+
+    run_coordinator_fault(tmp_path, fault)
+
+
+def test_phase6gc_private_replacement_repair_refresh_and_restart(tmp_path):
+    from repair_acceptance import run_repair
+
+    run_repair(tmp_path)
+
+
+def test_phase6gc_private_replacement_staging_failure_and_provenance_faults(tmp_path):
+    from repair_acceptance import run_repair
+
+    run_repair(tmp_path, faults=True)
+
+
+def test_phase6gc_private_replacement_cold_courier_repair_refresh(tmp_path):
+    from repair_acceptance import run_repair
+
+    run_repair(tmp_path, custody_class="COLD")
+
+
+def test_phase6gc_private_replacement_wrong_tls_peer_and_interrupted_retry(tmp_path):
+    from repair_acceptance import run_private_fences
+
+    run_private_fences(tmp_path)
+
+
+def test_phase6gc_private_replacement_expiry_after_tls_before_private_body(tmp_path):
+    from repair_acceptance import run_private_fences
+
+    run_private_fences(tmp_path, delay=True)
+
+
+def test_phase6gc_witness_independent_authorization_and_round_replay(tmp_path):
+    from witness_acceptance import run_authorization
+
+    run_authorization(tmp_path)
+
+
+def test_phase6gc_witness_journal_restart_corruption_and_concurrency(tmp_path):
+    from witness_acceptance import run_durability
+
+    run_durability(tmp_path)
+
+
+def test_phase6gc_witness_rust_transport_pins_before_sending_body(tmp_path):
+    from witness_acceptance import run_transport_pin
+
+    run_transport_pin(tmp_path)
+
+
+def test_phase6gc_witness_claim_owner_survives_all_three_old_backups(tmp_path):
+    from witness_acceptance import run_claim_rollback_fence
+
+    run_claim_rollback_fence(tmp_path)
+
+
+def test_phase6gc_witness_current_detached_pin_and_nonactive_key(tmp_path):
+    from witness_acceptance import run_detached_node_pins
+
+    run_detached_node_pins(tmp_path)
+
+
+def test_phase6gc_protected_native_spending_all_pairs_and_restart(tmp_path):
+    from protected_acceptance import run_native_pairs
+
+    run_native_pairs(tmp_path)
+
+
+def test_phase6gc_protected_cold_manual_signed_courier(tmp_path):
+    from protected_acceptance import run_cold_courier
+
+    run_cold_courier(tmp_path)
+
+
+def test_phase6gc_protected_old_backup_and_partial_nonce_loss(tmp_path):
+    from protected_acceptance import run_backup_and_partial
+
+    run_backup_and_partial(tmp_path)
+
+
+def test_phase6gc_protected_r2_unknown_recovery_and_journal_faults(tmp_path):
+    from protected_acceptance import run_r2_uncertainty
+
+    run_r2_uncertainty(tmp_path)
+
+
+def test_phase6gc_protected_expired_permit_after_real_rpc_delay(tmp_path):
+    from protected_acceptance import run_delayed_private_expiry
+
+    run_delayed_private_expiry(tmp_path)
+
+
+def test_phase6gc_protected_atomic_classic_spl_creation_and_all_pairs(tmp_path):
+    from protected_acceptance import run_token_pairs
+
+    run_token_pairs(tmp_path)
+
+
+def test_phase6gc_protected_seeded_spl_treasury_sweep_and_external_transfer(tmp_path):
+    from seeded_token_acceptance import run_seeded_token_sweeps
+
+    run_seeded_token_sweeps(tmp_path)
+
+
+def test_phase6gc_protected_warm_independent_approval_credentials(tmp_path):
+    from protected_acceptance import run_warm_independent_credentials
+
+    run_warm_independent_credentials(tmp_path)
+
+
+def test_phase6gc_protected_full_nonce_queue_can_drain_round_two(tmp_path):
+    from protected_acceptance import run_full_queue_drain
+
+    run_full_queue_drain(tmp_path)
+
+
+def test_phase6gc_distributed_refresh_original_identity_all_pairs_restart(tmp_path):
+    from refresh_acceptance import run_refresh
+
+    run_refresh(tmp_path)
+
+
+def test_phase6gc_distributed_refresh_cold_manual_query_and_restart(tmp_path):
+    from refresh_acceptance import run_refresh
+
+    run_refresh(tmp_path, custody_class="COLD")
+
+
+def test_phase6gc_distributed_refresh_interrupted_missing_generation_and_second_epoch(tmp_path):
+    from refresh_acceptance import run_interrupted_refresh
+
+    run_interrupted_refresh(tmp_path)
+
+
+@pytest.mark.parametrize("grantees", [1, 2])
+def test_phase6gc_terminal_no_release_all_actual_grantees_refresh_retry(tmp_path, grantees):
+    from no_release_acceptance import run_close_unreleased
+
+    run_close_unreleased(tmp_path, grantees)
+
+
+def test_phase6gc_terminal_no_release_apply_cancellation_race(tmp_path):
+    from no_release_acceptance import run_cancel_apply_race
+
+    run_cancel_apply_race(tmp_path)
+
+
+def test_phase6gc_terminal_no_release_rejects_withheld_durable_partial(tmp_path):
+    from no_release_acceptance import run_durable_partial_cannot_cancel
+
+    run_durable_partial_cannot_cancel(tmp_path)
+
+
+def test_phase6gc_terminal_no_release_cold_manual_refresh_retry(tmp_path):
+    from no_release_acceptance import run_close_unreleased
+
+    run_close_unreleased(tmp_path, 2, custody_class="COLD")
+
+
+@pytest.mark.django_db(transaction=True)
+def test_phase6gc_genuine_native_wallet_publication_and_all_pair_spending(tmp_path):
+    from native_issuance_acceptance import run_native_issuance
+
+    run_native_issuance(tmp_path, 3)
+
+
+@pytest.mark.django_db(transaction=True)
+def test_phase6gc_genuine_one_thousand_native_wallets_actually_issued(tmp_path):
+    from native_issuance_acceptance import run_native_issuance
+
+    run_native_issuance(tmp_path, 1000)
+
+
 def test_phase6gc_seeded_authenticated_immutable_store_approvals(tmp_path):
     from seeded_enrollment import run_approvals
 
@@ -96,7 +497,7 @@ def test_phase6gc_seeded_corrupt_original_store_rejected(tmp_path, fault):
     run_corruption(tmp_path, fault)
 
 
-def import_root(binding):
+def import_root(binding, *, before_import=None):
     keyset = MpcKeyset.objects.create(
         keyset_id=binding["keyset_id"],
         algorithm="FROST_ED25519",
@@ -106,6 +507,8 @@ def import_root(binding):
         threshold=2,
         party_count=3,
     )
+    if before_import is not None:
+        before_import(keyset)
     call_command("mpc_keyset", "import-dkg", keyset_id=str(keyset.keyset_id))
     call_command("mpc_keyset", "activate", keyset_id=str(keyset.keyset_id))
     keyset.refresh_from_db()

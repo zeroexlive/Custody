@@ -40,7 +40,11 @@ impl Root {
                 && self.chain_id == "SOL"
                 && key(&self.genesis_hash)? != [0; 32]
                 && self.purpose == "DEPOSIT"
-                && self.wallet_class == "HOT"
+                && match self.dkg.custody_class.as_deref() {
+                    None => self.wallet_class == "HOT",
+                    Some(class) =>
+                        self.wallet_class == class && ["HOT", "WARM", "COLD"].contains(&class),
+                }
                 && self.derivation_version == VERSION
                 && self.generation == 0,
             "invalid original seeded root namespace"
@@ -191,9 +195,18 @@ pub struct Report<T> {
 pub struct Evidence<T> {
     pub statement: T,
     pub participant_agreement: Vec<Report<T>>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub authority: Option<Box<crate::solana_claim_authority::ClaimAuthority>>,
 }
 impl<T: PartialEq> Evidence<T> {
     pub fn validate(&self) -> Result<()> {
+        ensure!(
+            self.authority.is_none(),
+            "original evidence cannot acquire a current Claim authority"
+        );
+        self.validate_reports()
+    }
+    fn validate_reports(&self) -> Result<()> {
         ensure!(
             self.participant_agreement.len() == 3,
             "incomplete seeded agreement"
@@ -207,6 +220,17 @@ impl<T: PartialEq> Evidence<T> {
                         .is_some_and(|s| (8..=80).contains(&s.len())),
                 "inconsistent original seeded receipt"
             );
+        }
+        Ok(())
+    }
+}
+
+impl Evidence<Claim> {
+    pub fn validate_claim(&self) -> Result<()> {
+        self.statement.validate()?;
+        self.validate_reports()?;
+        if let Some(authority) = &self.authority {
+            authority.validate_shape(&self.statement.root)?;
         }
         Ok(())
     }

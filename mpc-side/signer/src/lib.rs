@@ -23,6 +23,7 @@ pub mod cggmp_sign;
 mod cggmp_wire;
 pub mod dkg;
 pub mod hd;
+pub mod protected;
 pub mod sign;
 pub mod solana_provisioning;
 
@@ -39,7 +40,8 @@ pub fn phase6a_insecure_local_listener(enabled: bool) -> Result<std::net::Socket
     Ok("127.0.0.1:8080".parse()?)
 }
 
-#[derive(Clone, Debug)]
+#[derive(Clone, Debug, Deserialize, Serialize)]
+#[serde(deny_unknown_fields)]
 pub struct SignerConfig {
     pub party_id: String,
     pub certificate_identity: String,

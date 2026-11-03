@@ -1,0 +1,152 @@
+{
+  "corrected_failures": [
+    "Initial signature recovery fault backup was inside strict coordinator directory; moved outside without relaxing startup validation.",
+    "Initial xmin-based posting guard rejected legitimate nested savepoints; replaced by deferred exact posting-set checks.",
+    "PL/pgSQL amount variable collided with posting column; renamed observed_fee_amount.",
+    "Old regression denial-text assertion adjusted to new typed-terminal denial; rejection itself was correct.",
+    "Independent review found reserve-posting INSERT gap and duplicate-debit/credit exact-pair gap; covered WITHDRAWAL_RESERVE and added zero-sum conditions with five explicit negatives."
+  ],
+  "current_source_ci": {
+    "all_gate": false,
+    "fast_conclusion": "success",
+    "fast_run": 41425030949,
+    "note": "Later uncommitted deposit/provenance work is outside this checkpoint.",
+    "source_sha": "c233a049a4b36b497bdfe93bb422309efbc56737"
+  },
+  "date": "2026-11-02 Asia/Tehran",
+  "final_combined_independent_review": "All reported finality/journal/hold-release/deadline findings addressed; no remaining identified P0/P1 in outgoing native sweep/finality boundary.",
+  "full_backend": {
+    "errors": 0,
+    "failures": 0,
+    "note": "Excluded only untracked unused observation unit module; remote exact-head Fast also passed.",
+    "skipped": 0,
+    "source_sha": "c233a049a4b36b497bdfe93bb422309efbc56737",
+    "tests": 1017,
+    "xml_seconds": 538.917
+  },
+  "genuine_finality_cases": [
+    "actual upstream FROST native sweep finalized once with separate Claim principal and Root fee",
+    "actual send accepted then ACK lost; public finality recovered without resending",
+    "actual finalized transfer then settlement audit failed; no partial DB settlement, recovered atomically"
+  ],
+  "independent_focused": {
+    "errors": 0,
+    "failures": 0,
+    "skipped": 0,
+    "tests": 129,
+    "xml_seconds": 150.692
+  },
+  "independent_genuine_finality": {
+    "errors": 0,
+    "failures": 0,
+    "skipped": 0,
+    "tests": 3,
+    "xml_seconds": 141.35
+  },
+  "independent_hashes": {
+    "backend-side/custody/migrations/0040_solana_financial_preparation.py": "5a26b20ab098c8186d2d07312be840f2827a80e4fab8a749710c80f048c0af38",
+    "backend-side/custody/migrations/0041_solana_financial_dispatch.py": "7292220ff6419a71149699bdd347bfa04ad52e703aab5a75a3871b47c2658b6a",
+    "backend-side/custody/migrations/0042_solana_financial_finality.py": "adefeba71bd0adc07cf6337fd32d40668217205f2c2d3d86ae8f86add805978c",
+    "backend-side/custody/models.py": "d0e0425722e2200a3607b35cdbeec8c2296a336ad3f2438191259365ae668cd4",
+    "backend-side/custody/mpc_transport.py": "1526749e282a97e7654843f26924368c820a187387e8aa3744a1da60d3a2da31",
+    "backend-side/custody/solana_financial_finality.py": "22a811bca8c9fa3c78bb0f75376a102194117fae2eb2f8a871fa31f01fb443a7",
+    "backend-side/custody/solana_financial_outbound.py": "c539e4457c009e916c3f94d936294a1326437d9d16ccb8e7f132e234346f5dc2",
+    "backend-side/custody/solana_financial_preparation.py": "dff45f4227b7e29f1ddc4c30b9aac0a15884a833f3cbda63ec92e170252929fb",
+    "backend-side/custody/solana_financial_sessions.py": "49fe362f1aa2127165f84833d9ef4b71c7b1f3b4d8e1006b7a845248db28b3ce",
+    "backend-side/custody/solana_financial_signing.py": "3d888a96b1f4a86c6399b92a16f47011f9bca3aaee7dc97d758848cc5d778c40",
+    "backend-side/custody/solana_financial_wallet.py": "3cdfec4ce40b094910c6245880c7a8a3271007240f8c938dcbada14634577dae",
+    "backend-side/custody/tests/test_mpc_dispatch_deadline.py": "157e668a15487e2e53225e2c4adf07995356d6bb83d5f61358d520fc435ef5ba",
+    "backend-side/custody/tests/test_solana_financial_finality.py": "b74a8a37d408ff9ea9202a4d9e834008189ab006a851ce0ae093d181481905db",
+    "backend-side/custody/tests/test_solana_financial_preparation.py": "3c1eb662c601883a0b6019493557c56b080210bf25cb2e5ef1c61a5577d21d28",
+    "backend-side/custody/tests/test_solana_financial_sessions.py": "17ab57f089f479682d5e0026779709b4d73d52cbca1ca8a406ca025877842772",
+    "backend-side/custody/tests/test_solana_financial_signing.py": "e2b35a1db60c7836c195d8a98c790d48c73c236140b26708c9d32a8f2e203265",
+    "backend-side/mpc_exchange/settings.py": "c9e5dff34c83b29b04e8fd0c5731217f7d51f3684df1a9cc3892f04b5508533a",
+    "mpc-side/integration/financial_finality_acceptance.py": "9d0ce19ab4ac7fdde22fefa6947021d6990332e1b9a226982c07472f25562f93",
+    "mpc-side/integration/financial_preparation_acceptance.py": "6e2d3763b6df0f8c7d5ac2d9502f2988206d167b45aee146ee4eba8ff0514603",
+    "mpc-side/integration/financial_signing_acceptance.py": "fceb23d3b3e83ac87e907c76c3cb5863109eb527501b6c18f603737a39ed95f9",
+    "mpc-side/integration/financial_wallet_acceptance.py": "e0b3c003ec22cef48429745083048a0355b7a57434eceba67e342c605c2a8036",
+    "mpc-side/integration/test_solana.py": "ad06d5c408bffb950f214a6f3ddf78afeb22ac39a42ca6ad4ed2e3060bd473de",
+    "mpc-side/target/debug/wallet-mpc-coordinator": "6d080c3e8d6678cb4820098c0876c9f43c153879ffede79e579dbbf3224fac7e",
+    "mpc-side/target/debug/wallet-mpc-protected-signer": "7cc150ee2d08f6d24c54ded34c6877eb2227f51e1178d720afdd8baaaaf39007",
+    "mpc-side/target/debug/wallet-mpc-witness": "ed7bd7118bc6e56c4073e400060f4b957c39ed05631b0bf2d146ebb79e3ddc4b"
+  },
+  "independent_hashes_unchanged": true,
+  "independent_rust_binaries": 3,
+  "independent_source_files": 22,
+  "limitations": [
+    "Only isolated development and HOT backend financial execution.",
+    "Sweep snapshot and faucet funding are synthetic; no actual deposit-credit/customer liability acceptance.",
+    "Seeded credit still closed; no second ledger or production activation.",
+    "Local NoSignature can permit a new crypto attempt under the original hold but cannot release a business hold after DB restore.",
+    "RPC boundary is independently genesis-pinned trusted infrastructure, not a light client.",
+    "Freeze and send are bounded preflight checks, not an atomic network revocation or hard realtime guarantee.",
+    "SPL publication/financial integration, repaired-identity new Claims, fresh-DKG drain/retirement/late-address rescue and final phase-wide exact-SHA gates remain required."
+  ],
+  "phase_complete": false,
+  "prior_bounded_independent_preparation": {
+    "genuine": {
+      "errors": 0,
+      "failures": 0,
+      "skipped": 0,
+      "tests": 1,
+      "xml_seconds": 34.112
+    },
+    "limit": "Predates signature and settlement additions; does not cover finality.",
+    "pg": {
+      "errors": 0,
+      "failures": 0,
+      "skipped": 0,
+      "tests": 78,
+      "xml_seconds": 81.335
+    }
+  },
+  "prior_bounded_independent_signing": {
+    "genuine": {
+      "errors": 0,
+      "failures": 0,
+      "skipped": 0,
+      "tests": 3,
+      "xml_seconds": 101.739
+    },
+    "limit": "Predates six additional negative consumption cases, synthetic positive reference and settlement additions.",
+    "pg_and_tls": {
+      "errors": 0,
+      "failures": 0,
+      "skipped": 0,
+      "tests": 87,
+      "xml_seconds": 91.301
+    }
+  },
+  "production_enabled": false,
+  "review_findings_addressed": [
+    "Require accepted Effect for any protected terminal Attempt; no early terminal shortcut without proof.",
+    "Exact fee quote comparison before send; separate principal and base-fee effects.",
+    "Exact terminal journal posting sets, immutable relevant journal/posting records and original parent txhash.",
+    "READ COMMITTED before protected journal-link absence, including old-snapshot mutation/append negatives.",
+    "Recheck deadline after original blockhash/genesis RPCs at send release.",
+    "Removed unsafe local-NoSignature business release shortcut."
+  ],
+  "root_focused": {
+    "errors": 0,
+    "failures": 0,
+    "skipped": 0,
+    "source_note": "Before final reserve-posting and zero-sum guard additions; final independent full focused rerun pending.",
+    "tests": 124,
+    "xml_seconds": 146.208
+  },
+  "root_genuine_finality": {
+    "errors": 0,
+    "failures": 0,
+    "skipped": 0,
+    "tests": 3,
+    "xml_seconds": 141.72
+  },
+  "root_posting_final_negatives": {
+    "errors": 0,
+    "failures": 0,
+    "skipped": 0,
+    "tests": 5,
+    "xml_seconds": 10.1
+  },
+  "scope": "Uncommitted development native preparation, protected signature capture/recovery and finalized native sweep/fee accounting; not whole-phase or production acceptance."
+}

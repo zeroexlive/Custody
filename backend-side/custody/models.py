@@ -84,6 +84,23 @@ class CustodyPrincipal(RegistryIdentity):
         return super().save(*args, **kwargs)
 
 
+class CustodyPrincipalRole(RegistryIdentity):
+    """Explicit immutable financial role; opaque references never imply a role."""
+
+    principal = models.OneToOneField(CustodyPrincipal, on_delete=models.PROTECT, primary_key=True)
+    role = models.CharField(
+        max_length=16, choices=[("CUSTOMER", "CUSTOMER"), ("TREASURY", "TREASURY")]
+    )
+
+    class Meta:
+        constraints = [
+            models.CheckConstraint(
+                condition=Q(role__in=["CUSTOMER", "TREASURY"]),
+                name="custody_principal_financial_role",
+            ),
+        ]
+
+
 class Asset(models.Model):
     """Authoritative custody capability record for a reviewed asset.
 
@@ -197,6 +214,7 @@ class MpcKeyset(models.Model):
     network_bindings = models.JSONField(default=dict, blank=True, editable=False)
     status = models.CharField(max_length=16, choices=STATUSES, default="CREATING")
     active_for_new_wallets = models.BooleanField(default=False)
+    solana_coordinator_required = models.BooleanField(default=False)
     created_at = models.DateTimeField(auto_now_add=True)
     retired_at = models.DateTimeField(null=True, blank=True)
 
@@ -257,6 +275,15 @@ class MpcKeyset(models.Model):
         return super().save(*args, **kwargs)
 
 
+class MpcSolanaCoordinatorBinding(models.Model):
+    """Permanent operator-selected coordinator identity for one original keyset."""
+
+    keyset = models.OneToOneField(MpcKeyset, on_delete=models.PROTECT, primary_key=True)
+    url = models.CharField(max_length=512)
+    coordinator_key_id = models.CharField(max_length=64)
+    created_at = models.DateTimeField(auto_now_add=True)
+
+
 class MpcSolanaRoot(models.Model):
     """Durable original dedication intent. APPROVED is not a spending grant."""
 
@@ -268,6 +295,8 @@ class MpcSolanaRoot(models.Model):
     base_address = models.CharField(max_length=44, unique=True)
     status = models.CharField(max_length=16, default="PENDING")
     evidence = models.JSONField(default=dict)
+    # Set only at original creation; the Root guard makes it immutable.
+    receipt_pins_reserved = models.BooleanField(default=False)
     # Includes the exhausted sentinel 2**63 after the final signed-bigint index.
     next_index = models.DecimalField(max_digits=20, decimal_places=0, default=0)
     created_at = models.DateTimeField(auto_now_add=True)
@@ -282,6 +311,47 @@ class MpcSolanaRoot(models.Model):
                 condition=Q(status="PENDING", evidence={})
                 | (Q(status="APPROVED") & ~Q(evidence={})),
                 name="sol_root_approval_shape",
+            ),
+        ]
+
+
+class MpcSolanaReceiptPins(models.Model):
+    """Immutable installed public identities for this original Root's receipts."""
+
+    root = models.OneToOneField(MpcSolanaRoot, on_delete=models.PROTECT, primary_key=True)
+    source = models.CharField(max_length=20)
+    certificates_der_hex = models.JSONField()
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        constraints = [
+            models.CheckConstraint(
+                condition=Q(source__in=["RESERVATION", "ARCHIVAL_IMPORT"]),
+                name="sol_receipt_pin_source",
+            ),
+        ]
+
+
+class MpcSolanaFinancialRoot(models.Model):
+    """Durable clean-Root mode import; neither a wallet nor financial authority."""
+
+    root = models.OneToOneField(MpcSolanaRoot, on_delete=models.PROTECT, primary_key=True)
+    witness_anchor_id = models.UUIDField()
+    witness_key_id = models.CharField(max_length=64)
+    query_challenge = models.CharField(max_length=64)
+    query_expires_at = models.DateTimeField()
+    status = models.CharField(max_length=16, default="PENDING")
+    activation_id = models.UUIDField(default=uuid.uuid4, unique=True, editable=False)
+    command_id = models.UUIDField(default=uuid.uuid4, unique=True, editable=False)
+    evidence = models.JSONField(default=dict)
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        constraints = [
+            models.CheckConstraint(
+                condition=Q(status="PENDING", evidence={})
+                | (Q(status="VERIFIED") & ~Q(evidence={})),
+                name="sol_financial_root_evidence_shape",
             ),
         ]
 
@@ -317,6 +387,71 @@ class MpcSolanaClaim(models.Model):
                 condition=Q(status="PENDING", evidence={})
                 | (Q(status="APPROVED") & ~Q(evidence={})),
                 name="sol_claim_approval_shape",
+            ),
+        ]
+
+
+class MpcSolanaIssuance(models.Model):
+    """Original publication intent; independent witness permission is mandatory."""
+
+    issuance_id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
+    claim = models.OneToOneField(MpcSolanaClaim, on_delete=models.PROTECT)
+    witness_anchor_id = models.UUIDField()
+    witness_key_id = models.CharField(max_length=64)
+    query_challenge = models.CharField(max_length=64)
+    query_expires_at = models.DateTimeField()
+    status = models.CharField(max_length=16, default="PENDING")
+    evidence = models.JSONField(default=dict)
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        constraints = [
+            models.CheckConstraint(
+                condition=Q(status="PENDING", evidence={})
+                | (Q(status="WITNESSED") & ~Q(evidence={})),
+                name="sol_issuance_evidence_shape",
+            ),
+        ]
+
+
+class MpcSolanaFinancialWallet(models.Model):
+    """Typed native publication membership, not a balance or signing grant."""
+
+    claim = models.OneToOneField(MpcSolanaClaim, on_delete=models.PROTECT, primary_key=True)
+    mode = models.ForeignKey(MpcSolanaFinancialRoot, on_delete=models.PROTECT)
+    issuance = models.OneToOneField(MpcSolanaIssuance, on_delete=models.PROTECT)
+    role = models.CharField(
+        max_length=24,
+        choices=[("CUSTOMER_DEPOSIT", "CUSTOMER_DEPOSIT"), ("TENANT_TREASURY", "TENANT_TREASURY")],
+    )
+    user_wallet = models.OneToOneField(
+        "UserWallet",
+        null=True,
+        blank=True,
+        on_delete=models.PROTECT,
+        related_name="solana_financial_membership",
+    )
+    status = models.CharField(max_length=16, default="PENDING")
+    evidence = models.JSONField(default=dict)
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        constraints = [
+            models.CheckConstraint(
+                condition=Q(status="PENDING", user_wallet__isnull=True, evidence={})
+                | (
+                    Q(status="ACTIVE")
+                    & ~Q(evidence={})
+                    & (
+                        Q(role="CUSTOMER_DEPOSIT", user_wallet__isnull=False)
+                        | Q(role="TENANT_TREASURY", user_wallet__isnull=True)
+                    )
+                ),
+                name="sol_financial_wallet_state",
+            ),
+            models.CheckConstraint(
+                condition=Q(role__in=["CUSTOMER_DEPOSIT", "TENANT_TREASURY"]),
+                name="sol_financial_wallet_role",
             ),
         ]
 
@@ -477,6 +612,7 @@ class UserWallet(models.Model):
             ),
             models.UniqueConstraint(
                 fields=["user_id", "chain_id", "asset_key", "address_index"],
+                condition=Q(solana_claim__isnull=True),
                 name="uq_user_chain_asset_addrindex",
             ),
             models.UniqueConstraint(
@@ -491,7 +627,7 @@ class UserWallet(models.Model):
     deposit_address = models.CharField(max_length=128, db_index=True)
     # TON memo attribution (optional). For TON this binds the user on-chain.
     memo = models.CharField(max_length=128, null=True, blank=True)
-    address_index = models.PositiveIntegerField(default=0)
+    address_index = models.PositiveBigIntegerField(default=0)
     status = models.CharField(max_length=16, choices=STATUS, default="ACTIVE")
     created_at = models.DateTimeField(auto_now_add=True)
     # Indexer scan metadata
@@ -512,6 +648,13 @@ class UserWallet(models.Model):
         blank=True,
         on_delete=models.PROTECT,
         related_name="asset_wallets",
+    )
+    solana_claim = models.OneToOneField(
+        MpcSolanaClaim,
+        null=True,
+        blank=True,
+        on_delete=models.PROTECT,
+        related_name="issued_wallet",
     )
 
     def __str__(self) -> str:
@@ -725,6 +868,7 @@ class OnchainTransactionAttempt(models.Model):
         ("WITHDRAWAL", "WITHDRAWAL"),
         ("SWEEP", "SWEEP"),
         ("GAS_TOPUP", "GAS_TOPUP"),
+        ("PROVISION", "PROVISION"),
     ]
     STATUSES = [
         (value, value)
@@ -784,11 +928,314 @@ class OnchainTransactionAttempt(models.Model):
                 name="uq_onchain_source_sequence",
             ),
             models.CheckConstraint(
-                condition=models.Q(amount__gt=0) & models.Q(base_unit_amount__gt=0),
+                condition=(~Q(operation_type="PROVISION") & Q(amount__gt=0, base_unit_amount__gt=0))
+                | Q(operation_type="PROVISION", chain_id="SOL", amount=0, base_unit_amount=0),
                 name="onchain_attempt_positive_amount",
             ),
         ]
         indexes = [models.Index(fields=["status", "chain_id"])]
+
+
+class MpcSolanaTokenProvision(models.Model):
+    """One explicit initialization business; no token principal or USER liability.
+
+    Failed finalized attempts retain history. A later explicit business may
+    retry; an unresolved or successful original cannot be silently replaced.
+    """
+
+    claim = models.ForeignKey(MpcSolanaClaim, on_delete=models.PROTECT)
+    idempotency_key = models.CharField(max_length=128)
+    status = models.CharField(max_length=32, default="CREATED")
+    tx_hash = models.CharField(max_length=128, null=True, blank=True)
+    created_at = models.DateTimeField(auto_now_add=True)
+    completed_at = models.DateTimeField(null=True, blank=True)
+
+    class Meta:
+        constraints = [
+            models.CheckConstraint(
+                condition=Q(
+                    status__in=[
+                        "CREATED",
+                        "PROCESSING",
+                        "BROADCASTED",
+                        "RECONCILIATION_REQUIRED",
+                        "CONFIRMED",
+                        "FAILED",
+                    ]
+                ),
+                name="sol_token_provision_state",
+            ),
+            models.UniqueConstraint(
+                fields=["claim"],
+                condition=~Q(status="FAILED"),
+                name="sol_token_one_live_or_successful_init",
+            ),
+            models.UniqueConstraint(
+                fields=["claim", "idempotency_key"], name="sol_token_provision_retry_identity"
+            ),
+        ]
+
+
+class MpcSolanaTokenPublication(models.Model):
+    """Immutable finalized initialization and actual account proof at publication."""
+
+    claim = models.OneToOneField(MpcSolanaClaim, primary_key=True, on_delete=models.PROTECT)
+    effect = models.OneToOneField("MpcSolanaFinancialEffect", on_delete=models.PROTECT)
+    account_context_slot = models.PositiveBigIntegerField()
+    account_evidence = models.JSONField()
+    created_at = models.DateTimeField(auto_now_add=True)
+
+
+class MpcSolanaFinancialOperation(models.Model):
+    """Immutable business/source identity; balances remain in the existing ledger."""
+
+    reservation_id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
+    withdrawal = models.OneToOneField("WithdrawalRequest", null=True, on_delete=models.PROTECT)
+    sweep = models.OneToOneField("SweepJob", null=True, on_delete=models.PROTECT)
+    provision = models.OneToOneField(MpcSolanaTokenProvision, null=True, on_delete=models.PROTECT)
+    principal = models.ForeignKey(CustodyPrincipal, on_delete=models.PROTECT)
+    source = models.ForeignKey(
+        MpcSolanaFinancialWallet, on_delete=models.PROTECT, related_name="outgoing_operations"
+    )
+    treasury_destination = models.ForeignKey(
+        MpcSolanaFinancialWallet,
+        null=True,
+        on_delete=models.PROTECT,
+        related_name="incoming_sweep_operations",
+    )
+    approval_id = models.UUIDField(default=uuid.uuid4, unique=True, editable=False)
+    amount = models.DecimalField(max_digits=40, decimal_places=18)
+    base_unit_amount = models.DecimalField(max_digits=78, decimal_places=0)
+    destination_address = models.CharField(max_length=44)
+    fee_budget_lamports = models.PositiveBigIntegerField()
+    rent_budget_lamports = models.PositiveBigIntegerField(default=0)
+    status = models.CharField(max_length=16, default="HELD")
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        constraints = [
+            models.CheckConstraint(
+                condition=Q(
+                    withdrawal__isnull=False,
+                    sweep__isnull=True,
+                    provision__isnull=True,
+                    treasury_destination__isnull=True,
+                )
+                | Q(
+                    withdrawal__isnull=True,
+                    sweep__isnull=False,
+                    provision__isnull=True,
+                    treasury_destination__isnull=False,
+                )
+                | Q(
+                    withdrawal__isnull=True,
+                    sweep__isnull=True,
+                    provision__isnull=False,
+                    treasury_destination__isnull=True,
+                ),
+                name="sol_fin_operation_business_shape",
+            ),
+            models.CheckConstraint(
+                condition=Q(fee_budget_lamports__gt=0)
+                & (
+                    Q(
+                        provision__isnull=True,
+                        amount__gt=0,
+                        base_unit_amount__gt=0,
+                        base_unit_amount__lte=18446744073709551615,
+                    )
+                    | Q(
+                        provision__isnull=False,
+                        amount=0,
+                        base_unit_amount=0,
+                        rent_budget_lamports__gt=0,
+                    )
+                ),
+                name="sol_fin_operation_amount_shape",
+            ),
+            models.CheckConstraint(
+                condition=Q(status__in=["HELD", "SETTLED", "RELEASED"]),
+                name="sol_fin_operation_state",
+            ),
+            models.UniqueConstraint(
+                fields=["source"],
+                condition=Q(sweep__isnull=False, status="HELD"),
+                name="sol_fin_one_held_sweep_per_source",
+            ),
+        ]
+
+
+class MpcSolanaFinancialSession(models.Model):
+    """One exact protected crypto execution per immutable on-chain attempt."""
+
+    session_id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
+    crypto_execution_id = models.UUIDField(default=uuid.uuid4, unique=True, editable=False)
+    operation = models.ForeignKey(MpcSolanaFinancialOperation, on_delete=models.PROTECT)
+    attempt = models.OneToOneField(OnchainTransactionAttempt, on_delete=models.PROTECT)
+    selected_signers = models.JSONField()
+    status = models.CharField(max_length=32, default="ALLOCATED")
+    intent = models.JSONField(default=dict)
+    payload = models.BinaryField(default=bytes)
+    custody_authorization = models.JSONField(default=dict)
+    policy_authorization = models.JSONField(default=dict)
+    admission_evidence = models.JSONField(default=dict)
+    no_signature_evidence = models.JSONField(default=dict)
+    signature_hex = models.CharField(max_length=128, default="", blank=True)
+    coordinator_evidence = models.JSONField(default=dict)
+    error_code = models.CharField(max_length=64, default="", blank=True)
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        constraints = [
+            models.CheckConstraint(
+                condition=Q(
+                    status__in=[
+                        "ALLOCATED",
+                        "WAITING_POLICY",
+                        "READY",
+                        "IN_PROGRESS",
+                        "COMPLETED",
+                        "NO_SIGNATURE",
+                        "RECONCILIATION_REQUIRED",
+                    ]
+                ),
+                name="sol_fin_session_state",
+            ),
+            models.UniqueConstraint(
+                fields=["operation"],
+                condition=~Q(status="NO_SIGNATURE"),
+                name="sol_fin_one_unresolved_session",
+            ),
+        ]
+
+
+class MpcSolanaFinancialQuery(models.Model):
+    """Append-only challenge lease; no refresh of an old nonce or deadline."""
+
+    challenge = models.CharField(primary_key=True, max_length=64)
+    session = models.ForeignKey(MpcSolanaFinancialSession, on_delete=models.PROTECT)
+    purpose = models.CharField(max_length=16)
+    witness_anchor_id = models.UUIDField()
+    witness_key_id = models.CharField(max_length=64)
+    query = models.JSONField()
+    expires_at = models.DateTimeField()
+    status = models.CharField(max_length=16, default="PENDING")
+    evidence = models.JSONField(default=dict)
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        constraints = [
+            models.CheckConstraint(
+                condition=Q(purpose__in=["ADMISSION", "RECOVERY", "TERMINAL"]),
+                name="sol_fin_query_purpose",
+            ),
+            models.CheckConstraint(
+                condition=Q(status="PENDING", evidence={})
+                | (Q(status="VERIFIED") & ~Q(evidence={})),
+                name="sol_fin_query_evidence_shape",
+            ),
+        ]
+
+
+class MpcSolanaMessageOwner(models.Model):
+    """Permanent canonical (genesis,message) ownership, claimed before private work."""
+
+    genesis_hash = models.CharField(max_length=44)
+    message_fingerprint = models.CharField(max_length=64)
+    operation = models.ForeignKey(MpcSolanaFinancialOperation, on_delete=models.PROTECT)
+    first_session = models.ForeignKey(MpcSolanaFinancialSession, on_delete=models.PROTECT)
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        constraints = [
+            models.UniqueConstraint(
+                fields=["genesis_hash", "message_fingerprint"], name="uq_sol_fin_message_owner"
+            )
+        ]
+
+
+class MpcSolanaSignatureOwner(models.Model):
+    """Append-only verified signature ownership; never a settlement indicator."""
+
+    genesis_hash = models.CharField(max_length=44)
+    signature = models.CharField(max_length=88)
+    message = models.ForeignKey(MpcSolanaMessageOwner, on_delete=models.PROTECT)
+    session = models.OneToOneField(MpcSolanaFinancialSession, on_delete=models.PROTECT)
+    evidence = models.JSONField()
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        constraints = [
+            models.UniqueConstraint(
+                fields=["genesis_hash", "signature"], name="uq_sol_fin_signature_owner"
+            )
+        ]
+
+
+class MpcSolanaFinancialEffect(models.Model):
+    """Immutable finalized original-wire observation, never a second balance ledger."""
+
+    attempt = models.OneToOneField(
+        OnchainTransactionAttempt, on_delete=models.PROTECT, primary_key=True
+    )
+    signature_owner = models.OneToOneField(MpcSolanaSignatureOwner, on_delete=models.PROTECT)
+    slot = models.PositiveBigIntegerField()
+    outcome = models.CharField(max_length=16)
+    evidence = models.JSONField()
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        constraints = [
+            models.CheckConstraint(
+                condition=Q(outcome__in=["CONFIRMED", "FAILED"], slot__gt=0) & ~Q(evidence={}),
+                name="sol_fin_effect_shape",
+            )
+        ]
+
+
+class MpcSolanaOperatorFundingSource(models.Model):
+    """Permanent privileged source classification, never a customer balance."""
+
+    genesis_hash = models.CharField(max_length=44)
+    address = models.CharField(max_length=44)
+    reference = models.CharField(max_length=128)
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        constraints = [
+            models.UniqueConstraint(
+                fields=["genesis_hash", "address"], name="uq_sol_operator_source"
+            ),
+        ]
+
+
+class MpcSolanaDepositProvenance(models.Model):
+    """One finalized explicit instruction has exactly one original deposit owner."""
+
+    deposit = models.OneToOneField("Deposit", on_delete=models.PROTECT)
+    genesis_hash = models.CharField(max_length=44)
+    signature = models.CharField(max_length=88)
+    event_index = models.CharField(max_length=64)
+    source_address = models.CharField(max_length=44)
+    source_owner_address = models.CharField(max_length=44, null=True, blank=True)
+    source_owner_history = models.JSONField(default=list)
+    slot = models.PositiveBigIntegerField()
+    block_hash = models.CharField(max_length=44)
+    observation_sha256 = models.CharField(max_length=64)
+    evidence = models.JSONField()
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        constraints = [
+            models.UniqueConstraint(
+                fields=["genesis_hash", "signature", "event_index"],
+                name="uq_sol_deposit_instruction",
+            ),
+            models.CheckConstraint(
+                condition=Q(slot__gt=0) & ~Q(evidence={}), name="sol_deposit_provenance_shape"
+            ),
+        ]
 
 
 class MpcSigningSession(models.Model):
@@ -890,6 +1337,7 @@ class LedgerAccount(models.Model):
         ("TREASURY_ASSET", "TREASURY_ASSET"),
         ("NETWORK_FEE_EXPENSE", "NETWORK_FEE_EXPENSE"),
         ("ATA_RENT_ASSET", "ATA_RENT_ASSET"),
+        ("TOKEN_ACCOUNT_RENT_ASSET", "TOKEN_ACCOUNT_RENT_ASSET"),
         ("TOKEN_GAS_EXPENSE", "TOKEN_GAS_EXPENSE"),
     ]
     owner_type = models.CharField(max_length=16, choices=OWNER_TYPES)
@@ -916,6 +1364,7 @@ class LedgerAccount(models.Model):
                             "TREASURY_ASSET",
                             "NETWORK_FEE_EXPENSE",
                             "ATA_RENT_ASSET",
+                            "TOKEN_ACCOUNT_RENT_ASSET",
                             "TOKEN_GAS_EXPENSE",
                         ],
                     )
@@ -946,6 +1395,7 @@ class LedgerAccount(models.Model):
                 "TREASURY_ASSET",
                 "NETWORK_FEE_EXPENSE",
                 "ATA_RENT_ASSET",
+                "TOKEN_ACCOUNT_RENT_ASSET",
                 "TOKEN_GAS_EXPENSE",
             }
         )
@@ -968,6 +1418,7 @@ class LedgerTransaction(models.Model):
         ("WITHDRAWAL_SETTLE", "WITHDRAWAL_SETTLE"),
         ("NETWORK_FEE", "NETWORK_FEE"),
         ("ATA_RENT", "ATA_RENT"),
+        ("TOKEN_ACCOUNT_RENT", "TOKEN_ACCOUNT_RENT"),
         ("TOKEN_GAS", "TOKEN_GAS"),
     ]
     event_key = models.CharField(max_length=160, unique=True)
@@ -1011,3 +1462,72 @@ class LedgerPosting(models.Model):
 
     def delete(self, *args, **kwargs):
         raise ValueError("ledger postings are append-only")
+
+
+class MpcSolanaClaimQuery(models.Model):
+    """One immutable original challenge; public signatures are not freshness alone."""
+
+    challenge = models.CharField(max_length=64, primary_key=True)
+    claim = models.ForeignKey(MpcSolanaClaim, on_delete=models.PROTECT)
+    witness_anchor_id = models.UUIDField()
+    witness_key_id = models.CharField(max_length=64)
+    attempt = models.ForeignKey(
+        "MpcSolanaClaimApproval",
+        null=True,
+        blank=True,
+        on_delete=models.PROTECT,
+        related_name="registration_queries",
+    )
+    purpose = models.CharField(
+        max_length=16, choices=[("DISCOVERY", "DISCOVERY"), ("REGISTRATION", "REGISTRATION")]
+    )
+    expires_at = models.DateTimeField()
+    status = models.CharField(max_length=16, default="PENDING")
+    evidence = models.JSONField(default=dict)
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        constraints = [
+            models.CheckConstraint(
+                condition=Q(purpose="DISCOVERY", attempt__isnull=True)
+                | Q(purpose="REGISTRATION", attempt__isnull=False),
+                name="sol_claim_query_purpose",
+            ),
+            models.CheckConstraint(
+                condition=Q(status="PENDING", evidence={})
+                | (Q(status="VERIFIED") & ~Q(evidence={})),
+                name="sol_claim_query_shape",
+            ),
+        ]
+
+
+class MpcSolanaClaimApproval(models.Model):
+    """Durable public attempt; expiry never permits replacement of Claim identity."""
+
+    attempt_id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
+    claim = models.ForeignKey(MpcSolanaClaim, on_delete=models.PROTECT)
+    discovery = models.OneToOneField(MpcSolanaClaimQuery, on_delete=models.PROTECT)
+    authority_identity = models.CharField(max_length=64)
+    approval = models.JSONField()
+    command_id = models.UUIDField(default=uuid.uuid4, unique=True, editable=False)
+    status = models.CharField(max_length=16, default="PENDING")
+    evidence = models.JSONField(default=dict)
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        constraints = [
+            models.CheckConstraint(
+                condition=Q(status="PENDING", evidence={})
+                | (Q(status="REPORTED") & ~Q(evidence={})),
+                name="sol_current_claim_attempt_shape",
+            ),
+        ]
+
+
+class MpcSolanaClaimRegistration(models.Model):
+    """Exact permanent W evidence; original Claim approval is immutable archival data."""
+
+    claim = models.OneToOneField(MpcSolanaClaim, on_delete=models.PROTECT, primary_key=True)
+    query = models.OneToOneField(MpcSolanaClaimQuery, on_delete=models.PROTECT)
+    evidence = models.JSONField()
+    created_at = models.DateTimeField(auto_now_add=True)

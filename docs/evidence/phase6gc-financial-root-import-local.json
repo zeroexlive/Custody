@@ -1,0 +1,29 @@
+{
+  "current_head_ci": "pending",
+  "date": "2026-11-01 Asia/Tehran",
+  "genuine": {
+    "canonical_no_claim_query_accepted_by_actual_rust_witness": true,
+    "financial_wallet_or_ledger_activation": false,
+    "mode_ids_and_query_committed_before_independent_enable": true,
+    "mode_off_and_claim_before_import_rejected": true,
+    "original_mode_proof_preserved_after_claim_and_witness_restart": true,
+    "original_root_receipts_unchanged": true,
+    "original_three_store_claim_after_verified_import": true,
+    "scope": "genuine PG and protected Rust clean-mode import; no wallet or ledger activation"
+  },
+  "genuine_pg_rust_witness_cases": 1,
+  "genuine_wall_seconds": 6.25,
+  "independent_binary_hashes_unchanged": true,
+  "independent_genuine_cases": 1,
+  "independent_genuine_wall_seconds": 8.39,
+  "independent_genuine_xml_seconds": 8.39,
+  "independent_postgresql_cases": 54,
+  "independent_postgresql_wall_seconds": 76.12,
+  "independent_postgresql_xml_seconds": 76.117,
+  "independent_review": "bounded source/runtime review found no demonstrated P0/P1; full backend and final-head gates separate",
+  "postgresql_synthetic_cases": 54,
+  "postgresql_wall_seconds": 74.51,
+  "postgresql_xml_seconds": 74.51,
+  "scope": "clean-Root mode import only; no financial wallet activation or ledger posting",
+  "whole_phase_complete": false
+}

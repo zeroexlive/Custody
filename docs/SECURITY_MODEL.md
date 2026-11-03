@@ -1,3 +1,25 @@
+> **Current unmerged continuation (2026-10-29):** Draft PR #2 now contains actual
+> protected seeded signing, ordinary refresh, terminal NoRelease and native
+> issuance. Private replacement repair adds independently reviewed upstream RTS
+> into one fresh recipient, immutable encrypted staging and all-three refresh;
+> original Root/Claim receipts remain authoritative. A repaired share alone
+> cannot sign or activate, new recipients cannot attest old-key NoRelease, and
+> same-key repair/refresh does not revoke an old compromised threshold. Exact
+> current-head gates and explicit old-profile migration, financial integration,
+> root rotation/drain/rescue and whole-phase acceptance remain open. The merged
+> baseline/older 'no signer route' descriptions below refer to earlier snapshots.
+> See [recovery authority and limits](PHASE6GC_RECOVERY.md).
+
+> **Merged development checkpoint (2026-10-28):** PR #1 merged as `587e0969`.
+> Its tree exactly matches final reviewed `78394fc`, with Fast/full14jobs/228calls/
+> zero skips and independently verified original-store compatibility665.205s.
+> Main Fast40716836844 passed. Earlier unmerged descriptions below are historical.
+> Phase6G-C and production gates remain incomplete. The next typed seeded intent
+> library supplies format/wire/domain checks only: canonical IDs are not registry
+> membership, generation references are not freshness and assertions are not live
+> RPC evidence. No new signer route or nonce permission is enabled. See
+> [precise boundary](PHASE6GC_SOLANA_SPENDING.md).
+
 > **Dependency checkpoint disposition (2026-10-27):** crypto-bigint 0.5.5 is
 > removed in the independently reviewed unmerged branch; exact checkpoint
 > `ea4bb4ed` passed Fast and all 14 full-gate jobs. The earlier OPEN advisory banner
@@ -232,3 +254,19 @@ normal-path CI is insufficient. scc/RUSTSEC-2026-0205 remains P1 OPEN.
 ## Continuation security scope — 2026-10-27
 
 The current fork/main and historical corrected findings are qualified in INITIAL_REPOSITORY_AUDIT.md. Tokio/scc remediation is present in the lockfile; atomic-polyfill remains development-only P2 maintenance debt per the exported final review, with production assessment outstanding. The local initial retirement correction is command-level fail-closed safety, not independently authorized rotation, compromise handling, an SQL-level lifecycle invariant or signer-state revocation. The continuation denies keyset add/change/delete in Django admin while preserving authorized viewing. DB administrators, direct model writes and signer administrators remain trusted. The optional manual blacklist restricts only outgoing withdrawal destinations; it must never screen/hold incoming deposits. Disabling it must preserve unrelated authorization, finality and ledger protections. No external AML/KYT service is permitted.
+
+## Phase6G-C classic SPL continuation (unmerged development)
+
+Initialization has zero principal and no USER liability. Financial publication
+requires both original owned finalized initialization and a separate permanent
+Lifecycle witness grant, plus current exact binary account/mint/authority/rent
+proof. Financial external withdrawals authorize full possible ATA creation rent
+and post only actual cost. Dedicated incoming attribution uses actual executed
+classic Token transfers; it preserves every source owner through account owner
+changes, closure and reinitialization. Credit rechecks complete history under the
+common funding-classification lock; late operator classification cannot rewrite
+prior external attribution. This uses pinned trusted finalized RPC metadata,
+not a light-client proof. Prefunded deterministic source addresses fail closed
+without adoption. Bounded independent313-case and genuine SPL/Native3 reruns pass; new helper
+exact-head CI and whole-phase lifecycle acceptance remain pending; neither SPL nor deposit flags are enabled by default.
+See PHASE6GC_SPL_FINANCIAL.md for bounded evidence and residual limits.

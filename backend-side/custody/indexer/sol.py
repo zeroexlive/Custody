@@ -65,6 +65,19 @@ class SolIndexer(IndexerClient):
             from ..solana_deposits import scan_root_wallet
 
             assert_mpc_backend_runtime_safe(self.chain_id)
+            wallet = (
+                UserWallet.objects.select_related("solana_claim__root")
+                .filter(chain_id=self.chain_id, deposit_address=address, asset_key=asset_key)
+                .first()
+            )
+            if wallet is not None and wallet.solana_claim_id:
+                from ..solana_financial_deposits import scan_financial_wallet
+
+                return scan_financial_wallet(
+                    user_wallet_id=wallet.pk,
+                    tenant_id=wallet.solana_claim.root.tenant_id,
+                    operator_ref="solana-indexer",
+                )
             if (
                 asset_key == "SOL"
                 and not UserWallet.objects.filter(

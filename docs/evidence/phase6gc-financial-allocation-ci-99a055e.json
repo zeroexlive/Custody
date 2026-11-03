@@ -1,0 +1,28 @@
+{
+  "all_gate": false,
+  "artifacts": {
+    "preflight": 13106040872,
+    "solana": 13107791454
+  },
+  "conclusion": "success",
+  "date": "2026-11-02 Asia/Tehran",
+  "exact_sha_inventory_hash_selected_called_and_allowlist_verified": true,
+  "executed_jobs": 6,
+  "fast_run": 41361207460,
+  "fixed_3d32_network_compatibility_executed": false,
+  "inventory_scenarios": 276,
+  "inventory_sha256": "5ae4e3459d0792e2cb9d62415fccc5b9adb3a3f394d68b7740c0aa58d3ed0a1c",
+  "limitations": "Unprepared allocation checkpoint only; predates backend preparation, protected signature capture, broadcast and settlement. Not whole-phase acceptance.",
+  "preflight_cases": 8,
+  "preflight_xml_seconds": 38.554,
+  "private_key_markers_found": false,
+  "public_fixture_reports_including_current_aliases": 55,
+  "public_solana_files": 57,
+  "scenario_skips": 0,
+  "selected_scenarios": 59,
+  "selected_solana_run": 41361259277,
+  "source_sha": "99a055e0049fd5962ae5ccaf039f95367eea2a1e",
+  "unique_called_scenarios": 59,
+  "unselected_jobs": 8,
+  "xml_seconds": 3367.443
+}

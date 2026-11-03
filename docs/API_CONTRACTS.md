@@ -139,6 +139,13 @@ verify separate `solana_root`/`solana_claim` receipt domains against its three
 archival HOT signer certificate pins before any future issuance consumption.
 Coordinator-provided keys, signatures, labels or two-store agreement are insufficient.
 
+The next 6G-C branch adds `protocol::solana_intent::Intent` as a public internal
+data contract and pure shape/wire/domain constructor. There is no HTTP signing
+route for it and no nonce permission. The canonical machine-message domain binds
+the complete intent and original payload; caller identity, own original approvals,
+live generation witness and independent policy/network checks remain mandatory
+future integration. See [precise current boundary](PHASE6GC_SOLANA_SPENDING.md).
+
 The operator-only `solana_provisioning` command now registers original roots and
 reserves/approves tenant/principal/asset claims in PostgreSQL before mutating these
 RPCs. It reports `issued:false` even for APPROVED. Partial/unknown outcomes retain
@@ -153,3 +160,201 @@ fence through partial failures. New generic signing-session reservations conflic
 with pending/complete dedication under the same data lock; exact existing-session
 recovery is preserved. This is a coordinated-API fence, not Byzantine consensus
 or anti-rollback protection; see the explicit trust/availability limits above.
+
+## Phase 6G-C protected Solana internal development interfaces
+
+The required-profile `wallet-mpc-protected-signer` entrypoint exposes bounded POST
+`/internal/v1/solana/protected/{auto,challenge,apply,recover}`. The first, second
+and fourth accept `protocol::witness::Binding` plus `round` and optional original
+`signing_package` in a strict `protected::Control`; `apply` accepts the original
+signed witness `Permit`. Challenge/result types are signer-signed. Coordinator
+mTLS is required; COLD also permits its explicit courier role. COLD has no
+automatic witness client. Original result recovery never repeats private work.
+The generic `/internal/v1/sign/*` router is absent from this entrypoint.
+The subsequent `/internal/v1/solana/protected/cancel` accepts `CancelControl`:
+original R2 control plus independently lifecycle-signed `Cancellation` binding the
+exact durable signed request. It returns a durable terminal `NoRelease` only if
+no durable R2 result exists. This removes local authority and may occur while
+ACTIVE; all future old private work is forbidden. Witness `CloseUnreleased`
+separately requires Frozen state and original-key certificates from every actual
+R2 grantee. Neither timeout nor absent history closes a permission. See
+[cancellation semantics and assumptions](PHASE6GC_NO_RELEASE.md).
+
+The separate witness exposes `/v1/witness/{command,permit,record,query}`. Strict
+public Rust contracts are in `protocol::witness`. Lifecycle commands require a
+separate pinned lifecycle signature and lifecycle mTLS; they carry anchor,
+request UUID, original root identity, expected revision and expiry. Permit
+issuance also requires the immutable lifecycle-authorized `RegisterClaim`
+record, whose all-three receipts and permanent ownership/index/retry/reservation
+aliases survive signer restores. Fresh signed queries may request a claim UUID
+and recover its original public registration. Wallet issuance must wait for that
+durable claim-registration ACK.
+Permit
+requests require the original node signature plus signer transport or an
+explicit authenticated courier, independent custody and class-policy proofs,
+and a signer-origin challenge with at most15 seconds of life. Detached node
+pins are authoritative even when relayed without the original node certificate.
+Freeze/zero-R2 closure/prepare/activate and permissions share durable CAS state.
+Signed query responses echo the exact caller challenge. Public original round
+results can be redelivered idempotently; secret permissions cannot be repeated.
+
+Replies use200 for accepted public results and409 for rejected/uncertain authority
+requests; unauthorized transport roles use403 and malformed/bounded inputs use
+appropriate4xx responses. Failure never authorizes a fresh payout, releases a
+financial reserve or proves non-inclusion. `SignedPending` is cryptographic
+completion only. Backend issuance/ledger integration, explicit replacement/share
+repair and the public production API contract remain unfinished. See
+[implementation evidence and limits](PHASE6GC_SOLANA_SPENDING.md).
+
+The protected signer additionally accepts strict `RefreshPlan`/`refresh::Control`
+POSTs at `/internal/v1/solana/generation/{query,start,round1,round2,finalize,report,abort}`.
+Every plan needs the independently pinned lifecycle signature. Ordinary refresh
+requires each node's own fresh signed Frozen witness query and the exact current
+identity roster. COLD query responses use explicit courier relay. The bounded
+`/internal/v1/solana/generation/message` endpoint accepts only exact planned
+signer identities and canonical session-bound direct-peer envelopes. Controllers
+receive no private round packages. Original ceremony/session tombstones survive
+restart; report may recover an already completed encrypted generation's public
+Ready without repeating private work. See [refresh contract](PHASE6GC_SOLANA_REFRESH.md).
+
+
+### Phase6G-C native wallet publication (Draft PR #2 development)
+
+Privileged local `solana_wallet_publication request/complete` exports an original
+durable issuance UUID plus public witness query/action, then consumes the exact
+signed response to atomically create its original Claim-linked native wallet.
+The backend does not own the independent lifecycle approval key. No external
+API credential or generic signing authority follows. See
+[publication authority, migration and acceptance](PHASE6GC_NATIVE_ISSUANCE.md).
+SPL publication, protected financial sessions and lifecycle drain remain pending.
+
+Optional isolated HOT profile adds Custody-mTLS `/v1/solana-protected-sessions`
+POST create, `/{session_id}` GET and `/{session_id}/execute|reconcile` POST. Create
+persists exact Binding and supplied signed W view. Created is intent, not authority;
+backend must own its fresh query lease and original nodes verify live permissions.
+Completed is a verified original FROST aggregate, not W delivery, ledger settlement
+or reserve release. Reconcile invokes public node recovery only; missing reports
+must be relayed by the existing courier to W before backend financial consumption.
+Unknown never allocates new IDs or authorizes private retry. Generic routes retain
+their dedicated-Root fence. See PHASE6GC_FINANCIAL_INTEGRATION.md for limits.
+
+Standalone operator `financial_mode_request`/`complete_financial_mode` functions
+commit expected mode and Lifecycle-command IDs plus a15s public-query lease, then
+import independently enabled W mode for a clean original HOT Root. No external
+route or Lifecycle/Policy key is added. An absent optional Claim query field is
+omitted canonically, not signed as null. VERIFIED is immutable historical mode
+evidence, not current generation/phase or financial wallet activation. Pending
+import fences new Claims, and every new Claim admission re-verifies stored mode
+proof. Direct seeded credit remains closed pending the financial wallet contract.
+
+Standalone operator `register_financial_principal` requires explicit CUSTOMER or
+TREASURY role. An audited CUSTOMER declaration preserves the original registered
+tenant/principal/owner and existing history. TREASURY requires a fresh reference;
+neither role can later change or disappear. Customer wallet, USER-liability,
+withdrawal and HD reference guards reject treasury owners across chains. These
+declarations add no external authentication or signing permission. Financial-Root
+Claims require an explicit role; treasury Claims require verified Root mode and
+cannot enter the customer-publication API. Dedicated treasury publication uses
+the separate financial membership contract below.
+
+Standalone native `financial_wallet_request`/`complete_financial_wallet` now link
+one exact original Claim, verified Root mode, derived customer/treasury role and
+permanent W issuance. Begin commits both intents before query/grant export.
+Completion atomically publishes a customer UserWallet only for CUSTOMER_DEPOSIT;
+TENANT_TREASURY remains an internal custody membership with no UserWallet. Both
+paths retain original IDs after remote/DB uncertainty, with deferred consistency
+and no old-wallet adoption. No new external route or Life/Policy key is introduced.
+ACTIVE membership is not private signing, deposit credit or ledger settlement;
+those paths remain unfinished and seeded credit stays closed.
+
+
+### Phase6G-C public replacement reservation (unmerged development)
+
+Separate Lifecycle `ReserveReplacement` and `AbandonReplacement` commands bind
+one exact Frozen original Root/generation and never release failed-plan identity
+history. Signed query replies optionally expose the pending plan, original
+command ID and original all-three Root receipt evidence. Prepare/Activate require
+the exact reserved next refresh and all3 readiness. Original ordinary refresh
+roster checks remain strict. New event rules do not rewrite old signed history.
+The protected signer additionally exposes strict
+`/internal/v1/solana/replacement/{query,start,round1,round2,finalize,report,abort}`
+controls with a separate Life-signed ReplacementPlan and mandatory `stage`
+(`repair` or `refresh`). Direct canonical private envelopes are accepted only at
+`/internal/v1/solana/replacement/message` from exact planned signer TLS keys.
+Controllers receive public status/RepairReady/GenerationReady, never private
+Delta or Sigma. COLD controls require courier identity; HOT/WARM coordinator.
+Fresh recipient profiles are dedicated to one original Root; generic DKG and
+original-generation signing are unavailable there. RepairReady cannot authorize
+activation. Explicit migration of old immutable profiles remains unfinished; see
+[implemented boundary and remaining acceptance](PHASE6GC_RECOVERY.md).
+
+### Phase6G-C classic SPL financial operator workflow (unmerged development)
+
+The privileged local `solana_financial` command adds `provision-allocate` with
+original Claim reservation, explicit idempotency key, fee and rent budgets.
+`wallet-request` reports `initialization_required` and no witness action before
+owned finality; afterward it exports `IssueClassicClaim` bound to the original
+initialization execution. Existing session/query/prepare/approve/execute/recover/
+broadcast/reconcile commands retain their authority and uncertainty semantics.
+`withdrawal-allocate --rent-budget-lamports` is mandatory for token creation risk;
+native withdrawals require zero rent. `deposit-scan` selects original verified
+asset membership and actual finalized instruction provenance. Default-off SPL
+activation is separate from these CLI schemas. These commands are privileged
+operator tools, not tenant/API authentication. See PHASE6GC_SPL_FINANCIAL.md.
+
+### Phase6G-C current-identity public Claim approvals (unmerged development)
+
+Profiles with an explicit Lifecycle pin add signer
+`/internal/v1/solana/current-claim/query`, `/approve` and `/recover`. Query/recover
+take a bounded Custody-signed `CurrentClaimApproval`; approve takes
+`{approval,witness}`. Each approval binds the unchanged Claim and exact original
+Life-signed Prepare with its three named public receipt certificates. HOT/WARM
+use coordinator transport and own fresh W queries; COLD uses explicit courier
+queries and proofs. Recovery returns the original durable public receipt.
+
+Online `/v1/keysets/{id}/solana-current-claims` collects only public approvals under
+the already enrolled Root. A complete response carries optional Claim Evidence
+`authority`; absent authority retains original bytes. Original Root Evidence
+does not accept this field. No private signing or financial publication follows
+from receipt collection; backend/W must independently verify permanent exact
+registration and separate financial gates.
+
+For a historically repaired Root without a profile pin, the new explicit Life
+`PinReplacementProfile {replacement_command_id}` references only the original
+accepted replacement reservation. It accepts no supplied keys or profile values,
+requires a drained Frozen Root without maintenance, and preserves old events.
+See [current Claim authority and pending backend work](PHASE6GC_CURRENT_CLAIMS.md).
+
+The subsequent default-off local `solana_current_claim` operator workflow uses
+query/begin/collect/record/complete handoffs. Query commits its own15-second nonce;
+begin accepts the authentic discovery and three public certificate encodings,
+collect/record retain exact original reports, and the registration query exports
+the original command UUID plus RegisterClaim action for the separate Life driver.
+Complete consumes only an exact fresh independently signed W registered proof.
+It creates no financial publication or private grant. Original approved Evidence
+is archival; the immutable registration supplies effective Evidence to financial
+consumers. See the0046 development and acceptance status above.
+
+### Solana original receipt archives (0047 development prerequisite)
+
+Default-empty `MPC_SOLANA_ROOT_SIGNER_CERTIFICATES` selects independently installed
+three-party public leaves by original keyset UUID. New mapped Roots capture an
+immutable archive before enrollment; existing APPROVED Roots require privileged
+`solana_provisioning archive-pins --keyset-id --tenant-id --operator-ref` import,
+verifying original Root and approved original-domain Claims before commit. Unknown
+pending enrollment cannot adopt new pins. No new public/customer HTTP endpoint,
+wallet issuance, private permission or ledger mutation is introduced. Original
+Root/Claim domains and effective current-Claim authority stay unchanged. See
+[trust, SQL guards and remaining gates](PHASE6GC_RECEIPT_PINS.md).
+
+### Solana original coordinator binding (0048 development, under review)
+
+Default-empty `MPC_SOLANA_COORDINATOR_ROUTES` maps original keyset UUIDs to installed
+HTTPS/TLS identities. Privileged `solana_coordinator bind --keyset-id --operator-ref`
+commits the immutable URL/public identity and forward admission marker before DKG
+metadata import. Existing approved Roots additionally require `--tenant-id`, verified
+original receipt archives and resolved tracked private work. Bound Root/Claim and
+financial Create/Execute/public recovery never choose an alternate coordinator;
+independent authenticated W recovery remains available when that route is missing.
+No new public/customer API, private-key storage or ledger is introduced. See
+[operator trust, legacy compatibility and pending gates](PHASE6GC_COORDINATOR_ROUTING.md).

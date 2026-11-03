@@ -18,7 +18,9 @@ from .spl import derive_ata
 from .token_metadata import CLASSIC_TOKEN_PROGRAM, assert_verified_token
 
 
-def transfer_events(tx, meta, slot, signature, wallet, asset):
+def transfer_events(
+    tx, meta, slot, signature, wallet, asset, *, internal_addresses=None, allow_runtime_cpi=False
+):
     """Attribute explicit successful program transfers, keeping each instruction identity."""
     if meta["err"] is not None:
         return []
@@ -53,6 +55,8 @@ def transfer_events(tx, meta, slot, signature, wallet, asset):
     internal = set(
         HotWallet.objects.filter(chain_id="SOL").values_list("address", flat=True)
     ) | set(UserWallet.objects.filter(chain_id="SOL").values_list("deposit_address", flat=True))
+    if internal_addresses is not None:
+        internal.update(internal_addresses)
     if OnchainTransactionAttempt.objects.filter(chain_id="SOL", network_tx_id=signature).exists():
         return []  # Durable internal transfer identity, including grants/withdrawals/sweeps.
     before = after = None
@@ -78,9 +82,10 @@ def transfer_events(tx, meta, slot, signature, wallet, asset):
             units = int.from_bytes(data[4:], "little")
             if destination != wallet.deposit_address or source == destination or units == 0:
                 continue
-            # Only independent system-account signer transfers are in this deposit scope.
-            # CPI PDA transfers/rent refunds remain unsupported instead of inferred credits.
-            if accounts[0] >= signed:
+            # Legacy scope requires a signer source. Dedicated financial incoming
+            # scope may accept an actual runtime-authorized System CPI; no PDA
+            # private key exists. Refunds/arbitrary balance changes are not events.
+            if accounts[0] >= signed and not (allow_runtime_cpi and identity.startswith("inner:")):
                 raise ValueError("native deposit transfer has unsupported PDA source")
             if source in internal:
                 continue
@@ -129,17 +134,17 @@ def transfer_events(tx, meta, slot, signature, wallet, asset):
             ):
                 raise ValueError("SPL deposit destination effect mismatch")
         incoming += units
-        events.append(
-            DepositEvent(
-                signature,
-                Decimal(units) / (10**asset.decimals),
-                slot,
-                get_chain_spec("SOL").confirmations,
-                asset_key=asset.asset_key,
-                event_index=identity,
-                contract_address=None if asset.is_native else asset.contract_address,
-            )
+        event = DepositEvent(
+            signature,
+            Decimal(units) / (10**asset.decimals),
+            slot,
+            get_chain_spec("SOL").confirmations,
+            asset_key=asset.asset_key,
+            event_index=identity,
+            contract_address=None if asset.is_native else asset.contract_address,
         )
+        event.source_address = source if asset.is_native else source_owner
+        events.append(event)
     # Multiple transfers must be corroborated in aggregate, not each against the same delta.
     if events:
         index = keys.index(

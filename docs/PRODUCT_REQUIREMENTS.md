@@ -95,6 +95,12 @@ Staking/earn, off-exchange collateral, OTC-specific suite, cross-chain liquidity
 
 ## Status disclaimer
 
+PR #1 delivered its development checkpoint on main587e0969; Phase6G-C remains
+incomplete. The subsequent typed seeded intent/wire contract is an unconnected
+library foundation. It does not implement caller authorization, epoch freshness,
+signing permission, issued wallets or financial flows. See
+[current implementation boundary](PHASE6GC_SOLANA_SPENDING.md).
+
 The development checkpoint implements an operator-managed immutable tenant/principal
 registry with generated ledger reference IDs and PostgreSQL/audit guards. This is
 connected to operator-only Solana root/claim reservations with original network,
@@ -155,3 +161,12 @@ network evidence, financial-source/fee-authority accounting, restart/concurrency
 and actual 1,000-account issuance benchmark remain required. One Rust test with
 15 public SDK fixtures or seven disposable chain transactions cannot substitute
 for those acceptance criteria.
+
+Phase6G-C SPL development acceptance additionally requires original protected MPC
+initialization and finalized exact account proof before publication, attributable
+actual external token instructions before customer credit, seeded treasury sweep,
+manual approval plus independent Policy for withdrawals, actual fee/rent journals,
+replay/concurrency/restart and uncertainty tests, and immutable source-owner
+history across observation/classification races. This reuses the existing ledger
+and is not an incoming AML/KYT policy. Current implementation/evidence and open
+phase gates are in PHASE6GC_SPL_FINANCIAL.md.

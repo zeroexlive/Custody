@@ -1,0 +1,44 @@
+{
+  "scope": "genuine native issuance; primitive transfers; ledger integration pending",
+  "actually_issued_native_wallets": 3,
+  "issuance_seconds": 2.201156977993378,
+  "all_three_original_claim_receipts_verified_per_wallet": true,
+  "independent_witness_registration_and_issuance_per_wallet": true,
+  "postgres_wallets_and_issuances": 3,
+  "ledger_journals_created_by_issuance": 0,
+  "original_encrypted_shares_unchanged": true,
+  "restart_lost_ack_unissued_collision_and_index_faults": true,
+  "transactions": [
+    {
+      "wallet_index": 0,
+      "pair": [
+        "signer-a",
+        "signer-b"
+      ],
+      "signature": "44J1zqM43iGUgJUXfCYchD9qiVfUcbhWmSJXvA7jvZjrRi4q9uQw2bsgNGQA4JVmNqWYm7Puva1dLGCHnVxMzdud",
+      "finalized": true,
+      "fee_lamports": 5000
+    },
+    {
+      "wallet_index": 1,
+      "pair": [
+        "signer-a",
+        "signer-c"
+      ],
+      "signature": "4YKvkFo6tqxHVkdCYpYW3jcQ3ibxytA8CYdEW4TYe64qVGmtWjvR5Emh2oXPV1RhkNPG57anGjprAzMWWVPqp7CS",
+      "finalized": true,
+      "fee_lamports": 5000
+    },
+    {
+      "wallet_index": 2,
+      "pair": [
+        "signer-b",
+        "signer-c"
+      ],
+      "signature": "67au7EaKZ3FGxXy4q9rt2FJJER6GnsebcPbAkN3ZMzHN9niinj2jFPEDoCgakCCmpNB5xG4GQJPRtsdTcGHbapNX",
+      "finalized": true,
+      "fee_lamports": 5000
+    }
+  ],
+  "public_wallet_rows_sha256": "75f195f3563a1749ea93c3789247f47b9c544b28d489c6bee41c378fb43eef33"
+}

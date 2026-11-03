@@ -1,0 +1,53 @@
+{
+  "current_head_ci": "not run for this uncommitted source",
+  "date": "2026-11-01 Asia/Tehran",
+  "independent": {
+    "binary_hashes_unchanged": true,
+    "bounded_review": "no demonstrated P0/P1; full phase/ledger gates separate",
+    "genuine": {
+      "cases": 1,
+      "xml_seconds": 7.283
+    },
+    "postgresql": {
+      "cases": 39,
+      "xml_seconds": 71.763
+    }
+  },
+  "local": {
+    "backend": {
+      "cases": 879,
+      "xml_seconds": 360.435
+    },
+    "genuine": {
+      "cases": 1,
+      "xml_seconds": 6.679
+    },
+    "postgresql": {
+      "cases": 39,
+      "xml_seconds": 70.553
+    }
+  },
+  "phase_complete": false,
+  "production_authorized": false,
+  "public_report": {
+    "after_remote_grant_db_failure_preserved_original_pending_ids": true,
+    "customer_and_treasury_have_original_all_three_claim_receipts": true,
+    "customer_owner_and_claim_address_preserved": true,
+    "financial_intents_and_native_issuers_committed_before_lifecycle_grants": true,
+    "financial_memberships_activated": 2,
+    "ledger_journals_created": 0,
+    "original_ciphertext_sha256": {
+      "signer-a": "114863e8b605aa05611743f9678ef04a7ad098af7b7c0169903609ef96d4d663",
+      "signer-b": "143de1bec9362ed751806cb32b5bddf3cd544482b4122338bf8c1cf282cd19e8",
+      "signer-c": "cb166363ef3edede3b6ae4049237da0029338e7c700b54d1c92953d63108d89e"
+    },
+    "original_command_ack_fingerprints_recovered_after_witness_restart": true,
+    "original_publication_completed_after_freeze": true,
+    "original_three_dkg_ciphertexts_unchanged": true,
+    "scope": "genuine native financial membership only; no financial signing/ledger flow",
+    "seeded_credit_still_closed_until_provenance_and_ledger_integration": true,
+    "treasury_user_wallets": 0
+  },
+  "scope": "uncommitted native financial membership only; no protected financial signing, deposit credit or ledger settlement",
+  "source_base_sha": "d5ab520c0fded8df425acb9a408881cb83047ab9"
+}

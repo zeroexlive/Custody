@@ -1,84 +1,200 @@
-# Current project status — 2026-10-28
+# Current project status — 2026-11-04
 
-Repository: `zeroexlive/Custody`. Verified pre-merge main is
-`3d32b763ff777347f77eae7a8a7936d85dc2d770`, the Phase 6G-B squash merge.
-**6G-C is IN PROGRESS. [PR #1](https://github.com/zeroexlive/Custody/pull/1) is a bounded
-development checkpoint prepared for the owner's explicitly requested merge.**
-Phase 7–9 remain planned. The owner-directed acceptance/review/merge gates remain
-mandatory; no production, mainnet or customer-fund activation is authorized. The
-[2026-10-28 decision](DECISIONS.md) permits merging this verified checkpoint and
-continuing remaining 6G-C work in subsequent reviewed PRs. It supersedes keeping
-the unfinished whole phase in one Draft PR; it does not authorize Phase 7.
+Verified `zeroexlive/Custody` main is **`587e0969a216102879d17cadb6ffeee8dfb8b6c6`**,
+merged [PR #1](https://github.com/zeroexlive/Custody/pull/1). Its parents are the
+previous Phase 6G-B main3d32b763 and final reviewed head78394fc. GitHub merge state,
+main ref and exact tree identity were independently confirmed.
 
-Exact source checkpoint `1d4737ecf53d3e445c83c89f382f71b9ddbd8c57` passed
-[Fast 40675308341](https://github.com/zeroexlive/Custody/actions/runs/40675308341)
-and [all 14 full-gate jobs](https://github.com/zeroexlive/Custody/actions/runs/40675302192).
-All seven downloaded suite manifests match that SHA: **228 actual selected/called
-scenarios, zero skips** (EVM45/TRON5/SOL11/TON3/network162/aux1/integrated1).
-Original encrypted-store upgrade acceptance passed in652.422s against fixed main
-3d32b763. A separate reviewer independently verified remote artifacts, job states
-and compatibility. These gates accept the bounded code checkpoint, including
-Solana database integration. The subsequent documentation/owner-decision update
-requires its own final-head gates before merge; live PR checks record those.
+**Phase 6G-C remains IN PROGRESS.** The owner's [2026-10-28 decision](DECISIONS.md)
+authorized this bounded development checkpoint merge and continuation within6G-C.
+It supersedes retaining the entire unfinished phase in one Draft PR. Phase7–9
+remain planned; production/mainnet/customer-fund activation remains unauthorized.
 
-The owner-approved owned RustCrypto integration removes crypto-bigint
-0.5.5 from its graph without scanner exceptions or threshold algorithm replacement.
-Original shares, public encodings, HD receipts and nonce/reconciliation fencing
-have passing compatibility evidence. The pre-merge main snapshot still carries
-the old graph; PR #1 delivers its reviewed remediation as part of this development
-checkpoint. See [dependency evidence](PHASE6GC_DEPENDENCY_GATE.md).
-The existing atomic-polyfill warning remains visible development-only P2 debt.
+Earlier Draft PR #2 allocation checkpoint `99a055e` passed exact
+[Fast41361207460](https://github.com/zeroexlive/Custody/actions/runs/41361207460)
+and [selected Solana41361259277](https://github.com/zeroexlive/Custody/actions/runs/41361259277).
+Downloaded artifacts verify59 unique selected/called scenarios, zero skips,
+inventory276/shared hash and57 allowlisted Solana files. This is not ALL and
+does not cover subsequent uncommitted execution work. See
+[bounded CI evidence](evidence/phase6gc-financial-allocation-ci-99a055e.json).
 
-Seeded Solana primitives use standard System and classic SPL instructions, with
-independent SDK/Rust wire checks and genuine seven-transaction all-pair FROST/Agave
-spendability acceptance. Original custody-authorized signer root/claim records,
-all-party receipt collection, independent archival HOT receipt verification and
-partial-write recovery are implemented. Historical b/c use with locally unused a
-is protected by coordinated all-party preflight and durable pending-intent fencing.
-This is not a Byzantine lease, rollback witness, issued account or new spending
-grant. See [implemented/pending Solana scope](PHASE6GC_SOLANA_SEEDED.md).
+Earlier committed Draft PR #2 checkpoint `c233a04` passed
+[Fast41425030949](https://github.com/zeroexlive/Custody/actions/runs/41425030949)
+and the full local backend suite,1017 cases538.917s, zero failures/errors/skips.
+Its native financial execution adds exact-wire Custody and
+independent HOT Policy approval, one-shot protected dispatch, authenticated
+public recovery and permanent signature ownership before broadcast. Finalized
+original-wire effects separate Claim principal from Root-paid fees and settle
+through the existing ledger.124 focused PG/SQLite/TLS cases pass146.21s; three
+actual FROST/PG/Agave sweep cases pass141.72s, including lost broadcast ACK and
+settlement-audit rollback/recovery. Sweep funding/snapshot are synthetic and do
+not establish deposit credit or customer liability acceptance. Independent129 focused cases150.692s and3genuine cases141.350s pass with
+stable22-source/3-binary hashes and no remaining identified bounded P0/P1.
+These results cover c233a04, not the subsequent incoming/routing source.
 
-Subsequent operator-only CustodyTenant/CustodyPrincipal registry work adds immutable
-scoped mappings and generated `p1:<UUID>` ledger owner IDs. PostgreSQL READ COMMITTED
-and five-table NOWAIT collision checks prevent adoption of preexisting legacy
-ownership at the serialized birth point; audit creation is mandatory and atomic.
-Migration0033 creates only two new tables/collations/guards, refuses populated
-downgrade, and performs no ownership backfill or journal rewrite. SQLite demo
-migration remains usable while protected registry operations require PostgreSQL.
-47 registry cases passed with an independent47-case rerun; **710 full backend tests
-passed in149.78s**. External caller authentication, financial consumption and
-population scalability remain unimplemented. See [registry boundary](PHASE6GC_IDENTITY_REGISTRY.md).
+Committed55e245e/0043–0044 implement finalized native deposit provenance and
+pre-allocation financial routing. Credit uses actual canonical legacy/v0 wire,
+finalized status/block membership, explicit transfer instructions and original
+Claim/owner identity. Known custody and registered operator sources create no
+customer liability; balance changes alone never credit. Actual System CPI may
+attribute PDA sources. The feature remains default-disabled, with live indexing
+and explicit funding-source configuration required. Generic shared-hot-wallet
+private fallback is fenced before allocation; unresolved legacy history blocks
+enrollment, and existing holds retain their original release/settlement gates.
+Current-source independent209 cases206.063s and3 genuine legacy/v0/PDA full native
+flows332.263s pass with54-source/3-binary hashes unchanged and no remaining
+identified bounded P0/P1. Root component80 cases58.966s also passes. Exact
+[Fast41445276955](https://github.com/zeroexlive/Custody/actions/runs/41445276955)
+passes all four executed jobs, including1097 backend tests521.11s. This is Fast
+only and excludes subsequent SPL changes. SPL, repaired-identity new Claims, fresh-DKG drain/retirement and
+final whole-phase gates remain unfinished. No whole-phase completion is claimed.
 
-New operator-only `MpcSolanaRoot`/`MpcSolanaClaim` integration binds original DKG,
-tenant UUID, principal ledger owner, verified isolated network, native/classic mint,
-reservation/retry/index/address before any mutating signer RPC. Migration0034
-enforces immutable identity, shared monotonic allocation, legacy reference fences,
-reserved asset/keyset identity and populated downgrade refusal. PENDING survives
-unknown/partial remote outcomes; APPROVED requires all three independent receipts.
-All48 new PostgreSQL cases pass in the fresh final backend run: **758 passed
-in103.75s**, including actual writer races, cross-alias isolation and capacity.
-Genuine FROST/Agave/PostgreSQL integration passed in30.16s with partial/lost responses,
-restart and all-signers-offline original evidence recovery. This creates no issued
-wallet, initialized seeded SPL account, signing grant or financial posting. New
-final-head CI remains mandatory for subsequent commits. Separate review reran the
-initial46 DB cases and genuine scenario and independently checked all nine signer
-signatures and both SDK-derived addresses; no P0/P1 found in this bounded layer.
-See [authoritative reservation boundary](PHASE6GC_SOLANA_REGISTRY.md).
+The next Draft PR #2 boundary implements default-off classic SPL initialization,
+publication, seeded treasury sweeps, external ATA withdrawals and incoming token
+provenance through the existing ledger. Root103 focused cases130.43s pass, and
+one complete genuine FROST/PG/Agave flow passed166.60s before the subsequent
+owner-history race correction. Independent source review found/fixed atomic
+forwarding availability and historical-owner classification races; revised
+independent313 cases302.898s, genuine SPL176.216s and Native3 cases331.088s now pass.
+Exact136d995 Fast41499260859 passes4 jobs/1201 backend tests705.55s. Subsequent
+7ff1e56 Fast41536746241 also passes4 jobs/1201 backend tests485.46s and includes
+the accepted public-query-only helper correction. The interrupted broad run
+reported617 passes218.64s and is not full-suite acceptance. See
+[SPL scope and evidence](PHASE6GC_SPL_FINANCIAL.md). Repaired-identity new Claims,
+fresh-DKG migration/drain/retirement, old-address rescue and final whole-phase
+ALL/original-store compatibility/merge gates remain unfinished.
 
-Command/admin keyset safeguards remain bounded to unused metadata and view-only
-admin; controlled retirement/drain/recovery is unfinished. Remaining 6G-C requires
-actual tenant-bound issuance and finalized SPL provisioning;
-mandatory original typed signing intent before nonces; source/fee/rent accounting,
-scanner/sweep/withdrawal integration and real1000-wallet benchmark; immutable epochs,
-authorized refresh/repair, independent rollback witness, rotation/drain/late-deposit
-rescue, backup/compromise handling and enforceable Hot/Warm/Cold boundaries. Complete
-independent acceptance and final-head full CI precede each development checkpoint
-merge; the owner-authorized checkpoint does not satisfy these remaining features.
+Subsequent current-identity public Claim approvals now have independently accepted
+bounded node evidence:85 contracts and7 genuine cases533.394s, zero failures/
+errors/skips, with112 source/binary hashes stable. The actual cases include HOT/
+COLD refresh and physical replacement, exact receipt recovery, Gen2 historical
+Claim spending, share-only restore and explicit fixed7ff rules2 repaired-store
+profile promotion. Original Root/Claim bytes and original DKG ciphertexts remain
+unchanged. Backend registration/effective-evidence consumption and financial
+publication after replacement were not yet implemented at that checkpoint.
+Subsequent e1664ed Fast41594758324 passes4 jobs/1228 backend tests670.51s, after
+reviewed equivalent Clippy cleanup. Final whole-phase gates remain pending;
+see [current Claim boundary](PHASE6GC_CURRENT_CLAIMS.md).
 
-TON remains isolated/deferred with its external artifact-audit gate open. Phase7B
-remains optional default-disabled manual withdrawal-only restrictions, with no
-deposit screening or external AML/KYT integration. No new balance posting, wallet
-activation or production flag relaxation is introduced by the registry.
+The0046 current-Claim backend checkpoint now has independent bounded acceptance:
+527 contracts/backend cases, genuine repaired-node native/SPL financial execution
+157.113s and an additional final raw-SQL commit-expiry regression4.105s all pass.
+The expiry correction changed only0046 and its test; prior527/runtime evidence
+carries forward qualified, with the other116 source/binary paths unchanged.
+Root's final current suite passes55 cases38.37s. Registration remains default-off,
+retains original approval/issuer/hold/session identities and uses no Life/Policy
+private key. See [scope and evidence](PHASE6GC_CURRENT_CLAIMS.md). Exact f58d219 Fast41624031631 passes all4 executed jobs, including1283 backend
+cases785.63s; full-crypto jobs were unselected. Fresh-DKG fund migration, retirement,
+late-deposit rescue and final whole-phase gates remain required.
+
+Final reviewed head `78394fc2e5ae585cd265c195f1d02557cb062e21` passed
+[Fast40683968092](https://github.com/zeroexlive/Custody/actions/runs/40683968092)
+and [ALL40683962776](https://github.com/zeroexlive/Custody/actions/runs/40683962776):
+all14 full jobs, **228 actual selected/called scenarios, zero skips**
+(EVM45/TRON5/SOL11/TON3/network162/aux1/integrated1). Seven remote artifacts and
+mandatory original encrypted-store compatibility665.205s against fixed baseline
+3d32b763, all six cases and distinct old/new binaries were independently verified.
+Merged tree `affecb334af959a462fd747b0fdf49a3a731f182` exactly matches that head.
+Automatic [main Fast40716836844](https://github.com/zeroexlive/Custody/actions/runs/40716836844)
+passed all four executed jobs; its skipped crypto jobs are not another full gate.
+
+Post-merge checks/migration drift and48 PostgreSQL provisioning cases passed53.73s.
+Existing development services were restarted after environment idle; the first
+local attempt had connection-refused setup errors, not a source assertion failure.
+No database reset or source workaround was needed. Live/ready return200 with
+DBOK and unchanged optional Redis degradation.
+
+The merged checkpoint includes the owner-approved owned RustCrypto integration
+removing crypto-bigint0.5.5 without scanner exceptions or protocol replacement;
+original share/encoding/HD receipt/nonce recovery compatibility; standard Solana
+seeded wire primitives and seven finalized all-pair FROST/Agave transactions;
+signer-local original custody proofs, all-three receipt collection, independent
+archival pins and historical-quorum fences; immutable operator tenant/principal
+IDs; and durable original root/owner/network/asset/index reservations before
+mutating RPC. These are development foundations, not issued customer wallets or
+new seeded spending grants. Existing generic signing remains fenced for dedicated
+roots. Full backend758 cases passed before merge, including48 new provisioning
+cases; genuine approvals and independent source review are recorded in the
+[reservation report](PHASE6GC_SOLANA_REGISTRY.md). The unchanged atomic-polyfill
+warning remains visible development-only P2 debt. See [dependency evidence](PHASE6GC_DEPENDENCY_GATE.md).
+
+Draft PR #2, `codex/phase6gc-seeded-spending`, adds the typed intent, independent
+public witness authority and a separate protected signer/profile/journal. Local
+genuine three-party FROST/Agave tests now cover native all-pair spending, manual
+COLD courier, old private-backup restore, lost R1 nonces, withheld actual R2
+results, corruption/exclusive-writer rejection and read-only recovery after freeze.
+Independent live RPC checks separate source funds from base fee/rent funds.
+The witness independently preserves original claim ownership through all three
+pre-claim backup restores and binds each exact wire to one logical operation.
+Thirteen new HTTP scenarios cover these boundaries and full-queue R2 drain;
+twelve witness unit tests passed independently, with no ignored cases.
+The actual Rust witness client rejects a same-CA/wrong-key server before HTTP
+transmission. Independent review found and the implementation fixed a queued
+expiry race; post-lock/final-private-work expiry regressions pass. These remain
+isolated, unmerged development additions requiring final-head CI/review.
+See [implemented boundary and evidence](PHASE6GC_SOLANA_SPENDING.md).
+
+Subsequent ordinary distributed refresh and encrypted generation loading now pass
+genuine Gen1 all-pair/restart and Gen2/COLD/interrupted-ceremony cases. Original
+root/claim identity and original DKG ciphertext stay unchanged; missing refreshed
+material fails closed. Further fault acceptance and exact-head gates remain open.
+See [refresh authority and limitations](PHASE6GC_SOLANA_REFRESH.md).
+Further [terminal R2 cancellation](PHASE6GC_NO_RELEASE.md) now requires original
+signed requests, separate lifecycle approval and durable node cancellation before
+returning certificates. Frozen witness closure derives every actual R2 grantee
+from its own history; a durable partial or missing evidence keeps uncertainty.
+Five genuine scenarios cover one/two grantees, subsequent real refresh/retry,
+apply/cancel races, withheld partial refusal and COLD/manual flow. Expanded
+write-failure/late-grant cases and13 unit tests pass with independent review.
+Unmerged [native wallet publication](PHASE6GC_NATIVE_ISSUANCE.md) now adds
+original Claim-linked wallets only after a separate permanent witness issuance
+grant. Migration0035 preserves identity/history, blocks legacy adoption and
+retirement, and requires PostgreSQL serialization. Expanded genuine three-wallet
+restart/retry/collision/history-fault acceptance passed111.00s with all-pair
+finalized transfers. The first genuine1000 run timed out after more than300;
+an exact-byte signer verification cache retains full inventory checks and its
+retry passed737.59s, actually publishing1000 wallets in627.149s and finalizing
+all-pair transfers from indices0/500/999. Independent PostgreSQL tests
+passed80 cases in97.01s and the independent genuine three-wallet rerun passed
+113.42s. Native checkpoint6e2bcee passed exact Fast40851236750; complete local
+backend rerun passed790 cases in431.17s. Selected Solana40851260306 passed34
+actual calls/zero scenario skips with independently verified exact-head public
+artifacts and actual1000 issuance evidence. This is no whole-phase or financial-
+settlement gate; ALL/original-store compatibility remains required.
+
+A further unmerged [replacement authorization boundary](PHASE6GC_RECOVERY.md)
+now reserves one exact new identity/profile/anchor under Frozen authority, retains
+permanent failed-plan history and preserves old signed journal semantics while
+requiring strict rules for new admissions. Independent17-unit and actual public
+store upgrade/restart/tampering reruns pass. Public checkpointa278953 passed exact
+Fast40857133396 and selectedSolana40857374994:35 actual calls/zero scenario skips,
+independently verified exact-head artifacts and original public-history evidence.
+Subsequent unmerged private recovery now uses upstream direct helper Delta/Sigma,
+one-share encrypted staging and a fresh immutable recipient profile, then requires
+all-three refresh/activation before signing existing original Claims. HOT all-pair
+finalized signing/restart, COLD/manual and storage/TLS/expiry/interruption cases
+pass bounded genuine runs. After environment restoration, all37 Rust library tests
+passed and independent current-source staging/provenance rerun passed76.81s,
+including all-pair finalized transfers. Independent review found no demonstrated
+P0/P1 in this layer. Complete current-source genuine run passed5 cases297.72s,
+with2 ordinary-refresh regression cases138.78s and all-target Clippy; exact-head
+CI at private checkpoint4a4e6ff subsequently passed exact Fast40908695597 and
+selectedSolana40908696183:40 actual calls/zero skips and independently verified
+exact-SHA public artifact/inventory. Fixed-baseline/ALL remains mandatory; these
+passes do not cover subsequent profile-migration source changes.
+Explicit old-profile migration, new Claim receipt identity rollover and complete
+recovery remain unfinished.
+Remaining6G-C includes explicit profile migration,
+rotation/drain/late-deposit rescue, issued
+wallet and finalized SPL initialization records, financial ledger integration,
+and final whole-phase acceptance. Manual COLD relay is not physical airgap
+or production acceptance. Canonical tenant strings do not replace registry and
+financial authorization during backend integration.
+Each subsequent checkpoint requires its own independent review,
+applicable exact-head gates and normal repository merge rules. Do not advance7.
+TON stays isolated/deferred with its external artifact-audit gate open. Phase7B
+stays optional default-disabled manual withdrawal-only restrictions, with no
+deposit screening or external AML/KYT integration.
 
 ## Historical snapshots below
 
@@ -344,3 +460,129 @@ isolated/deferred with its external artifact-audit gate open. No production,
 mainnet or customer-fund activation is authorized. Phase 7B remains optional,
 default-disabled manual withdrawal-only restrictions; no deposit screening or
 external AML/KYT integration is introduced.
+
+Earlier local snapshot (superseded by Nov1 evidence below): explicit LC=None terminal source fencing and
+verified successor history import have bounded genuine old4a/independent evidence;
+new runtime retains the original journal flock and enforces the approved cohort
+and exact witness profile pin. Expanded genuine migrated HOT/COLD signing and
+exact-head CI are still pending. See PHASE6GC_RECOVERY.md. Whole-phase financial,
+SPL publication, fresh-DKG drain/retirement and recovery acceptance remain open.
+
+2026-11-01 continuation: original-profile migration HOT/COLD and bounded independent
+HOT runtime now have actual finalized evidence. Subsequent ordinary-refresh ID
+allocation required explicit durable witness reservation, rather than a racy
+preflight. New rules2 reservation/abandonment has22 state-test and independent
+passes; current genuine runtime gates are in progress. Draft PR2 remains unmerged;
+whole-phase work and exact-final-head ALL acceptance are still incomplete.
+
+Current bounded local gates now pass5 migration/witness-upgrade and3 ordinary
+refresh cases with zero skips, plus final successor preflight and genuine old4a
+historical-ID recovery. Independent enhanced HOT passed72.276s; historical-ID
+rerun passed72.366s with unchanged binaries; exact-checkpoint CI remains pending. No merged phase completion follows.
+
+39ad4f5 passed exactFast41269720532 and selectedSolana41269752763:45actualcalls,
+zero skips, independently matched public artifacts. Fixed3d32 compatibility and
+other chains were unselected, not ALL. Subsequent uncommitted financial-mode/query
+boundaries have bounded local and independent evidence only; protected coordinator,
+ledger integration, treasury roles, finalized SPL and whole-phase recovery remain
+incomplete. See PHASE6GC_FINANCIAL_INTEGRATION.md.
+
+Subsequent unmerged typed HOT coordinator now passes9 genuine local cases362.45s
+with all-pair finalized transfers, durable original R1/first R2 package, isolated
+public store, original signature recovery and actual response/write/restart faults.
+Created records intent; Completed verifies only the aggregate, with public witness
+redelivery/reconciliation still required before backend financial consumption.
+Independent coordinator3-case runtime passed157.614s with stable binaries and no
+bounded P0/P1 finding. Current-source CI is pending. Financial references are
+synthetic; DB treasury/customer roles, protected financial sessions, actual ledger
+integration, SPL and lifecycle completion remain unfinished. See
+PHASE6GC_FINANCIAL_INTEGRATION.md. This does not complete the phase or merge gate.
+
+Backend migration0036 now commits immutable expected mode/command IDs and a15s
+query before importing a clean Root's independent financial mode.54 PG cases
+passed74.51s and genuine PG/original protected nodes/Rust W import passed6.25s;
+mode import itself activates no wallet or ledger. Direct seeded deposit ingestion
+and credit stay closed until financial wallet activation/provenance is implemented.
+Independent54 PG cases passed76.12s and genuine import8.39s/stable binaries, with
+no bounded P0/P1 finding. Broader backend/current-head CI remain pending; whole-phase acceptance
+and Draft PR2 merge remain incomplete.
+
+The stored-wallet precision correction600fcfe passed Fast41330106726, including
+812 backend tests245.64s. Selected Solana41330272112 is running. Subsequent
+uncommitted0037 explicit CUSTOMER/TREASURY roles preserve existing customer IDs,
+require fresh treasury creation and block treasury references in customer wallet,
+USER liability, withdrawal and HD paths.49 targeted cases54.37s and actual Rust W/
+PG customer-declared mode import6.02s pass. Full backend840 tests291.17s pass;
+independent49 PG cases53.586s and genuine import5.912s/stable binaries passed,
+with no bounded P0/P1 finding. Current-source CI remains pending. Dedicated treasury
+publication, financial-wallet activation and actual
+protected ledger integration remain unfinished.
+
+Role checkpointd5ab520 passed exactFast41331691016. Subsequent uncommitted0038
+native financial membership atomically links original Root mode, Claim role and
+W issuance; treasury never becomes a customer UserWallet.39 PG cases70.55s and
+genuine customer+treasury publication6.68s pass; independent39 cases71.763s and
+actual publication7.283s/stable binaries found no bounded P0/P1. Full backend879
+tests360.44s pass. ACTIVE membership enables no credit/signing/settlement; seeded
+credit stays closed. Protected financial sessions/ledger integration, SPL and
+whole-phase lifecycle acceptance remain unfinished. Current-source CI is pending.
+
+2026-11-02: membership checkpointa4e8d5b passed exactFast41337021996, all four
+executed jobs. Subsequent optional query/record courier client checks actual W
+TLS identity before HTTP and reads only correctly typed courier/Custody keys.
+Local9 raw TLS cases1.26s and actual Rust W query/publication6.92s pass, independently
+9 cases1.29s/genuine6.99s with stable source/binaries and no bounded P0/P1. Caller
+durable freshness/ledger checks and positive authentic report-delivery acceptance
+remain required. Protected financial sessions/settlement still remain unfinished.
+
+2026-11-02: courier2077eea passed exactFast41357648627. Earlier selected
+Solana41330272112 at600fcfe was downloaded/verified:57 selected=called/zero skips,
+XML3288.062s, shared274-scenario inventory/hash and51 allowlisted public files.
+It predates later roles/membership/courier/allocation and is not ALL; fixed3d32
+network compatibility was unselected.
+
+New0039 unprepared financial-session allocation commits original business/source/
+approval plus MPC/session/OnchainAttempt IDs before query/lifecycle export. Original
+withdrawal journals are reused; sweep HELD adds no USER reserve. Append-only15s
+leases and a fresh pinned W permanent-abandonment proof permit a new crypto
+attempt while retaining the business hold. Generic signing/reconciliation/ledger
+paths stay fenced. Independent review found and corrected stale-snapshot and late
+ledger-release races;54 PG cases52.06s and actual Rust W case8.69s pass, independently
+59 final cases57.528s/genuine7.989s with unchanged source/binaries and no remaining
+identified bounded P0/P1. Full backend/current-source CI remain pending. Prepared
+signing, broadcast, settlement/release, seeded credit, SPL and whole-phase lifecycle
+acceptance remain unfinished. See PHASE6GC_FINANCIAL_INTEGRATION.md.
+
+Full backend946 cases428.52s passed after SQL alias correction. Subsequent minimal
+SQLite vendor guard preserves legacy demo ledger flows while retaining PG-only
+protected allocation; final59 local cases57.56s and independent59 cases57.528s/
+genuine7.989s pass with stable11-source/3-binary hashes. The946-case run predates
+that non-PG-only correction; final committed-source CI remains required.
+
+The next0047 per-Root receipt-pin prerequisite has40 new PG/P256 cases19.96s,
+149 affected legacy cases117.48s and one actual two-cohort FROST DKG/Root/Claim
+archive case8.44s passing. All124 source/bin hashes stayed unchanged during the
+actual case. Explicit old archive import and new reservation preserve original
+receipts and all six encrypted shares. Independent189 backend cases135.216s and2 genuine cases158.945s pass with all124
+hashes unchanged and no remaining identified bounded P0/P1 or concrete P2 gap.
+This prerequisite has bounded development acceptance. Exact f9f4445
+Fast41696076316 passes4 executed jobs/1323 backend cases798.12s; ten full-crypto
+jobs were unselected. It predates routing0048. Coordinator routing, actual fund migration,
+retirement/rescue and whole-phase gates remain open. See PHASE6GC_RECEIPT_PINS.md.
+
+The0048 Root-bound coordinator routing checkpoint has independent bounded
+development acceptance:338 unique PG/transport cases across explicitly qualified
+runs and3 genuine cases278.711s pass. The initial historical-fixture failure is
+resolved through0031 historical ORM setup; all assertions and production source
+remain unchanged. The final131-path manifest is stable. Exact143dfb5
+Fast41702205647 passes4 jobs/1364 backend cases815.43s; full-crypto jobs were
+unselected. Root routing creates no fund migration or retirement feature; those,
+late-deposit rescue and final whole-phase gates remain unfinished. See
+PHASE6GC_COORDINATOR_ROUTING.md.
+
+As of2026-11-04, a separate uncommitted migration-contract draft adds exact source/
+owner/membership inventory, distinct approval and business identities, destination
+asset coverage, cumulative fee budgets and bounded manifest chunks. Independent26 protocol cases75.66s and workspace/all-targets Clippy10.27s pass
+with136 frozen paths unchanged. This is bounded data-contract validation only. No witness
+rotation command, transfer, retirement, late-rescue API or activation follows from
+this unconnected data layer. Phase6G-C remains incomplete.

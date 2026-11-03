@@ -169,12 +169,14 @@ class Processes:
         self.bin = target.resolve() / "debug"
         self.running = {}
 
-    def start(self, role):
-        binary = "wallet-mpc-coordinator" if role == "coordinator" else "wallet-mpc-signer"
+    def start(self, role, *, binary=None, arguments=()):
+        binary = binary or (
+            "wallet-mpc-coordinator" if role == "coordinator" else "wallet-mpc-signer"
+        )
         log = (self.root / role / "service.log").open("ab")
         try:
             process = subprocess.Popen(
-                [str(self.bin / binary)],
+                [str(self.bin / binary), *arguments],
                 env=os.environ | self.configs[role],
                 stdout=log,
                 stderr=log,

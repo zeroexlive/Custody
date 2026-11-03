@@ -9,9 +9,16 @@ pub mod cggmp;
 pub mod dkg;
 pub mod hd;
 pub mod sign;
+pub mod solana_claim_authority;
+pub mod solana_generation;
+pub mod solana_intent;
+pub mod solana_profile_migration;
 pub mod solana_provisioning;
+pub mod solana_recovery;
+pub mod solana_rotation;
 pub mod solana_seeded;
 pub mod ton;
+pub mod witness;
 
 #[derive(Clone, Debug, Eq, PartialEq, Hash, Serialize, Deserialize)]
 pub struct ExecutionId(Uuid);
@@ -288,3 +295,5 @@ mod tests {
         }
     }
 }
+
+pub mod solana_financial;

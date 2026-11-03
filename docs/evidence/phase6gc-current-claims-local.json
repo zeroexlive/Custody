@@ -1,0 +1,139 @@
+{
+  "algorithm_changes": false,
+  "checkpoint_ci": {
+    "backend_result": "SUCCESS",
+    "backend_seconds": 492.48,
+    "backend_tests": 1228,
+    "frontend_result": "SUCCESS",
+    "full_crypto": "UNSELECTED",
+    "head": "008bb484f1edd2cead2d37eb3995e75af92ec7d1",
+    "run_id": 41593189180,
+    "rust_audit_result": "SUCCESS",
+    "rust_check_result": "FAILED: Clippy type_complexity; no runtime/assertion failure"
+  },
+  "date": "2026-11-03",
+  "exact_source_ci": {
+    "backend_seconds": 670.51,
+    "backend_tests": 1228,
+    "executed_jobs": 4,
+    "head": "e1664ed6b3a2e1fa96a978121a9e3eb74451f4c6",
+    "result": "SUCCESS",
+    "run_id": 41594758324,
+    "scope_limit": "Includes independently reviewed type alias/equivalent range cleanup; predates backend0046.",
+    "unselected_crypto_jobs": 10,
+    "url": "https://github.com/zeroexlive/Custody/actions/runs/41594758324"
+  },
+  "final_head_fast": "e1664ed bounded node checkpoint SUCCESS; final whole-phase SHA still pending",
+  "historical_upgrade_writer": {
+    "provenance": "Fixed clean source checkout and locked build, source/binary identity, actual old-node404 and rules2-event canaries; exact old events retained.",
+    "sha": "7ff1e56340a000e9eeefb02ee6f199340062ee85",
+    "tree": "998033f8a49a8eaf9b9fdfe23cf790537740cd95"
+  },
+  "independent_contracts": {
+    "current_claim_shapes": 4,
+    "failures": 0,
+    "legacy_intent": 9,
+    "legacy_wire": 1,
+    "protocol_lib": 14,
+    "python_actual_p256": 27,
+    "scope": "P256 fixtures use synthetic readiness; no standalone MPC acceptance claim.",
+    "skips": 0,
+    "total": 85,
+    "witness_actual_p256": 3,
+    "witness_lib": 27
+  },
+  "independent_genuine": {
+    "cases": [
+      {
+        "name": "test_phase6gc_current_claim_authority_recovers_original_prepare_and_candidate_aliases",
+        "seconds": 31.712
+      },
+      {
+        "name": "test_phase6gc_current_claim_receipts_refresh_restart_and_historical_spend",
+        "seconds": 85.836
+      },
+      {
+        "name": "test_phase6gc_current_claim_receipts_cold_explicit_courier",
+        "seconds": 84.367
+      },
+      {
+        "name": "test_phase6gc_repaired_identity_current_claim_receipts_and_real_spend",
+        "seconds": 98.905
+      },
+      {
+        "name": "test_phase6gc_repaired_identity_current_claim_cold_courier",
+        "seconds": 97.693
+      },
+      {
+        "name": "test_phase6gc_current_claim_storage_write_and_maintenance_faults",
+        "seconds": 33.415
+      },
+      {
+        "name": "test_phase6gc_current_claim_upgrade_genuine_rules2_repaired_store",
+        "seconds": 101.254
+      }
+    ],
+    "errors": 0,
+    "failures": 0,
+    "seconds": 533.394,
+    "skips": 0,
+    "tests": 7
+  },
+  "independent_manifest": {
+    "before_after_equal": true,
+    "pre_genuine_restore": "Permitted DB-free Cargo test rebuilt W executable; preserved that delta and restored exact original v7 binary from dependency artifact before genuine7. Full112 hashes unchanged throughout genuine run.",
+    "runtime_binaries": 4,
+    "sha256": "7ce02dd75f93c88722ac7859d7e87c73877c524cb0c82ec267e3c11dae02c7b9",
+    "source_fixture_workflow_files": 108,
+    "total_paths": 112
+  },
+  "independent_review": "No remaining identified P0/P1 within this bounded node/public component after restore-fence and historical-pin fixes; backend drafts excluded.",
+  "post_acceptance_cleanup": "Independently reviewed PreparedClaimRoster type alias and equivalent Some(1..=3) pattern replace identical Rust types/set; full workspace/all-targets Clippy passes4.69s with no exemption. No new execution claim; e1664ed Fast41594758324 passed.",
+  "production_activation": false,
+  "remaining": [
+    "Fresh-DKG fund migration/drain/retirement/late-address rescue",
+    "Final whole-phase independent review, exact-final-SHA Fast/ALL/original3d32 encrypted-store compatibility, conditional merge/main verification"
+  ],
+  "scanner_exemptions": false,
+  "scope": "Current-identity public Claim authority/receipts, permanent W registration, historical current-Claim MPC use, explicit old repaired-store profile promotion; no backend registration/financial publication acceptance. Subsequent0046 backend immutable registration/effective consumers and actual repaired financial publication have separately qualified evidence below.",
+  "source_parent": "7ff1e56340a000e9eeefb02ee6f199340062ee85",
+  "status": "BOUNDED_UNMERGED_DEVELOPMENT_ACCEPTANCE",
+  "whole_phase_all_compatibility": "PENDING",
+  "backend_0046": {
+    "status": "BOUNDED_UNMERGED_DEVELOPMENT_ACCEPTANCE",
+    "independent_contracts": 527,
+    "independent_contract_breakdown": {
+      "current_pg": 54,
+      "p256": 27,
+      "legacy_regressions": 446
+    },
+    "genuine_financial_cases": 1,
+    "genuine_financial_seconds": 157.113,
+    "final_commit_expiry_regression": {
+      "tests": 1,
+      "seconds": 4.105,
+      "failures": 0,
+      "errors": 0,
+      "skips": 0
+    },
+    "root_final_current_tests": 55,
+    "root_final_current_seconds": 38.37,
+    "manifest_paths": 118,
+    "runtime_binaries": 4,
+    "unchanged_during_each_run": true,
+    "qualified_carryforward": "527 contracts and genuine flow were not rerun after final strictly stronger commit-expiry guard; only0046 and its test changed, other116 paths including4 binaries unchanged. Independent final raw-SQL regression passed on freshDB.",
+    "review": "No remaining identified bounded P0/P1 or concrete P2 gap. No whole-phase acceptance.",
+    "exact_source_ci": {
+      "head": "f58d219b82cf18c4a19ef1c01eff10ea53a4cbed",
+      "run_id": 41624031631,
+      "url": "https://github.com/zeroexlive/Custody/actions/runs/41624031631",
+      "result": "SUCCESS",
+      "executed_jobs": 4,
+      "backend_tests": 1283,
+      "backend_seconds": 785.63,
+      "unselected_crypto_jobs": 10,
+      "scope_limit": "Predates0047 receipt-pin prerequisite; not whole-phase ALL or compatibility."
+    },
+    "production_activation": false
+  }
+}

@@ -1,0 +1,82 @@
+{
+  "checkpoint_ci": {
+    "allowlisted_public_files_including_materialized_pytest_current_aliases": 39,
+    "applies_to_subsequent_coordinator_or_backend_source": false,
+    "executed_jobs": 6,
+    "fast_run": 41290861686,
+    "fixed_original_3d32_compatibility_gate": "unselected, not executed",
+    "full_all_gate": false,
+    "head_sha": "4971fd70cc8c7a35db35abfdb0a2d88d41feac5e",
+    "inventory": 264,
+    "inventory_sha256": "167d5dc0611be6dbf4d77cb44d72a8ed62935e913ab84d3f2f7e362584ffa4fb",
+    "preflight_artifact": 13077306773,
+    "public_artifact": 13078274703,
+    "scenario_skips": 0,
+    "selected_called_scenarios": 47,
+    "selected_solana_run": 41290881147,
+    "unselected_skipped_jobs": 8,
+    "xml_seconds": 2812.07
+  },
+  "database_ledger_integration_executed": false,
+  "expanded_mode_case": [
+    {
+      "seconds": 57.827,
+      "test": "test_phase6gc_irreversible_financial_root_mode_and_explicit_reservation_crypto"
+    }
+  ],
+  "financial_reservation_references_are_synthetic": true,
+  "independent_binary_hashes_unchanged": true,
+  "independent_expanded_mode_seconds": 57.612746648,
+  "independent_protocol_tests": 8,
+  "independent_witness_tests": 23,
+  "local_cases": [
+    {
+      "seconds": 29.144,
+      "test": "test_phase6gc_class_custody_read_query_without_private_or_lifecycle_authority"
+    },
+    {
+      "seconds": 42.596,
+      "test": "test_phase6gc_irreversible_financial_root_mode_and_explicit_reservation_crypto"
+    }
+  ],
+  "phase_completed": false,
+  "production_authorized": false,
+  "protocol_tests": 8,
+  "public_reports": [
+    {
+      "basename": "solana-custody-read-query-public-evidence.json",
+      "evidence": {
+        "claim_identity": "7b0f7fe61d28b82cef4e076600342fe870babd17394a319e031db5fdc425d7c8",
+        "custody_signature_cannot_create_private_permit_or_lifecycle_command": true,
+        "exact_signed_witness_query_echo_root_and_registered_claim": true,
+        "financial_signing_or_ledger_activation_executed": false,
+        "no_witness_event_sequence_root_or_raw_history_changed": true,
+        "scope": "class-pinned Custody read query over existing courier TLS transport",
+        "tls_roles_and_trust_store_not_broadened": true,
+        "wrong_custody_key_and_wrong_signature_domain_denied": true
+      }
+    },
+    {
+      "basename": "solana-financial-mode-public-evidence.json",
+      "evidence": {
+        "activation_and_exact_ack_recovered_after_witness_restart": true,
+        "custody_policy_and_lifecycle_required_before_first_claim": true,
+        "database_financial_wallet_activation_or_ledger_integration_executed": false,
+        "explicit_reservation_owner_differs_from_treasury_source_owner": true,
+        "genuine_mpc_transfers_finalized_original_and_refreshed_generations": [
+          "37umsyvpDJzmWf8vnYsehEVLvEXK1xNfMQF2kjfi9teb9woZ2KSeQXsE6GLGPBF1pEU6yMjTxye5ZqWVibhaNKEr",
+          "5Gg9Dx4upV1Re4hwepZTvf3mT2SacjEa9GtLK6f9CivBSHvHMgQDVvbsCBv5WtUun81Nqp4XbA3m6BaPU1B2c1Wi"
+        ],
+        "legacy_none_financial_intent_denied_before_any_witness_grant": true,
+        "mode_metadata_in_current_private_permission": true,
+        "mode_retained_through_actual_refresh_activate_and_signer_restart": true,
+        "no_disable_or_second_activation": true,
+        "same_financial_reservation_cannot_back_another_operation": true,
+        "scope": "financial Root crypto guard; synthetic refs, no DB ledger"
+      }
+    }
+  ],
+  "scope": "financial-mode cryptographic boundary only; no ledger or financial-wallet activation",
+  "source_base_sha": "39ad4f51872303371cbd4ad65a64f9255a3037be",
+  "witness_tests": 23
+}

@@ -309,7 +309,7 @@ def test_jetton_full_precision_double_entry_survives_default_decimal_context():
         settle_withdrawal,
         user_balances,
     )
-    from custody.models import Asset, LedgerPosting
+    from custody.models import Asset, Deposit, LedgerPosting, UserWallet
 
     Asset.objects.create(
         asset_key="TON-JETTON",
@@ -321,8 +321,19 @@ def test_jetton_full_precision_double_entry_survives_default_decimal_context():
     )
 
     amount = Decimal("123456789012345.123456789012345678")
-    deposit = N(
-        pk=99, user_wallet=N(user_id="jetton-precision"), asset_key="TON-JETTON", amount=amount
+    stored_wallet = UserWallet.objects.create(
+        user_id="jetton-precision",
+        chain_id="TON",
+        asset_key="TON-JETTON",
+        derivation_path="precision-fixture",
+        deposit_address="0:" + "55" * 32,
+    )
+    deposit = Deposit.objects.create(
+        user_wallet=stored_wallet,
+        asset_key="TON-JETTON",
+        amount=amount,
+        tx_hash="precision-fixture",
+        status="CONFIRMED",
     )
     with localcontext() as context:
         context.prec = 28

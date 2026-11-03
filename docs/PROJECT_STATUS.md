@@ -71,8 +71,21 @@ COLD refresh and physical replacement, exact receipt recovery, Gen2 historical
 Claim spending, share-only restore and explicit fixed7ff rules2 repaired-store
 profile promotion. Original Root/Claim bytes and original DKG ciphertexts remain
 unchanged. Backend registration/effective-evidence consumption and financial
-publication after replacement are not yet implemented. New-head Fast and final
-whole-phase gates remain pending; see [current Claim boundary](PHASE6GC_CURRENT_CLAIMS.md).
+publication after replacement were not yet implemented at that checkpoint.
+Subsequent e1664ed Fast41594758324 passes4 jobs/1228 backend tests670.51s, after
+reviewed equivalent Clippy cleanup. Final whole-phase gates remain pending;
+see [current Claim boundary](PHASE6GC_CURRENT_CLAIMS.md).
+
+The0046 current-Claim backend checkpoint now has independent bounded acceptance:
+527 contracts/backend cases, genuine repaired-node native/SPL financial execution
+157.113s and an additional final raw-SQL commit-expiry regression4.105s all pass.
+The expiry correction changed only0046 and its test; prior527/runtime evidence
+carries forward qualified, with the other116 source/binary paths unchanged.
+Root's final current suite passes55 cases38.37s. Registration remains default-off,
+retains original approval/issuer/hold/session identities and uses no Life/Policy
+private key. See [scope and evidence](PHASE6GC_CURRENT_CLAIMS.md). Exact-source CI
+for this backend checkpoint is pending. Fresh-DKG fund migration, retirement,
+late-deposit rescue and final whole-phase gates remain required.
 
 Final reviewed head `78394fc2e5ae585cd265c195f1d02557cb062e21` passed
 [Fast40683968092](https://github.com/zeroexlive/Custody/actions/runs/40683968092)

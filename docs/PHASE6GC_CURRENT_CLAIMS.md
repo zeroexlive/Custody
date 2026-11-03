@@ -108,7 +108,8 @@ Rust audit, but failed the Clippy type-complexity lint. The reviewed follow-up
 names the identical return tuple and expresses the identical rules1–3 set as a
 range. Full workspace/all-targets Clippy passes4.69s without exemptions. Independent
 review confirms unchanged behavior; this is no new runtime execution evidence.
-The follow-up still requires exact-source CI.
+The follow-up e1664ed now passes exact Fast41594758324:4 jobs, including1228
+backend tests670.51s. Ten full-crypto jobs were unselected; this predates0046 below.
 
 Backend completion must retain immutable original Claim approval while storing
 the exact W-registered effective Evidence separately. It must handle a legacy
@@ -116,3 +117,54 @@ approved/unregistered Claim with a pending public issuance intent without changi
 its IDs, aliases, roles or financial history. Fresh-DKG rotation, actual fund
 migration, drain/retirement, old-address rescue and final ALL/original-store
 compatibility gates remain open.
+
+## Subsequent0046 backend integration — independently reviewed development checkpoint
+
+Default-off `MPC_SOLANA_CURRENT_CLAIMS_ENABLED` and independently installed public
+`MPC_SOLANA_LIFECYCLE_CERTIFICATE` enable a separate privileged public workflow.
+Immutable query leases, approval attempts/command UUIDs and one-to-one permanent
+ClaimRegistration retain every original ID and signed proof. Original approved
+Claim evidence is never overwritten. Issuance, financial admission, dispatch,
+signature consumption and NoSig handling resolve/reverify exact registered
+effective Evidence; Root validation remains original and strict.
+
+New pending Claims become APPROVED only atomically with exact fresh W registration.
+An old approved/W-unregistered Claim can migrate its public proof while retaining
+pending issuance/membership IDs and roles. A HELD classic initializer and entirely
+empty ALLOCATED session can retain their original business/hold/crypto IDs. Any
+prepared, private, witnessed, active or uncertain history blocks an effective
+proof change. No balance reservation is released. SQL uses the common READ
+COMMITTED keyset/Root/Claim order and locks original initializer, operation,
+session and chain attempt before classifying empty history, including raw metadata
+writer races. Original0035 allocation-ownership guards remain in force.
+
+The local operator command `solana_current_claim` exposes query/begin/collect/
+record/complete public handoffs. It exports a separate original RegisterClaim
+action for the existing Lifecycle authority, owning no Life/Policy key. An audit
+failure after actual W commit rolls back all local activation and recovers using
+the original Claim/attempt/command IDs and authentic public proof.
+
+Root local validation passed522 affected cases523.31s before the final locking
+hardening; latest49 cases35.17s,4 raw-metadata race cases8.24s and1 CLI case3.83s
+pass. One actual repaired-node financial flow passed152.90s before the final SQL
+shape/locking hardening: two old approved/unregistered Claims, preserved pending
+issuers and held initializer/session IDs, a new pending treasury Claim, two MPC
+classic initializers, native/SPL instruction-attributed deposits and two genuine
+MPC sweeps. Customer liabilities remain0.01 SOL/10 token units, all journals
+balance and all three original DKG ciphertexts are unchanged. Its first run
+stopped at the correct live-indexer environment gate; no guard was weakened.
+Final independent validation passed527 cases (54 current PostgreSQL/27 P256 plus
+446 legacy regressions), zero failures/errors/skips, and the genuine repaired-node
+financial flow157.113s. All118 source/binary paths stayed unchanged during those
+runs. Review then identified a narrow raw-SQL P2: a previously VERIFIED query
+could expire before registration committed. The deferred registration trigger
+now rechecks that deadline. Only0046 and its test changed; all other116 paths,
+including four runtime binaries, stayed unchanged. The independent targeted
+regression passed1 case4.105s on a fresh database, with all118 final hashes stable.
+Root's complete current suite passed55 cases38.37s after that correction.
+
+The earlier527 cases and genuine flow carry forward with this explicitly qualified
+stronger deadline change; they were not rerun afterward. No remaining identified
+bounded P0/P1 or concrete P2 gap remains in this registration path. Exact-source
+CI is pending for this commit. Fresh-DKG migration/retirement/rescue and final
+whole-phase gates remain required; this is not phase or production acceptance.

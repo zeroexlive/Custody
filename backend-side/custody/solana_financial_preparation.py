@@ -47,7 +47,7 @@ from .solana_financial_sessions import _external_destination, _locked_operation,
 from .solana_financial_wallet import validate_financial_wallet
 from .solana_issuance import _canonical, _locked_claim, _pin
 from .solana_policy import account_data
-from .solana_provisioning import _audit, _runtime
+from .solana_provisioning import _audit, _claim_evidence, _runtime
 from .solana_seeded import build_native_transfer, validate_native_transfer
 from .solana_wire import SYSTEM_PROGRAM, uint
 from .solana_witness_client import _point_id, _require_role, _verify
@@ -189,7 +189,7 @@ def _fresh_witness(row, lease, evidence):
         or root.get("phase") != "Active"
         or root.get("prepared") is not None
         or root.get("financial_mode") != expected_mode
-        or value.get("claim") != source.claim.evidence
+        or value.get("claim") != _claim_evidence(source.claim)
         or value.get("claim_issuance")
         != (None if row.operation.provision_id else source.evidence["value"]["claim_issuance"])
         or value.get("execution") is not None

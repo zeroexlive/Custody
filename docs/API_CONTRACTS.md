@@ -324,3 +324,13 @@ For a historically repaired Root without a profile pin, the new explicit Life
 accepted replacement reservation. It accepts no supplied keys or profile values,
 requires a drained Frozen Root without maintenance, and preserves old events.
 See [current Claim authority and pending backend work](PHASE6GC_CURRENT_CLAIMS.md).
+
+The subsequent default-off local `solana_current_claim` operator workflow uses
+query/begin/collect/record/complete handoffs. Query commits its own15-second nonce;
+begin accepts the authentic discovery and three public certificate encodings,
+collect/record retain exact original reports, and the registration query exports
+the original command UUID plus RegisterClaim action for the separate Life driver.
+Complete consumes only an exact fresh independently signed W registered proof.
+It creates no financial publication or private grant. Original approved Evidence
+is archival; the immutable registration supplies effective Evidence to financial
+consumers. See the0046 development and acceptance status above.

@@ -1,3 +1,19 @@
+## 2026-11-03 — current-identity Claim financial registration checkpoint (unmerged)
+
+Migration0046 preserves original approvals and immutable W-registered effective
+proofs, with default-off operator query/approval/registration and existing financial
+consumers. Old pending issuance and entirely empty held initializer/session IDs
+survive replacement; prepared or uncertain histories block proof migration.
+Independent527 contracts/backend cases and genuine native/SPL repaired financial
+execution157.113s pass with118 stable source/binary paths. Review caught a raw-SQL
+commit-deadline gap; a two-file stronger guard/test correction passed an independent
+fresh-DB regression4.105s, with the other116 paths unchanged. Earlier broad/runtime
+evidence carries forward qualified; Root55 final current cases38.37s pass.
+No remaining identified bounded P0/P1 or concrete P2 gap remains. Exact-source CI
+is pending for this checkpoint. Parent e1664ed Fast41594758324 passed4 jobs/1228
+backend cases670.51s. Fresh-DKG migration/retirement/rescue and final whole-phase
+Fast/ALL/original3d32 compatibility/review/merge remain open. No production activation.
+
 ## 2026-10-29 — terminal original-key R2 cancellation (unmerged)
 
 Protected nodes now require original durable R2 requests and independent

@@ -149,6 +149,20 @@ promotion; read PHASE6GC_CURRENT_CLAIMS.md. Backend registration/effective-evide
 consumption and financial publication after replacement remain unfinished, as do
 fresh-DKG drain/retirement/rescue and final whole-phase/CI gates.
 
+Subsequent node cleanup e1664ed Fast41594758324 passes4 jobs/1228 backend cases
+670.51s. The0046 checkpoint adds default-off immutable current Claim registration,
+archival original/effective evidence separation and public operator handoff.
+Independent527 contracts/backend cases and actual repaired financial flow157.113s
+pass. A final narrow raw-SQL deadline fix changes only0046/test; independent1-case
+fresh-DB regression4.105s passes, with116 other source/bin hashes unchanged.
+Earlier527/runtime evidence carries forward qualified, not rerun after that fix.
+Root55 current cases38.37s pass. No remaining identified bounded P0/P1 or concrete
+P2 gap; exact-source CI remains required. See PHASE6GC_CURRENT_CLAIMS.md.
+Fresh-DKG migration/retirement/rescue and final whole-phase gates remain open.
+Preserve original proofs and all held/allocated IDs; reject prepared/consumed/
+uncertain proof migration. No Life/Policy private key or balance mutation is
+introduced by registration.
+
 ## Latest owner-approved Phase 7B scope
 
 Optional, default-disabled, administrator-managed manual withdrawal address blacklist only. Audit changes, recheck before execution and at independent signer authorization, fail closed for unavailable enabled policy, and preserve reservations/history. No deposit screening, deposit holds, external AML/KYT services or automatic address feeds. Preserve unrelated financial/finality/security controls. This is a planned feature, not existing enforcement.

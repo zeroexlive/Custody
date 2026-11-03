@@ -38,7 +38,7 @@ from .mpc_binding import MpcBindingError
 from .native_tx import _cap, to_base_units
 from .solana_financial_wallet import validate_financial_wallet
 from .solana_issuance import _fingerprint, _locked_claim, _pin
-from .solana_provisioning import _audit, _runtime
+from .solana_provisioning import _audit, _claim_evidence, _runtime
 from .solana_witness_client import _verify
 
 PAIRS = (["signer-a", "signer-b"], ["signer-a", "signer-c"], ["signer-b", "signer-c"])
@@ -275,7 +275,11 @@ def allocate_session(*, reservation_id, tenant_id, selected_signers, operator_re
     operator_ref = _text(operator_ref, "operator audit reference")
     if selected_signers not in PAIRS:
         raise MpcBindingError("explicit canonical original threshold pair required")
+    source_id = MpcSolanaFinancialOperation.objects.get(
+        pk=reservation_id, principal__tenant_id=tenant_id
+    ).source_id
     with transaction.atomic():
+        _locked_claim(source_id, tenant_id)
         operation = _locked_operation(reservation_id, tenant_id)
         if operation.status != "HELD":
             raise MpcBindingError("original held business reservation required")
@@ -420,7 +424,7 @@ def complete_no_signature(*, session_id, tenant_id, challenge, evidence, operato
             or evidence["key_id"] != lease.witness_key_id
             or (anchor, key_id) != (lease.witness_anchor_id, lease.witness_key_id)
             or value.get("root", {}).get("original") != claim.root.statement
-            or value.get("claim") != claim.evidence
+            or value.get("claim") != _claim_evidence(claim)
             or not (abandoned or known_no_signature)
             or type(value.get("sequence")) is not int
             or value["sequence"] <= 0

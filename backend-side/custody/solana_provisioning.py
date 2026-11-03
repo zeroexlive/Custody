@@ -116,6 +116,13 @@ def _verify(kind, statement, evidence):
         raise MpcBindingError("unverifiable original seeded approval") from exc
 
 
+def _claim_evidence(claim):
+    """Resolve immutable W registration without rewriting original approval."""
+    from .solana_claim_registration import effective_claim_evidence
+
+    return effective_claim_evidence(claim)
+
+
 def register_root(*, keyset_id, tenant_id, operator_ref, client=None, transport=None):
     """Durably bind the original root to one tenant before any signer dedication.
 

@@ -1433,3 +1433,72 @@ class LedgerPosting(models.Model):
 
     def delete(self, *args, **kwargs):
         raise ValueError("ledger postings are append-only")
+
+
+class MpcSolanaClaimQuery(models.Model):
+    """One immutable original challenge; public signatures are not freshness alone."""
+
+    challenge = models.CharField(max_length=64, primary_key=True)
+    claim = models.ForeignKey(MpcSolanaClaim, on_delete=models.PROTECT)
+    witness_anchor_id = models.UUIDField()
+    witness_key_id = models.CharField(max_length=64)
+    attempt = models.ForeignKey(
+        "MpcSolanaClaimApproval",
+        null=True,
+        blank=True,
+        on_delete=models.PROTECT,
+        related_name="registration_queries",
+    )
+    purpose = models.CharField(
+        max_length=16, choices=[("DISCOVERY", "DISCOVERY"), ("REGISTRATION", "REGISTRATION")]
+    )
+    expires_at = models.DateTimeField()
+    status = models.CharField(max_length=16, default="PENDING")
+    evidence = models.JSONField(default=dict)
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        constraints = [
+            models.CheckConstraint(
+                condition=Q(purpose="DISCOVERY", attempt__isnull=True)
+                | Q(purpose="REGISTRATION", attempt__isnull=False),
+                name="sol_claim_query_purpose",
+            ),
+            models.CheckConstraint(
+                condition=Q(status="PENDING", evidence={})
+                | (Q(status="VERIFIED") & ~Q(evidence={})),
+                name="sol_claim_query_shape",
+            ),
+        ]
+
+
+class MpcSolanaClaimApproval(models.Model):
+    """Durable public attempt; expiry never permits replacement of Claim identity."""
+
+    attempt_id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
+    claim = models.ForeignKey(MpcSolanaClaim, on_delete=models.PROTECT)
+    discovery = models.OneToOneField(MpcSolanaClaimQuery, on_delete=models.PROTECT)
+    authority_identity = models.CharField(max_length=64)
+    approval = models.JSONField()
+    command_id = models.UUIDField(default=uuid.uuid4, unique=True, editable=False)
+    status = models.CharField(max_length=16, default="PENDING")
+    evidence = models.JSONField(default=dict)
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        constraints = [
+            models.CheckConstraint(
+                condition=Q(status="PENDING", evidence={})
+                | (Q(status="REPORTED") & ~Q(evidence={})),
+                name="sol_current_claim_attempt_shape",
+            ),
+        ]
+
+
+class MpcSolanaClaimRegistration(models.Model):
+    """Exact permanent W evidence; original Claim approval is immutable archival data."""
+
+    claim = models.OneToOneField(MpcSolanaClaim, on_delete=models.PROTECT, primary_key=True)
+    query = models.OneToOneField(MpcSolanaClaimQuery, on_delete=models.PROTECT)
+    evidence = models.JSONField()
+    created_at = models.DateTimeField(auto_now_add=True)

@@ -39,6 +39,7 @@ from .solana_provisioning import (
     VERSION,
     _asset_statement,
     _audit,
+    _claim_evidence,
     _runtime,
     _validate_root,
     _verify,
@@ -100,7 +101,7 @@ def _claim(claim, tenant_id, *, historical=False):
     root = claim.root
     _validate_root(root)
     _verify("root", root.statement, root.evidence)
-    _verify("claim", claim.statement, claim.evidence)
+    _claim_evidence(claim)
     asset, namespace = _asset_statement(claim.asset)
     expected = {
         "root": root.statement,
@@ -226,7 +227,7 @@ def _witness(row, signed):
                 raise ValueError
         if (
             value["query"] != _query(row)
-            or value["claim"] != row.claim.evidence
+            or value["claim"] != _claim_evidence(row.claim)
             or root["original"] != row.claim.root.statement
             or value["execution"] is not None
             or value["abandoned"] is not False

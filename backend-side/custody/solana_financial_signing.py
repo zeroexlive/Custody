@@ -41,7 +41,7 @@ from .solana_financial_preparation import (
 )
 from .solana_financial_sessions import request_query
 from .solana_issuance import _canonical, _fingerprint, _pin
-from .solana_provisioning import _audit, _runtime
+from .solana_provisioning import _audit, _claim_evidence, _runtime
 from .solana_wire import assemble_signature
 from .solana_witness_client import (
     _message,
@@ -60,7 +60,7 @@ def _binding(row):
         "authorized": {
             "intent": row.intent,
             "payload_hex": bytes(row.payload).hex(),
-            "claim_evidence": row.operation.source.claim.evidence,
+            "claim_evidence": _claim_evidence(row.operation.source.claim),
             "custody_authorization": row.custody_authorization,
             "operator_authorization": row.policy_authorization,
         },
@@ -350,7 +350,7 @@ def consume_signature(*, session_id, tenant_id, challenge, evidence, operator_re
             value.get("query") != lease.query
             or (anchor, key_id) != (lease.witness_anchor_id, lease.witness_key_id)
             or value.get("root", {}).get("original") != row.intent["claim"]["root"]
-            or value.get("claim") != row.operation.source.claim.evidence
+            or value.get("claim") != _claim_evidence(row.operation.source.claim)
             or value.get("abandoned") is not False
             or timezone.now() >= lease.expires_at
         ):

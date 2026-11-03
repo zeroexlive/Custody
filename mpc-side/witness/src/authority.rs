@@ -48,6 +48,7 @@ struct Head {
 }
 struct Journal {
     state: Snapshot,
+    command_proofs: std::collections::BTreeMap<Uuid, Signed<Command>>,
     last_hash: String,
     directory: PathBuf,
     poisoned: bool,
@@ -82,7 +83,7 @@ fn event_hash(event: &Signed<Event>) -> Result<String> {
 }
 fn replay(state: &mut Snapshot, event: &Event) -> Result<()> {
     ensure!(
-        event.rules.is_none() || matches!(event.rules, Some(1 | 2)),
+        event.rules.is_none() || matches!(event.rules, Some(1 | 2 | 3)),
         "unsupported authority event rules"
     );
     ensure!(
@@ -162,7 +163,7 @@ impl Authority {
                 sequence: 0,
                 previous_hash: "00".repeat(32),
                 time: now()?,
-                rules: Some(2),
+                rules: Some(3),
                 transition: Transition::Initialize,
             };
             let signed = trust.sign("WITNESS_EVENT_V1", genesis)?;
@@ -224,6 +225,7 @@ impl Authority {
             "authority history tail is missing"
         );
         let mut state = Snapshot::empty(config.anchor_id)?;
+        let mut command_proofs = std::collections::BTreeMap::new();
         let mut previous = "00".repeat(32);
         for (index, path) in paths.iter().enumerate() {
             ensure!(
@@ -246,6 +248,9 @@ impl Authority {
                 "corrupt authority journal chain"
             );
             replay(&mut state, e)?;
+            if let Transition::Command { command } = &e.transition {
+                command_proofs.insert(command.value.request_id, command.as_ref().clone());
+            }
             previous = event_hash(&signed)?;
             if index as u64 == head.value.sequence {
                 ensure!(
@@ -273,6 +278,7 @@ impl Authority {
             trust,
             journal: Mutex::new(Journal {
                 state,
+                command_proofs,
                 last_hash: previous,
                 directory: events,
                 poisoned: false,
@@ -301,7 +307,7 @@ impl Authority {
             sequence: candidate.sequence,
             previous_hash: j.last_hash.clone(),
             time,
-            rules: Some(2),
+            rules: Some(3),
             transition,
         };
         let signed = self.trust.sign("WITNESS_EVENT_V1", event)?;
@@ -340,7 +346,11 @@ impl Authority {
             j.poisoned = true;
             return Err(error.into());
         }
-        candidate.journal_rules = 2;
+        if let Transition::Command { command } = &signed.value.transition {
+            j.command_proofs
+                .insert(command.value.request_id, command.as_ref().clone());
+        }
+        candidate.journal_rules = 3;
         j.last_hash = next_hash;
         j.state = candidate;
         Ok(())
@@ -370,7 +380,20 @@ impl Authority {
                     &self.trust.lifecycle,
                 )?;
             }
-            CommandAction::RegisterClaim { evidence } => self.trust.claim_evidence(evidence)?,
+            CommandAction::RegisterClaim { evidence } => {
+                self.trust.claim_evidence(evidence)?;
+                if !j
+                    .state
+                    .claims
+                    .contains_key(&evidence.statement.reservation_id)
+                {
+                    if let Some(authority) = &evidence.authority {
+                        ensure!(j.command_proofs.get(&authority.prepare.value.request_id)
+                            == Some(authority.prepare.as_ref()),
+                            "exact original archived signed Prepare required for new Claim registration");
+                    }
+                }
+            }
             CommandAction::Enroll {
                 evidence,
                 node_keys,
@@ -440,7 +463,7 @@ impl Authority {
         }
         let fingerprint = hash(&command.signing_message("WITNESS_COMMAND_V1")?);
         let mut candidate = j.state.clone();
-        candidate.journal_rules = 2;
+        candidate.journal_rules = 3;
         if candidate.command_at(&command.value, time)? {
             self.commit(
                 &mut j,
@@ -489,6 +512,7 @@ impl Authority {
             time,
         )?;
         let mut candidate = j.state.clone();
+        candidate.journal_rules = 3;
         let permit = candidate.permit(&request.value, &request.key_id, time)?;
         let response = self.trust.sign("WITNESS_PERMIT_V1", permit)?;
         self.commit(
@@ -597,9 +621,33 @@ impl Authority {
             .value
             .claim_reservation_id
             .and_then(|id| j.state.claim_issuances.get(&id).cloned());
+        let claim_availability = if let Some(candidate) = &request.value.candidate_claim {
+            ensure!(
+                request.value.execution_id.is_none()
+                    && request.value.claim_reservation_id == Some(candidate.reservation_id)
+                    && candidate.root == r.evidence.statement,
+                "exact candidate reservation/Root read-only query required"
+            );
+            Some(j.state.claim_availability(candidate)?)
+        } else {
+            None
+        };
+        let generation_authority =
+            if claim_availability.is_some() && r.generation.epoch > 0 {
+                Some(Box::new(j.command_proofs.values().find(|proof| {
+                proof.value.root_identity == request.value.root_identity &&
+                matches!(&proof.value.action, CommandAction::Prepare{ready,node_keys}
+                    if ready.first().is_some_and(|ready|ready.value.generation==r.generation)
+                       && node_keys==&r.node_keys)
+            }).context("original signed current-generation Prepare missing")?.clone()))
+            } else {
+                None
+            };
         self.trust.sign(
             "WITNESS_QUERY_REPLY_V1",
             QueryReply {
+                claim_availability,
+                generation_authority,
                 query: request.value,
                 sequence: j.state.sequence,
                 root: RootView {

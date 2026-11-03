@@ -825,11 +825,19 @@ pub fn certificate_key_id(cert: &CertificateDer<'_>) -> Result<String> {
 impl PinnedIdentity {
     pub fn new(path: &str, role: &str, roles: &[&str]) -> Result<Self> {
         let certs = certificates(path)?;
+        Self::from_der_certificate(certs[0].as_ref(), role, roles)
+    }
+
+    /// Parse a public identity without adding a trust anchor. The caller must
+    /// authenticate the resulting key ID against an independently pinned proof.
+    pub fn from_der_certificate(der: &[u8], role: &str, roles: &[&str]) -> Result<Self> {
+        let leaf = CertificateDer::from(der);
         ensure!(
-            certificate_identity_in(&certs[0], roles)?.role() == role,
+            certificate_identity_in(&leaf, roles)?.role() == role,
             "pinned role mismatch"
         );
-        let (_, cert) = X509Certificate::from_der(certs[0].as_ref())?;
+        let (remaining, cert) = X509Certificate::from_der(der)?;
+        ensure!(remaining.is_empty(), "public certificate trailing data");
         let spki = cert.public_key();
         ensure!(
             spki.algorithm.algorithm.to_id_string() == "1.2.840.10045.2.1"
@@ -858,6 +866,31 @@ impl PinnedIdentity {
         .verify(message, signature)
         .map_err(|_| anyhow::anyhow!("pinned signature mismatch"))
     }
+}
+
+/// Verify a public statement against a role/key independently authenticated by
+/// the caller, such as a key named in an already verified Lifecycle command.
+pub fn verify_bound_public_identity(
+    der: &[u8],
+    role: &str,
+    roles: &[&str],
+    expected_key_id: &str,
+    message: &[u8],
+    signature: &[u8],
+) -> Result<()> {
+    let (_, certificate) = X509Certificate::from_der(der)?;
+    ensure!(
+        certificate
+            .basic_constraints()?
+            .is_some_and(|constraint| !constraint.value.ca),
+        "explicit non-CA receipt leaf certificate required"
+    );
+    let pin = PinnedIdentity::from_der_certificate(der, role, roles)?;
+    ensure!(
+        pin.key_id == expected_key_id,
+        "independently authorized public identity required"
+    );
+    pin.verify(message, signature)
 }
 
 #[cfg(test)]

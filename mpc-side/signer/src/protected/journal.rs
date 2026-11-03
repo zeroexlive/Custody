@@ -14,6 +14,7 @@ use std::{
     path::{Path, PathBuf},
 };
 use uuid::Uuid;
+use wallet_mpc_protocol::sign::decode_hex;
 use wallet_mpc_protocol::witness::{hash, Permit, PermitRequest, PublicRound, Signed};
 use wallet_mpc_storage::{atomic_create_secret, atomic_replace_state, confirm_parent_durability};
 use wallet_mpc_transport::{PinnedIdentity, ReceiptIdentity};
@@ -76,6 +77,12 @@ pub(super) enum Change {
     Result {
         report: Box<Signed<PublicRound>>,
     },
+    CurrentClaimQuery {
+        lease: Box<wallet_mpc_protocol::solana_claim_authority::ClaimQueryLease>,
+    },
+    CurrentClaimReport {
+        grant: Box<wallet_mpc_protocol::solana_claim_authority::CurrentClaimGrant>,
+    },
     RefreshStart {
         start: Box<wallet_mpc_protocol::solana_generation::RefreshStart>,
     },
@@ -106,6 +113,10 @@ struct Event {
 type Head = wallet_mpc_protocol::solana_profile_migration::MigrationSourceHead;
 #[derive(Clone, Default)]
 pub(super) struct Records {
+    pub current_claim_queries:
+        BTreeMap<String, wallet_mpc_protocol::solana_claim_authority::ClaimQueryLease>,
+    pub current_claim_grants:
+        BTreeMap<String, wallet_mpc_protocol::solana_claim_authority::CurrentClaimGrant>,
     pub profile_migration_source:
         Option<wallet_mpc_protocol::solana_profile_migration::SourceAdmission>,
     pub profile_migration_fence:
@@ -121,6 +132,27 @@ pub(super) struct Records {
     pub replacement_refresh: BTreeMap<Uuid, wallet_mpc_protocol::solana_recovery::ReplacementStart>,
 }
 impl Records {
+    pub fn current_claim_compatible(
+        &self,
+        claim: &wallet_mpc_protocol::solana_provisioning::Claim,
+    ) -> Result<()> {
+        for grant in self.current_claim_grants.values() {
+            let original = &grant.report.statement;
+            if original.reservation_id == claim.reservation_id
+                || (original.root == claim.root
+                    && (original.index == claim.index
+                        || original.owner_slot()? == claim.owner_slot()?
+                        || original.retry_slot()? == claim.retry_slot()?))
+            {
+                ensure!(
+                    original == claim,
+                    "current Claim owner/index/retry/reservation is immutable"
+                );
+            }
+        }
+        Ok(())
+    }
+
     pub fn refresh_plan(
         &self,
         ceremony: Uuid,
@@ -187,6 +219,78 @@ impl Records {
             "original profile permanently fenced; no valid journal suffix allowed"
         );
         match change {
+            Change::CurrentClaimQuery { lease } => {
+                let life = lifecycle
+                    .context("current Claim receipts require explicit Lifecycle authority")?;
+                lease.validate_shape(party)?;
+                policy.current_claim_approval(
+                    class,
+                    &lease.approval,
+                    life,
+                    lease.issued_at,
+                    false,
+                )?;
+                verify(own, "WITNESS_QUERY_V1", &lease.query)?;
+                self.current_claim_compatible(&lease.approval.statement)?;
+                ensure!(
+                    !self
+                        .current_claim_queries
+                        .contains_key(&lease.query.value.challenge),
+                    "current Claim challenge cannot be reused"
+                );
+                self.current_claim_queries
+                    .insert(lease.query.value.challenge.clone(), lease.as_ref().clone());
+            }
+            Change::CurrentClaimReport { grant } => {
+                let lease = self
+                    .current_claim_queries
+                    .get(&grant.lease_challenge)
+                    .context("original current Claim challenge required")?;
+                let life = lifecycle
+                    .context("current Claim receipts require explicit Lifecycle authority")?;
+                policy.current_claim_approval(
+                    class,
+                    &lease.approval,
+                    life,
+                    grant.granted_at,
+                    false,
+                )?;
+                verify(witness, "WITNESS_QUERY_REPLY_V1", &grant.witness)?;
+                lease.validate_new_report(&grant.witness.value, party, grant.granted_at)?;
+                let report = &grant.report;
+                ensure!(
+                    report.statement == lease.approval.statement
+                        && report.party_id == party
+                        && report.durable,
+                    "exact own current Claim durable receipt required"
+                );
+                own.verify(
+                    &wallet_mpc_protocol::solana_claim_authority::receipt_message(
+                        &lease.approval.authority,
+                        &report.statement,
+                        party,
+                    )?,
+                    &decode_hex(&report.signer_signature)
+                        .context("current Claim signature encoding")?,
+                )?;
+                let key = lease.approval.authority.identity(&report.statement.root)?
+                    + ":"
+                    + &report.statement.reservation_id.to_string();
+                self.current_claim_compatible(&report.statement)?;
+                ensure!(
+                    !self.current_claim_grants.contains_key(&key),
+                    "original current Claim report cannot change"
+                );
+                if let Some(pin) = grant.witness.value.node_profiles.get(party) {
+                    pin.validate_shape()?;
+                    ensure!(
+                        pin.node_key_id == own.key_id && pin.profile_sha256 == profile,
+                        "current Claim report requires exact witness profile pin"
+                    );
+                }
+                self.current_claim_grants
+                    .insert(key, grant.as_ref().clone());
+            }
             Change::ProfileMigrationGenesis { admission } => {
                 ensure!(
                     self.profile_migration_source.is_none(),

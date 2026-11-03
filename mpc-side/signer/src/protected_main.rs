@@ -132,6 +132,7 @@ async fn main() -> Result<()> {
         service_ready: true,
     };
     let protected_class = class.clone();
+    let current_claims = wallet_mpc_signer::protected::claims::router(service.clone());
     let protected = Router::new()
         .route("/internal/v1/solana/protected/auto", post(automatic))
         .route("/internal/v1/solana/protected/challenge", post(challenge))
@@ -216,6 +217,7 @@ async fn main() -> Result<()> {
             provisioning_and_dkg
         })
         .merge(protected)
+        .merge(current_claims)
         .merge(wallet_mpc_signer::protected::refresh::router(refresh))
         .merge(wallet_mpc_signer::protected::repair::router(repair));
     serve_roles_in(

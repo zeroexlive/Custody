@@ -22,10 +22,18 @@ See [current status](PROJECT_STATUS.md).
 Current continuation: native financial execution/provenance is committed at
 55e245e with exact Fast41445276955. Default-off classic SPL financial workflows
 now have independent313-case and genuine SPL/Native3 evidence. Exact136d995 Fast
-passes1201 backend cases; the public-only helper correction needs new-head CI. See [SPL boundary](PHASE6GC_SPL_FINANCIAL.md).
+passes1201 backend cases; subsequent7ff1e56 Fast41536746241 also passes1201 and
+includes the accepted public-only helper correction. See [SPL boundary](PHASE6GC_SPL_FINANCIAL.md).
 Repaired-identity new Claims and fresh-DKG drain/retirement/late-address rescue
 remain required before whole6G-C acceptance. Historical paragraphs below retain
 their original checkpoint scope.
+
+The next current-identity public approval boundary has genuine local refresh,
+replacement, restart, storage/maintenance-fault and historical repaired-store
+upgrade evidence. It preserves original receipts and derives current receipt
+authority from the original signed Lifecycle Prepare. Backend registration and
+financial consumption remain unfinished; independent final-source acceptance is
+in progress. See [current Claim scope](PHASE6GC_CURRENT_CLAIMS.md).
 
 The intermediate checkpoint paragraphs below retain their historical scope;
 the current facts above and PROJECT_STATUS.md take precedence.

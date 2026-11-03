@@ -158,6 +158,7 @@ impl Service {
             challenge: wallet_mpc_protocol::dkg::hex(&random),
             execution_id: None,
             claim_reservation_id: None,
+            candidate_claim: None,
         };
         let mut local = self.local.lock().await;
         let time = now()?;

@@ -199,6 +199,48 @@ def test_phase6gc_classic_token_publication_deposit_sweep_and_approved_withdrawa
     run_token_financial_flow(tmp_path)
 
 
+def test_phase6gc_current_claim_authority_recovers_original_prepare_and_candidate_aliases(tmp_path):
+    from current_claim_authority_acceptance import run_current_claim_authority
+
+    run_current_claim_authority(tmp_path)
+
+
+def test_phase6gc_current_claim_receipts_refresh_restart_and_historical_spend(tmp_path):
+    from current_claim_acceptance import run_current_claim
+
+    run_current_claim(tmp_path)
+
+
+def test_phase6gc_current_claim_receipts_cold_explicit_courier(tmp_path):
+    from current_claim_acceptance import run_current_claim
+
+    run_current_claim(tmp_path, custody_class="COLD")
+
+
+def test_phase6gc_repaired_identity_current_claim_receipts_and_real_spend(tmp_path):
+    from current_claim_acceptance import run_repaired_current_claim
+
+    run_repaired_current_claim(tmp_path)
+
+
+def test_phase6gc_repaired_identity_current_claim_cold_courier(tmp_path):
+    from current_claim_acceptance import run_repaired_current_claim
+
+    run_repaired_current_claim(tmp_path, custody_class="COLD")
+
+
+def test_phase6gc_current_claim_storage_write_and_maintenance_faults(tmp_path):
+    from current_claim_acceptance import run_current_claim_faults
+
+    run_current_claim_faults(tmp_path)
+
+
+def test_phase6gc_current_claim_upgrade_genuine_rules2_repaired_store(tmp_path):
+    from current_claim_acceptance import run_historical_repair_upgrade
+
+    run_historical_repair_upgrade(tmp_path)
+
+
 @pytest.mark.parametrize(
     "fault",
     (

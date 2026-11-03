@@ -293,6 +293,23 @@ impl Trust {
     }
     pub fn claim_evidence(&self, e: &Evidence<Claim>) -> Result<()> {
         e.statement.validate()?;
+        if e.authority.is_some() {
+            return wallet_mpc_protocol::solana_claim_authority::verify_evidence(
+                e,
+                &self.lifecycle.key_id,
+                |message, signature| self.lifecycle.verify(message, signature),
+                |der, role, expected, message, signature| {
+                    wallet_mpc_transport::verify_bound_public_identity(
+                        der,
+                        role,
+                        &wallet_mpc_transport::ROLES,
+                        expected,
+                        message,
+                        signature,
+                    )
+                },
+            );
+        }
         e.validate()?;
         let p = self.profile(&e.statement.root.wallet_class)?;
         for (r, party) in e.participant_agreement.iter().zip(PARTIES) {

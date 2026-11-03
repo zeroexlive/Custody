@@ -237,6 +237,7 @@ fn query_leases(
                 challenge: wallet_mpc_protocol::dkg::hex(&nonce),
                 execution_id: None,
                 claim_reservation_id: None,
+                candidate_claim: None,
             },
         )?;
         let lease = super::journal::sign(

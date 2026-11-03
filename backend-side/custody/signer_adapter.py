@@ -254,6 +254,12 @@ class SelfHostedMpcAdapter:
     def approve_solana_claim(self, keyset_id, statement):
         return self._solana_provisioning("claim", keyset_id, statement)
 
+    def approve_current_solana_claim(self, keyset_id, approval):
+        """Relay a previously committed public approval; no lifecycle command."""
+        return self._request(
+            "POST", f"/v1/keysets/{keyset_id}/solana-current-claims", json=approval
+        )
+
     def get_signing_session(self, session_id: str) -> dict:
         return self._request("GET", f"/v1/sign-sessions/{session_id}")
 

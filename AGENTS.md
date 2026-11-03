@@ -136,7 +136,18 @@ treasury sweep, external withdrawal and instruction-attributed deposit credit.
 Root103 targeted cases130.43s and independent313 cases302.898s pass; current
 independent genuine SPL176.216s/Native3 331.088s pass with stable82-path hashes.
 Exact136d995 Fast41499260859 passes4 jobs/1201 backend tests705.55s. An accepted
-public-query-only lease retry helper still needs its new exact-head CI. Read PHASE6GC_SPL_FINANCIAL.md; no whole-phase completion follows.
+public-query-only lease retry helper is included in7ff1e56 Fast41536746241,
+which passed4 jobs/1201 backend tests485.46s. Read PHASE6GC_SPL_FINANCIAL.md;
+no whole-phase completion follows.
+
+Next current-identity public Claim boundary has independent85 contracts and7
+genuine cases533.394s/zero failures/errors/skips, with112 source/binary hashes
+stable. Original Root/Claim receipt domains and old signed event replay remain
+unchanged. Node approvals cover actual HOT/COLD refresh/replacement, restart,
+historical context use, share-only restore and explicit old rules2 recipient pin
+promotion; read PHASE6GC_CURRENT_CLAIMS.md. Backend registration/effective-evidence
+consumption and financial publication after replacement remain unfinished, as do
+fresh-DKG drain/retirement/rescue and final whole-phase/CI gates.
 
 ## Latest owner-approved Phase 7B scope
 

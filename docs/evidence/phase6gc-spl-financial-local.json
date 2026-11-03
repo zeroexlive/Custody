@@ -2,17 +2,17 @@
   "algorithm_changes": false,
   "bounded_independent_review": "No remaining identified P0/P1 in this bounded component; phase completion not implied.",
   "exact_source_ci": {
-    "backend_seconds": 705.55,
+    "backend_seconds": 485.46,
     "backend_tests": 1201,
     "executed_jobs": 4,
-    "head": "136d99509560191dd5b3e1f06acb47d613c18613",
+    "head": "7ff1e56340a000e9eeefb02ee6f199340062ee85",
     "result": "SUCCESS",
-    "run_id": 41499260859,
-    "scope_limit": "Predates the independently accepted public-only publication-query retry helper; new helper head CI pending.",
+    "run_id": 41536746241,
+    "scope_limit": "Includes accepted public-only query retry helper; Fast only, not whole-phase ALL/compatibility.",
     "unselected_crypto_jobs": 10,
-    "url": "https://github.com/zeroexlive/Custody/actions/runs/41499260859"
+    "url": "https://github.com/zeroexlive/Custody/actions/runs/41536746241"
   },
-  "genuine_scope_limit": "Whole SPL flow success predates the owner-history race correction and added B-zero provenance assertions; revised independent run required.",
+  "genuine_scope_limit": "Independent final SPL rerun includes owner-history race correction and observed B-zero assertions; bounded development evidence only, not whole-phase acceptance.",
   "helper_correction": "At most3 actual query-expiry public retries under original Claim/issuance/initializer/grant; original15s deadline retained; no private or Life-command retry.",
   "independent_final_hashes": {
     "after_sha256": "67da6ee790e1b43ac26211970fe733faa7b5dd873f20a1f3e63d60db02dc0ea6",

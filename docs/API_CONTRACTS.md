@@ -301,3 +301,26 @@ native withdrawals require zero rent. `deposit-scan` selects original verified
 asset membership and actual finalized instruction provenance. Default-off SPL
 activation is separate from these CLI schemas. These commands are privileged
 operator tools, not tenant/API authentication. See PHASE6GC_SPL_FINANCIAL.md.
+
+### Phase6G-C current-identity public Claim approvals (unmerged development)
+
+Profiles with an explicit Lifecycle pin add signer
+`/internal/v1/solana/current-claim/query`, `/approve` and `/recover`. Query/recover
+take a bounded Custody-signed `CurrentClaimApproval`; approve takes
+`{approval,witness}`. Each approval binds the unchanged Claim and exact original
+Life-signed Prepare with its three named public receipt certificates. HOT/WARM
+use coordinator transport and own fresh W queries; COLD uses explicit courier
+queries and proofs. Recovery returns the original durable public receipt.
+
+Online `/v1/keysets/{id}/solana-current-claims` collects only public approvals under
+the already enrolled Root. A complete response carries optional Claim Evidence
+`authority`; absent authority retains original bytes. Original Root Evidence
+does not accept this field. No private signing or financial publication follows
+from receipt collection; backend/W must independently verify permanent exact
+registration and separate financial gates.
+
+For a historically repaired Root without a profile pin, the new explicit Life
+`PinReplacementProfile {replacement_command_id}` references only the original
+accepted replacement reservation. It accepts no supplied keys or profile values,
+requires a drained Frozen Root without maintenance, and preserves old events.
+See [current Claim authority and pending backend work](PHASE6GC_CURRENT_CLAIMS.md).

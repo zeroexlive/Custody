@@ -47,6 +47,80 @@ struct VerifiedIndex {
     names: [String; 4],
 }
 
+#[derive(Clone, Serialize, Deserialize, PartialEq, Eq)]
+#[serde(deny_unknown_fields)]
+struct CurrentFrontier {
+    root: Root,
+    authority_identity: String,
+    party_id: String,
+    signer_signature: String,
+}
+
+fn frontier_message(root: &Root, authority_identity: &str, party: &str) -> Result<Vec<u8>> {
+    Ok([
+        b"Wallet-MPC/SIGNER_SOLANA_CURRENT_FRONTIER_V1\0".as_slice(),
+        &serde_json::to_vec(&serde_json::json!({
+            "root":root,"authority_identity":authority_identity,"party_id":party,
+        }))?,
+    ]
+    .concat())
+}
+
+pub struct CurrentAliasGuard<'a> {
+    service: &'a Service,
+    _guard: tokio::sync::MutexGuard<'a, BTreeMap<String, VerifiedIndex>>,
+}
+
+impl CurrentAliasGuard<'_> {
+    /// Forward-only mode marker. It creates no original enrollment or Claim
+    /// receipt; callers already verified current Life/W/profile/generation.
+    pub fn fence_legacy_frontier(&self, root: &Root, authority_identity: &str) -> Result<()> {
+        self.service
+            .restore_current_frontier(root, authority_identity)
+    }
+}
+
+impl Service {
+    /// Called at protected startup only after independently replaying the
+    /// external public journal, or under the original alias lock at admission.
+    /// Restoring share storage must not erase that journal's forward fence.
+    pub(crate) fn restore_current_frontier(
+        &self,
+        root: &Root,
+        authority_identity: &str,
+    ) -> Result<()> {
+        if let Some(original) = self.current_frontier(root.dkg.keyset_id)? {
+            ensure!(
+                original.root == *root,
+                "original current frontier Root cannot change"
+            );
+            return Ok(());
+        }
+        root.validate()?;
+        ensure!(
+            wallet_mpc_protocol::witness::hash_text(authority_identity),
+            "current authority fingerprint required"
+        );
+        let identity = self
+            .identity
+            .as_ref()
+            .context("current identity unavailable")?;
+        let marker = CurrentFrontier {
+            root: root.clone(),
+            authority_identity: authority_identity.into(),
+            party_id: self.party.clone(),
+            signer_signature: hex(&identity.sign(&frontier_message(
+                root,
+                authority_identity,
+                &self.party,
+            )?)?),
+        };
+        self.pin(&format!("{}.current", root.dkg.keyset_id), &marker)?;
+        self.current_frontier(root.dkg.keyset_id)?;
+        Ok(())
+    }
+}
+
 pub struct Service {
     directory: PathBuf,
     party: String,
@@ -54,6 +128,7 @@ pub struct Service {
     verifier: CustodyRequestVerifier,
     identity: Option<ReceiptIdentity>,
     lock: Mutex<BTreeMap<String, VerifiedIndex>>,
+    current_frontiers: std::sync::Mutex<BTreeMap<Uuid, CurrentFrontier>>,
 }
 impl Service {
     pub fn open(
@@ -73,6 +148,7 @@ impl Service {
             verifier,
             identity,
             lock: Mutex::new(BTreeMap::new()),
+            current_frontiers: std::sync::Mutex::new(BTreeMap::new()),
         };
         // Original prepared/consumed/aborted executions are historical use too.
         // Never manufacture UNUSED after upgrading a previously used root.
@@ -138,6 +214,14 @@ impl Service {
                     indices.insert(name, report);
                 }
                 Some("owner" | "claim" | "retry") => {}
+                Some("current") => {
+                    let marker: CurrentFrontier = serde_json::from_slice(&fs::read(&path)?)?;
+                    ensure!(
+                        name == format!("{}.current", marker.root.dkg.keyset_id),
+                        "current frontier filename mismatch"
+                    );
+                    service.current_frontier(marker.root.dkg.keyset_id)?;
+                }
                 _ => anyhow::bail!("unrecognized seeded store file"),
             }
         }
@@ -257,6 +341,10 @@ impl Service {
     }
     fn legacy_role(&self, keyset: Uuid, reserve: bool) -> Result<()> {
         ensure!(
+            self.current_frontier(keyset)?.is_none(),
+            "current receipt Root cannot enter legacy private signing"
+        );
+        ensure!(
             self.role(keyset)?.is_none_or(|r| r.enrollment.is_none()),
             "dedicated seeded root cannot use legacy signing"
         );
@@ -297,6 +385,10 @@ impl Service {
             );
             return Ok(enrollment.report);
         }
+        ensure!(
+            self.current_frontier(keyset)?.is_none(),
+            "current identity cannot fabricate original enrollment"
+        );
         let report = self.report("root", approval.statement.clone())?;
         self.pin(
             &format!("{keyset}.role"),
@@ -377,6 +469,71 @@ impl Service {
         self.original(root).await?;
         let _guard = self.lock.lock().await;
         self.enrolled(root)
+    }
+    /// Read existing original aliases without creating old-identity receipts.
+    /// Absence is not availability; current approvals separately require a
+    /// fresh signed W frontier/occupancy proof, including on fresh recipients.
+    pub async fn current_aliases_compatible(&self, claim: &Claim) -> Result<CurrentAliasGuard<'_>> {
+        claim.validate()?;
+        let mut verified = self.lock.lock().await;
+        let names = self.names(claim)?;
+        let mut seen = BTreeSet::new();
+        for entry in fs::read_dir(&self.directory)? {
+            let path = entry?.path();
+            let name = path
+                .file_name()
+                .context("original index filename")?
+                .to_string_lossy()
+                .into_owned();
+            if !name.ends_with(".index") {
+                continue;
+            }
+            let bytes = fs::read(&path)?;
+            if let Some(cached) = verified.get(&name) {
+                ensure!(cached.bytes == bytes, "committed original index changed");
+            } else {
+                let report: Report<Claim> = serde_json::from_slice(&bytes)?;
+                self.verify_claim(&report)?;
+                let stored_names = self.names(&report.statement)?;
+                ensure!(name == stored_names[0], "original index filename mismatch");
+                verified.insert(
+                    name.clone(),
+                    VerifiedIndex {
+                        bytes,
+                        report,
+                        names: stored_names,
+                    },
+                );
+            }
+            let stored = &verified[&name];
+            if stored.names.iter().any(|name| names.contains(name)) {
+                ensure!(
+                    stored.report.statement == *claim,
+                    "original Claim aliases cannot be reassigned"
+                );
+            }
+            seen.insert(name);
+        }
+        ensure!(
+            verified.keys().all(|name| seen.contains(name)),
+            "committed original index disappeared"
+        );
+        for name in &names {
+            let path = self.directory.join(name);
+            if path.exists() {
+                let report: Report<Claim> = serde_json::from_slice(&fs::read(&path)?)?;
+                self.verify_claim(&report)?;
+                ensure!(
+                    report.statement == *claim,
+                    "original Claim alias conflicts with current approval"
+                );
+                confirm_parent_durability(&path)?;
+            }
+        }
+        Ok(CurrentAliasGuard {
+            service: self,
+            _guard: verified,
+        })
     }
     pub async fn approve(&self, approval: Approval<Claim>) -> Result<Report<Claim>> {
         approval.statement.validate()?;
@@ -467,6 +624,8 @@ impl Service {
         let report = match previous {
             Some(report) => report,
             None => {
+                ensure!(self.current_frontier(claim.root.dkg.keyset_id)?.is_none(),
+                    "new original receipt frontier is permanently closed; use current Claim approval");
                 // The index record commits first. Aliases can be completed after
                 // restart, never recycling the committed index or owner identity.
                 ensure!(
@@ -491,6 +650,52 @@ impl Service {
             self.pin(name, &report)?;
         }
         Ok(report)
+    }
+
+    fn current_frontier(&self, keyset: Uuid) -> Result<Option<CurrentFrontier>> {
+        let mut remembered = self
+            .current_frontiers
+            .lock()
+            .map_err(|_| anyhow::anyhow!("current frontier history uncertain"))?;
+        let path = self.directory.join(format!("{keyset}.current"));
+        let metadata = match fs::symlink_metadata(&path) {
+            Ok(metadata) => metadata,
+            Err(error) if error.kind() == std::io::ErrorKind::NotFound => {
+                ensure!(
+                    !remembered.contains_key(&keyset),
+                    "committed current frontier disappeared"
+                );
+                return Ok(None);
+            }
+            Err(error) => return Err(error.into()),
+        };
+        ensure!(
+            metadata.file_type().is_file() && metadata.len() <= 65536,
+            "invalid current frontier marker"
+        );
+        let marker: CurrentFrontier = serde_json::from_slice(&fs::read(&path)?)?;
+        marker.root.validate()?;
+        ensure!(
+            marker.root.dkg.keyset_id == keyset
+                && marker.party_id == self.party
+                && wallet_mpc_protocol::witness::hash_text(&marker.authority_identity),
+            "current frontier identity mismatch"
+        );
+        self.identity
+            .as_ref()
+            .context("current frontier identity unavailable")?
+            .verify(
+                &frontier_message(&marker.root, &marker.authority_identity, &marker.party_id)?,
+                &decode_hex(&marker.signer_signature)
+                    .context("current frontier signature encoding")?,
+            )?;
+        confirm_parent_durability(&path)?;
+        if let Some(original) = remembered.get(&keyset) {
+            ensure!(*original == marker, "committed current frontier changed");
+        } else {
+            remembered.insert(keyset, marker.clone());
+        }
+        Ok(Some(marker))
     }
 }
 

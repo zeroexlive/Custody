@@ -194,6 +194,7 @@ mod tests {
             intent: i.clone(),
             payload_hex: String::new(),
             claim_evidence: crate::solana_provisioning::Evidence {
+                authority: None,
                 statement: i.claim.clone(),
                 participant_agreement: vec![],
             },

@@ -11,6 +11,7 @@ use wallet_mpc_protocol::{
 
 fn evidence<T: Clone>(value: T) -> Evidence<T> {
     Evidence {
+        authority: None,
         statement: value.clone(),
         participant_agreement: PARTIES
             .iter()
@@ -809,8 +810,110 @@ fn all_three_refresh_agreement_activates_without_rewriting_original_identity() {
     ))
     .unwrap();
     assert_eq!(s.roots[&root_id].phase, Phase::Prepared);
+    let historical_replacement = s.replacements[&root_id].command_id;
+    let mut current = s.clone();
+    current.journal_rules = 3;
+    current
+        .command(&command(&current, &b, CommandAction::Activate))
+        .unwrap();
+    let recipient_pin = &current.node_profiles[&root_id][PARTIES[0]];
+    assert_eq!(recipient_pin.node_key_id, roster[PARTIES[0]]);
+    assert_eq!(
+        recipient_pin.profile_sha256,
+        hash(b"synthetic-state-test-profile")
+    );
+    assert_eq!(
+        recipient_pin.authority_id,
+        s.replacements[&root_id].plan.repair_ceremony_id
+    );
+    assert_eq!(
+        recipient_pin.source_fence_sha256,
+        s.replacements[&root_id].plan.identity().unwrap()
+    );
     s.command(&command(&s, &b, CommandAction::Activate))
         .unwrap();
+    assert!(!s.node_profiles.contains_key(&root_id));
+    let promotion = CommandAction::PinReplacementProfile {
+        replacement_command_id: historical_replacement,
+    };
+    let mut upgraded = s.clone();
+    upgraded.journal_rules = 3;
+    assert!(upgraded
+        .clone()
+        .command(&command(&upgraded, &b, promotion.clone()))
+        .is_err());
+    upgraded
+        .command(&command(&upgraded, &b, CommandAction::Freeze))
+        .unwrap();
+    for fault in 0..7 {
+        let mut bad = upgraded.clone();
+        let mut action = promotion.clone();
+        match fault {
+            0 => {
+                action = CommandAction::PinReplacementProfile {
+                    replacement_command_id: Uuid::new_v4(),
+                }
+            }
+            1 => {
+                let id = bad
+                    .commands
+                    .iter()
+                    .find(|(_, c)| matches!(c.action, CommandAction::Freeze))
+                    .unwrap()
+                    .0;
+                action = CommandAction::PinReplacementProfile {
+                    replacement_command_id: *id,
+                };
+            }
+            2 => bad
+                .roots
+                .get_mut(&root_id)
+                .unwrap()
+                .node_keys
+                .insert(PARTIES[0].into(), hash(b"retired recipient"))
+                .map(|_| ())
+                .unwrap(),
+            3 => {
+                bad.executions.values_mut().next().unwrap().status = ExecutionStatus::Open;
+            }
+            4 => {
+                let mut pin = recipient_pin.clone();
+                pin.profile_sha256 = hash(b"different current pin");
+                bad.node_profiles
+                    .entry(root_id.clone())
+                    .or_default()
+                    .insert(PARTIES[0].into(), pin);
+            }
+            5 => {
+                bad.commands
+                    .get_mut(&historical_replacement)
+                    .unwrap()
+                    .root_identity = hash(b"different Root");
+            }
+            _ => {
+                let p = ordinary_plan(&bad, &b);
+                bad.command_at(
+                    &command(
+                        &bad,
+                        &b,
+                        CommandAction::ReserveRefresh { plan: Box::new(p) },
+                    ),
+                    1000,
+                )
+                .unwrap();
+            }
+        }
+        assert!(
+            bad.clone().command(&command(&bad, &b, action)).is_err(),
+            "accepted promotion fault{fault}"
+        );
+    }
+    let promote = command(&upgraded, &b, promotion);
+    assert!(upgraded.command(&promote).unwrap());
+    assert_eq!(upgraded.node_profiles[&root_id][PARTIES[0]], *recipient_pin);
+    let sequence = upgraded.sequence;
+    assert!(!upgraded.command(&promote).unwrap());
+    assert_eq!(upgraded.sequence, sequence);
     assert_eq!(s.roots[&root_id].evidence.statement, original);
     assert_eq!(s.roots[&root_id].next_claim_index, 1);
     assert_eq!(
@@ -2224,4 +2327,153 @@ fn classic_publication_binds_exact_signed_original_initializer_not_finality() {
             )
         ))
         .is_err());
+}
+
+#[test]
+fn candidate_claim_query_reports_each_original_alias_without_reserving_it() {
+    let (state, b) = setup();
+    let original = &b.authorized.intent.claim;
+    let known = state.claim_availability(original).unwrap();
+    assert_eq!(known.index, Some(original.reservation_id));
+    assert_eq!(known.owner, Some(original.reservation_id));
+    assert_eq!(known.retry, Some(original.reservation_id));
+    let mut candidate = original.clone();
+    candidate.reservation_id = Uuid::new_v4();
+    candidate.index += 1;
+    candidate.idempotency_key = "current-frontier-unit".into();
+    let next = state.claim_availability(&candidate).unwrap();
+    assert!(next.index.is_none() && next.retry.is_none());
+    assert_eq!(next.owner, Some(original.reservation_id));
+    candidate.owner_ref = format!("p1:{}", Uuid::new_v4());
+    let clear = state.claim_availability(&candidate).unwrap();
+    assert!(clear.index.is_none() && clear.owner.is_none() && clear.retry.is_none());
+    assert_eq!(state.claims.len(), 1);
+    assert_eq!(
+        state.roots[&original.root.identity().unwrap()].next_claim_index,
+        1
+    );
+}
+
+#[test]
+fn rules3_current_frontier_preserves_registered_evidence_and_fences_legacy_reapproval() {
+    let (mut state, b) = setup();
+    state.journal_rules = 3;
+    let root_id = b.authorized.intent.claim.root.identity().unwrap();
+    // Structural state fixture only: genuine maintenance is separate acceptance.
+    state.roots.get_mut(&root_id).unwrap().generation.epoch = 1;
+    let original = state.claims[&b.authorized.intent.claim.reservation_id].clone();
+    state
+        .command(&command(
+            &state,
+            &b,
+            CommandAction::RegisterClaim {
+                evidence: Box::new(original.clone()),
+            },
+        ))
+        .unwrap();
+    let mut changed = original.clone();
+    changed.participant_agreement[0].signer_signature = "11".repeat(70);
+    assert!(state
+        .clone()
+        .command(&command(
+            &state,
+            &b,
+            CommandAction::RegisterClaim {
+                evidence: Box::new(changed),
+            }
+        ))
+        .is_err());
+    let mut candidate = b.authorized.intent.claim.clone();
+    candidate.reservation_id = Uuid::new_v4();
+    candidate.index = 1;
+    candidate.owner_ref = format!("p1:{}", Uuid::new_v4());
+    candidate.idempotency_key = "post-maintenance-unit".into();
+    let error = state
+        .command(&command(
+            &state,
+            &b,
+            CommandAction::RegisterClaim {
+                evidence: Box::new(evidence(candidate.clone())),
+            },
+        ))
+        .unwrap_err();
+    assert!(error.to_string().contains("current receipt authority"));
+    let mut historical = state.clone();
+    historical.journal_rules = 2;
+    historical
+        .command(&command(
+            &historical,
+            &b,
+            CommandAction::RegisterClaim {
+                evidence: Box::new(evidence(candidate)),
+            },
+        ))
+        .unwrap();
+    assert_eq!(state.claims[&original.statement.reservation_id], original);
+}
+
+#[test]
+fn rules3_private_permission_binds_exact_registered_evidence_across_generations() {
+    // Real P256 signatures in the public fixture, but synthetic readiness/state:
+    // genuine generation/receipt issuance is a separate runtime acceptance gate.
+    let fixture: Value = serde_json::from_str(include_str!(
+        "../../../protocol/tests/fixtures/solana-current-claim-authority.json"
+    ))
+    .unwrap();
+    let registered: Evidence<Claim> = serde_json::from_value(fixture["evidence"].clone()).unwrap();
+    let authority = registered.authority.as_ref().unwrap();
+    let (ready, keys) = authority.prepared().unwrap();
+    let mut b = binding();
+    b.authorized.intent.claim = registered.statement.clone();
+    b.authorized.intent.generation = authority.generation().unwrap().clone();
+    b.authorized.claim_evidence = registered.clone();
+    let root_id = registered.statement.root.identity().unwrap();
+    let mut state = Snapshot::empty(authority.prepare.value.anchor_id).unwrap();
+    state
+        .command(&command(
+            &state,
+            &b,
+            CommandAction::Enroll {
+                evidence: Box::new(evidence(registered.statement.root.clone())),
+                node_keys: keys.clone(),
+            },
+        ))
+        .unwrap();
+    state.journal_rules = 3;
+    let root = state.roots.get_mut(&root_id).unwrap();
+    root.generation = authority.generation().unwrap().clone();
+    root.public_key_package = ready[0].value.public_key_package.clone();
+    state.commands.insert(
+        authority.prepare.value.request_id,
+        authority.prepare.value.clone(),
+    );
+    state
+        .command(&command(
+            &state,
+            &b,
+            CommandAction::RegisterClaim {
+                evidence: Box::new(registered.clone()),
+            },
+        ))
+        .unwrap();
+    for name in ["legacy_evidence", "alternate_evidence"] {
+        let mut substituted = b.clone();
+        substituted.authorized.claim_evidence =
+            serde_json::from_value(fixture[name].clone()).unwrap();
+        assert_eq!(substituted.identity().unwrap(), b.identity().unwrap());
+        let req = request(&state, &substituted, PARTIES[0], 1);
+        assert!(state.clone().permit(&req, &keys[PARTIES[0]], 1000).is_err());
+        let mut historical = state.clone();
+        historical.journal_rules = 2;
+        assert!(historical.permit(&req, &keys[PARTIES[0]], 1000).is_ok());
+    }
+    let req = request(&state, &b, PARTIES[0], 1);
+    assert!(state.clone().permit(&req, &keys[PARTIES[0]], 1000).is_ok());
+    // Registered receipt authority remains historical after another generation.
+    let root = state.roots.get_mut(&root_id).unwrap();
+    root.generation.epoch += 1;
+    root.generation.ceremony_id = Uuid::new_v4();
+    b.authorized.intent.generation = root.generation.clone();
+    let req = request(&state, &b, PARTIES[0], 1);
+    assert!(state.permit(&req, &keys[PARTIES[0]], 1000).is_ok());
 }

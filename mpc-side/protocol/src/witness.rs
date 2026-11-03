@@ -137,7 +137,7 @@ impl AuthorizedIntent {
         now: u64,
         policy: &ValidationPolicy,
     ) -> Result<Vec<u8>> {
-        self.claim_evidence.validate()?;
+        self.claim_evidence.validate_claim()?;
         ensure!(
             self.claim_evidence.statement == self.intent.claim,
             "original claim agreement"
@@ -324,6 +324,11 @@ pub enum CommandAction {
         fence: Box<Signed<crate::solana_profile_migration::MigrationFence>>,
         renewal: Option<Box<crate::solana_profile_migration::RenewalApprovals>>,
     },
+    /// Explicitly promote an already accepted historical replacement's exact
+    /// profile provenance; the caller supplies no replacement trust material.
+    PinReplacementProfile {
+        replacement_command_id: Uuid,
+    },
     ReserveRefresh {
         plan: Box<Signed<crate::solana_generation::RefreshPlan>>,
     },
@@ -392,6 +397,17 @@ pub struct Query {
     pub execution_id: Option<Uuid>,
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub claim_reservation_id: Option<Uuid>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub candidate_claim: Option<Box<Claim>>,
+}
+
+#[derive(Clone, Debug, Serialize, Deserialize, PartialEq, Eq)]
+#[serde(deny_unknown_fields)]
+pub struct ClaimAvailability {
+    pub reservation_id: Uuid,
+    pub index: Option<Uuid>,
+    pub owner: Option<Uuid>,
+    pub retry: Option<Uuid>,
 }
 
 /// Immutable financial intent. A native/token transfer cannot be relabelled as
@@ -459,6 +475,10 @@ pub struct QueryReply {
     pub node_profiles: BTreeMap<String, crate::solana_profile_migration::NodeProfilePin>,
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub refresh: Option<crate::solana_generation::RefreshReservation>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub claim_availability: Option<ClaimAvailability>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub generation_authority: Option<Box<Signed<Command>>>,
 }
 
 /// Durable permission to publish one already registered native deposit claim.

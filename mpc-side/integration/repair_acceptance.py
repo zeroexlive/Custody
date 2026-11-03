@@ -332,8 +332,20 @@ def staging_faults(g, p, identity):
     assert call(g, PARTIES[0], "report", p)[0] == 200
 
 
-def run_repair(root_path, *, custody_class="HOT", faults=False):
-    with group(root_path, custody_class, lifecycle=True) as (g, c, receipts):
+def run_repair(
+    root_path,
+    *,
+    custody_class="HOT",
+    faults=False,
+    before_maintenance=None,
+    after_repair=None,
+    binary_directory=None,
+):
+    with group(root_path, custody_class, lifecycle=True, binary_directory=binary_directory) as (
+        g,
+        c,
+        receipts,
+    ):
         original = copy.deepcopy(g.w.root)
         original_receipts = copy.deepcopy(receipts)
         ciphertexts = {
@@ -342,6 +354,8 @@ def run_repair(root_path, *, custody_class="HOT", faults=False):
             for path in (g.net.root / party / "storage").rglob("*.share.enc")
         }
         assert len(ciphertexts) == 3
+        if before_maintenance is not None:
+            before_maintenance(g)
         freeze(g)
         identity, profile, anchor = recipient(g)
         p = reserve(g, identity, profile, anchor)
@@ -429,6 +443,8 @@ def run_repair(root_path, *, custody_class="HOT", faults=False):
             b = g.binding(c, receipts, operation, pair, amount=1000000)
             g.broadcast(b, g.sign(b))
         assert balance(g, source) == before - 3000000
+        if after_repair is not None:
+            after_repair(g)
         private_file(
             root_path / "solana-repair-public-evidence.json",
             canonical(

@@ -1,5 +1,6 @@
 //! Explicit protected deployment. Its independent public execution anchor and
 //! mandatory profile survive restoration of any private-share backup.
+pub mod claims;
 pub mod generations;
 mod journal;
 pub mod migration;
@@ -299,6 +300,19 @@ impl Service {
                 }
             }
         }
+        // External public history survives a share-only backup restore. Rebuild
+        // its conservative original-approval fence before exposing any router;
+        // this never creates enrollment or original Claim receipts.
+        for grant in journal.records.current_claim_grants.values() {
+            let root = &grant.report.statement.root;
+            let lease = journal
+                .records
+                .current_claim_queries
+                .get(&grant.lease_challenge)
+                .context("original current Claim lease missing")?;
+            provisioning
+                .restore_current_frontier(root, &lease.approval.authority.identity(root)?)?;
+        }
         let rpc = SolanaRpc::new(profile.rpc_address)?;
         Ok(Arc::new(Self {
             profile,
@@ -402,10 +416,13 @@ impl Service {
     }
     async fn require_claim(
         &self,
-        claim: &wallet_mpc_protocol::solana_provisioning::Claim,
+        evidence: &wallet_mpc_protocol::solana_provisioning::Evidence<
+            wallet_mpc_protocol::solana_provisioning::Claim,
+        >,
     ) -> Result<()> {
+        let claim = &evidence.statement;
         self.require_migration_root(&claim.root)?;
-        if self.profile.replacement_bootstrap.is_some() {
+        if self.profile.replacement_bootstrap.is_some() || evidence.authority.is_some() {
             claim.validate()?;
             // Independent Policy::verify checks every original Claim signature;
             // the current witness permit separately requires its exact registry.
@@ -483,10 +500,15 @@ impl Service {
     pub async fn challenge(&self, c: Control) -> Result<Signed<PermitRequest>> {
         self.valid_control(&c)?;
         let package = self.package(&c.binding).await?;
-        self.require_claim(&c.binding.authorized.intent.claim)
+        self.require_claim(&c.binding.authorized.claim_evidence)
             .await?;
-        self.policy
-            .verify(&self.profile.class, &c.binding.authorized, &package, now()?)?;
+        self.policy.verify(
+            &self.profile.class,
+            &c.binding.authorized,
+            &package,
+            now()?,
+            self.lifecycle.as_ref(),
+        )?;
         let mut local = self.local.lock().await;
         ensure!(!local.journal.poisoned, "protected history uncertain");
         let id = c.binding.authorized.intent.crypto_execution_id;
@@ -656,9 +678,14 @@ impl Service {
                 "protected active execution capacity reached"
             );
         }
-        self.require_claim(&b.authorized.intent.claim).await?;
-        self.policy
-            .verify(&self.profile.class, &b.authorized, &package, now()?)?;
+        self.require_claim(&b.authorized.claim_evidence).await?;
+        self.policy.verify(
+            &self.profile.class,
+            &b.authorized,
+            &package,
+            now()?,
+            self.lifecycle.as_ref(),
+        )?;
         let payload = decode_hex(&b.authorized.payload_hex).context("payload encoding")?;
         network::verify(&self.rpc, &b.authorized.intent, &payload).await?;
         let key_package = if request.round == 1 {

@@ -1,0 +1,81 @@
+{
+  "algorithm_changes": false,
+  "date": "2026-11-03",
+  "final_head_fast": "PENDING",
+  "historical_upgrade_writer": {
+    "provenance": "Fixed clean source checkout and locked build, source/binary identity, actual old-node404 and rules2-event canaries; exact old events retained.",
+    "sha": "7ff1e56340a000e9eeefb02ee6f199340062ee85",
+    "tree": "998033f8a49a8eaf9b9fdfe23cf790537740cd95"
+  },
+  "independent_contracts": {
+    "current_claim_shapes": 4,
+    "failures": 0,
+    "legacy_intent": 9,
+    "legacy_wire": 1,
+    "protocol_lib": 14,
+    "python_actual_p256": 27,
+    "scope": "P256 fixtures use synthetic readiness; no standalone MPC acceptance claim.",
+    "skips": 0,
+    "total": 85,
+    "witness_actual_p256": 3,
+    "witness_lib": 27
+  },
+  "independent_genuine": {
+    "cases": [
+      {
+        "name": "test_phase6gc_current_claim_authority_recovers_original_prepare_and_candidate_aliases",
+        "seconds": 31.712
+      },
+      {
+        "name": "test_phase6gc_current_claim_receipts_refresh_restart_and_historical_spend",
+        "seconds": 85.836
+      },
+      {
+        "name": "test_phase6gc_current_claim_receipts_cold_explicit_courier",
+        "seconds": 84.367
+      },
+      {
+        "name": "test_phase6gc_repaired_identity_current_claim_receipts_and_real_spend",
+        "seconds": 98.905
+      },
+      {
+        "name": "test_phase6gc_repaired_identity_current_claim_cold_courier",
+        "seconds": 97.693
+      },
+      {
+        "name": "test_phase6gc_current_claim_storage_write_and_maintenance_faults",
+        "seconds": 33.415
+      },
+      {
+        "name": "test_phase6gc_current_claim_upgrade_genuine_rules2_repaired_store",
+        "seconds": 101.254
+      }
+    ],
+    "errors": 0,
+    "failures": 0,
+    "seconds": 533.394,
+    "skips": 0,
+    "tests": 7
+  },
+  "independent_manifest": {
+    "before_after_equal": true,
+    "pre_genuine_restore": "Permitted DB-free Cargo test rebuilt W executable; preserved that delta and restored exact original v7 binary from dependency artifact before genuine7. Full112 hashes unchanged throughout genuine run.",
+    "runtime_binaries": 4,
+    "sha256": "7ce02dd75f93c88722ac7859d7e87c73877c524cb0c82ec267e3c11dae02c7b9",
+    "source_fixture_workflow_files": 108,
+    "total_paths": 112
+  },
+  "independent_review": "No remaining identified P0/P1 within this bounded node/public component after restore-fence and historical-pin fixes; backend drafts excluded.",
+  "production_activation": false,
+  "remaining": [
+    "Backend current registration and immutable effective-evidence consumers, including legacy pending public intents",
+    "Actual financial publication/spending after repaired-identity new Claim",
+    "Fresh-DKG fund migration/drain/retirement/late-address rescue",
+    "Final whole-phase independent review, exact-final-SHA Fast/ALL/original3d32 encrypted-store compatibility, conditional merge/main verification"
+  ],
+  "scanner_exemptions": false,
+  "scope": "Current-identity public Claim authority/receipts, permanent W registration, historical current-Claim MPC use, explicit old repaired-store profile promotion; no backend registration/financial publication acceptance.",
+  "source_parent": "7ff1e56340a000e9eeefb02ee6f199340062ee85",
+  "status": "BOUNDED_UNMERGED_DEVELOPMENT_ACCEPTANCE",
+  "whole_phase_all_compatibility": "PENDING"
+}

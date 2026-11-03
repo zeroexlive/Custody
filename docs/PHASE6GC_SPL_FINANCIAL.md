@@ -104,8 +104,9 @@ Root103 focused cases passed130.43s. Independent combined313 cases passed302.898
 one genuine complete SPL flow passed176.216s, and three genuine native legacy/
 v0/PDA regressions passed331.088s. All have zero failures/errors/skips. Independent
 before/after82-path hashes, including3 runtime binaries, match freeze3. The79
-source/fixture/workflow files tied to136d995 before the single accepted helper
-correction; final committed-helper/CI tie is the next checkpoint gate.
+source/fixture/workflow files are independently tied to committed7ff1e56,
+including the single accepted helper correction; saved runtime binaries match
+the independent final manifest.
 
 The actual SPL acceptance finalized2 original MPC initializers, permanent
 issuance/publication, actual A→B→customer with observed Bpre/post0,10m deposited
@@ -119,8 +120,11 @@ account negative1 and parser/effects29 before the later history correction.
 
 Exact [Fast41499260859](https://github.com/zeroexlive/Custody/actions/runs/41499260859)
 at136d995 passed4 executed jobs, including1201 backend tests705.55s. Ten full-crypto
-jobs were unselected. This precedes the accepted public-only lease retry helper;
-its new exact-source CI remains required. The intentionally interrupted local
+jobs were unselected. Subsequent exact
+[Fast41536746241](https://github.com/zeroexlive/Custody/actions/runs/41536746241)
+at7ff1e56 also passed4 jobs, including1201 backend tests485.46s, and includes the
+accepted public-only lease retry helper. Ten full-crypto jobs were unselected;
+whole-phase ALL and original-store compatibility remain required. The intentionally interrupted local
 broad run at617 passes218.64s is partial evidence only.
 
 Both independent initial failures remain recorded. One setup attempt stopped15

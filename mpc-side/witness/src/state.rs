@@ -9,8 +9,8 @@ use wallet_mpc_protocol::{
     solana_intent::Generation,
     solana_provisioning::{Claim, Evidence, Root},
     witness::{
-        hash, hash_text, Binding, Command, CommandAction, ExecutionStatus, GenerationReady, Permit,
-        PermitRequest, Phase, PublicRound, Signed,
+        hash, hash_text, Binding, ClaimAvailability, Command, CommandAction, ExecutionStatus,
+        GenerationReady, Permit, PermitRequest, Phase, PublicRound, Signed,
     },
 };
 
@@ -110,6 +110,32 @@ pub(crate) fn roster(keys: &BTreeMap<String, String>) -> Result<()> {
     Ok(())
 }
 impl Snapshot {
+    pub fn claim_availability(&self, claim: &Claim) -> Result<ClaimAvailability> {
+        claim.validate()?;
+        let root_id = claim.root.identity()?;
+        ensure!(
+            self.roots
+                .get(&root_id)
+                .is_some_and(|root| root.evidence.statement == claim.root),
+            "candidate Claim requires exact enrolled original Root"
+        );
+        if let Some(original) = self.claims.get(&claim.reservation_id) {
+            ensure!(
+                original.statement == *claim,
+                "candidate original reservation cannot change"
+            );
+        }
+        Ok(ClaimAvailability {
+            reservation_id: claim.reservation_id,
+            index: self
+                .claim_indices
+                .get(&format!("{root_id}:{}", claim.index))
+                .copied(),
+            owner: self.claim_owners.get(&claim.owner_slot()?).copied(),
+            retry: self.claim_retries.get(&claim.retry_slot()?).copied(),
+        })
+    }
+
     pub(crate) fn empty(anchor_id: Uuid) -> Result<Self> {
         ensure!(
             !anchor_id.is_nil(),
@@ -619,7 +645,7 @@ impl Snapshot {
                     self.issuance_ids.insert(*issuance_id, *reservation_id);
                 }
                 CommandAction::RegisterClaim { evidence } => {
-                    evidence.validate()?;
+                    evidence.validate_claim()?;
                     evidence.statement.validate()?;
                     let claim = &evidence.statement;
                     ensure!(
@@ -633,12 +659,26 @@ impl Snapshot {
                     if let Some(original) = self.claims.get(&reservation) {
                         ensure!(
                             original.statement == *claim
+                                && (self.journal_rules < 3 || original == evidence.as_ref())
                                 && self.claim_indices.get(&index) == Some(&reservation)
                                 && self.claim_owners.get(&owner) == Some(&reservation)
                                 && self.claim_retries.get(&retry) == Some(&reservation),
                             "original claim registration cannot change"
                         );
                     } else {
+                        if let Some(authority) = &evidence.authority {
+                            let (_, keys) = authority.prepared()?;
+                            ensure!(authority.prepare.value.anchor_id == self.anchor_id
+                                && authority.generation()? == &r.generation && keys == &r.node_keys
+                                && self.commands.get(&authority.prepare.value.request_id)
+                                    == Some(&authority.prepare.value),
+                                "exact accepted current generation/Prepare receipt authority required");
+                        } else {
+                            ensure!(
+                                self.journal_rules < 3 || r.generation.epoch == 0,
+                                "new post-maintenance Claims require current receipt authority"
+                            );
+                        }
                         ensure!(
                             r.phase == Phase::Active
                                 && claim.index == r.next_claim_index
@@ -834,6 +874,45 @@ impl Snapshot {
                     r.phase = Phase::Prepared;
                     r.prepared = Some(prepared);
                 }
+                CommandAction::PinReplacementProfile {
+                    replacement_command_id,
+                } => {
+                    ensure!(self.journal_rules >= 3 && r.phase == Phase::Frozen
+                        && r.prepared.is_none() && !self.replacements.contains_key(id)
+                        && !self.refreshes.contains_key(id)
+                        && !self.executions.values().any(|e|
+                            e.root_identity == *id && e.status == ExecutionStatus::Open),
+                        "replacement profile promotion requires a drained Frozen Root without maintenance");
+                    let original = self
+                        .commands
+                        .get(replacement_command_id)
+                        .context("original accepted replacement command required")?;
+                    let CommandAction::ReserveReplacement { plan } = &original.action else {
+                        anyhow::bail!("original accepted replacement reservation required");
+                    };
+                    let p = plan.as_ref();
+                    ensure!(
+                        original.root_identity == *id
+                            && p.refresh.root == r.evidence.statement
+                            && r.generation.epoch >= p.refresh.next_epoch
+                            && r.node_keys.get(&p.party_id) == p.refresh.node_keys.get(&p.party_id),
+                        "exact active historical recipient and original Root required"
+                    );
+                    let pin = wallet_mpc_protocol::solana_profile_migration::NodeProfilePin {
+                        node_key_id: p.refresh.node_keys[&p.party_id].clone(),
+                        profile_sha256: p.recipient_profile_sha256.clone(),
+                        anchor_id: p.recipient_anchor_id,
+                        authority_id: p.repair_ceremony_id,
+                        source_fence_sha256: p.identity()?,
+                    };
+                    pin.validate_shape()?;
+                    let pins = self.node_profiles.entry(id.clone()).or_default();
+                    ensure!(
+                        pins.get(&p.party_id).is_none_or(|old| old == &pin),
+                        "original current profile pin cannot be replaced"
+                    );
+                    pins.insert(p.party_id.clone(), pin);
+                }
                 CommandAction::Activate => {
                     ensure!(
                         r.phase == Phase::Prepared,
@@ -852,12 +931,16 @@ impl Snapshot {
                     r.public_key_package = next.public_key_package;
                     r.node_keys = next.node_keys;
                     r.phase = Phase::Active;
-                    // Historical4a replacements had no profile pins. Preserve
-                    // their original valid None request replay semantics.
+                    // Preserve historical replay. New rules3 activations bind
+                    // the actual recipient profile even if this Root never
+                    // needed a source-profile migration pin.
                     if let Some(replacement) = self.replacements.get(id) {
                         let p = &replacement.plan;
+                        if self.journal_rules >= 3 {
+                            self.node_profiles.entry(id.clone()).or_default();
+                        }
                         if let Some(pins) = self.node_profiles.get_mut(id) {
-                            if pins.contains_key(&p.party_id) {
+                            if self.journal_rules >= 3 || pins.contains_key(&p.party_id) {
                                 pins.insert(
                                     p.party_id.clone(),
                                     wallet_mpc_protocol::solana_profile_migration::NodeProfilePin {
@@ -930,7 +1013,8 @@ impl Snapshot {
         ensure!(
             self.claims
                 .get(&i.claim.reservation_id)
-                .is_some_and(|e| e.statement == i.claim),
+                .is_some_and(|e| e.statement == i.claim
+                    && (self.journal_rules < 3 || e == &req.binding.authorized.claim_evidence)),
             "exact original claim must be durably registered before private permission"
         );
         let challenge = format!("{node_key}:{}:{}", req.party_id, req.challenge);

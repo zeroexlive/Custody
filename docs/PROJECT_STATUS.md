@@ -56,12 +56,23 @@ one complete genuine FROST/PG/Agave flow passed166.60s before the subsequent
 owner-history race correction. Independent source review found/fixed atomic
 forwarding availability and historical-owner classification races; revised
 independent313 cases302.898s, genuine SPL176.216s and Native3 cases331.088s now pass.
-Exact136d995 Fast41499260859 passes4 jobs/1201 backend tests705.55s; the accepted
-public-query-only helper correction still needs its exact-head CI. The interrupted broad run
+Exact136d995 Fast41499260859 passes4 jobs/1201 backend tests705.55s. Subsequent
+7ff1e56 Fast41536746241 also passes4 jobs/1201 backend tests485.46s and includes
+the accepted public-query-only helper correction. The interrupted broad run
 reported617 passes218.64s and is not full-suite acceptance. See
 [SPL scope and evidence](PHASE6GC_SPL_FINANCIAL.md). Repaired-identity new Claims,
 fresh-DKG migration/drain/retirement, old-address rescue and final whole-phase
 ALL/original-store compatibility/merge gates remain unfinished.
+
+Subsequent current-identity public Claim approvals now have independently accepted
+bounded node evidence:85 contracts and7 genuine cases533.394s, zero failures/
+errors/skips, with112 source/binary hashes stable. The actual cases include HOT/
+COLD refresh and physical replacement, exact receipt recovery, Gen2 historical
+Claim spending, share-only restore and explicit fixed7ff rules2 repaired-store
+profile promotion. Original Root/Claim bytes and original DKG ciphertexts remain
+unchanged. Backend registration/effective-evidence consumption and financial
+publication after replacement are not yet implemented. New-head Fast and final
+whole-phase gates remain pending; see [current Claim boundary](PHASE6GC_CURRENT_CLAIMS.md).
 
 Final reviewed head `78394fc2e5ae585cd265c195f1d02557cb062e21` passed
 [Fast40683968092](https://github.com/zeroexlive/Custody/actions/runs/40683968092)

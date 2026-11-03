@@ -858,3 +858,38 @@ initial actual67.05s query-expiry failure and15pass/1setup-NOWAIT attempt remain
 recorded separately. New helper exact-head CI remains required. No remaining
 identified bounded P0/P1; repaired-identity new Claims, fresh-DKG drain/retirement/
 rescue and whole-phase gates remain open. See PHASE6GC_SPL_FINANCIAL.md.
+
+## 2026-11-03 — committed SPL helper CI and current-Claim work in progress
+
+Exact7ff1e56 Fast41536746241 passed4 executed jobs, including1201 backend tests
+485.46s; ten full-crypto jobs were unselected. Independent final79 source/fixture/
+workflow blobs tie to this committed helper source and three saved runtime binary
+hashes match the accepted82-path manifest. This supersedes the preceding pending
+helper-CI statement, without establishing whole-phase ALL/compatibility acceptance.
+
+The next uncommitted boundary introduces public current-identity Claim authority
+from the original Life-signed Prepare and exact three readiness identities. HOT
+and COLD ordinary-refresh receipt/registration/restart and Gen2 historical-Claim
+MPC spending pass locally. Replacement acceptance exposed a missing recipient
+profile pin on Roots without prior profile migration; new rules3 activation now
+installs the explicitly Life-reserved recipient pin, preserving older signed
+journal replay semantics. Replacement/fault reruns and independent review remain
+pending. No current-Claim backend registration, financial publication or phase
+completion is claimed. Fresh-DKG drain/retirement/rescue and final phase gates
+remain open.
+
+## 2026-11-03 — independent current-identity public Claim acceptance (unmerged)
+
+Independent85 contracts and7 genuine cases533.394s pass, zero failures/errors/
+skips. The112-path manifest (108 source/fixture/workflow files and4 binaries)
+matches before/after the real runs. The unit-test rebuild's W binary delta was
+preserved, then its exact frozen v7 artifact restored before genuine execution.
+Actual cases cover ordinary HOT/COLD Gen1/Gen2, physical replacement HOT/COLD,
+durable report failure/restart, live marker disappearance/share-only restoration,
+and an actual fixed7ff1e56 rules2 repaired-store upgrade with old404/rules2 canaries.
+Explicit Life promotion derives the missing recipient pin from its original
+accepted replacement reservation; original signed event files remain unchanged.
+No remaining identified P0/P1 in this bounded node/public component. Backend
+registration, financial publication after replacement, fresh-DKG migration/
+retirement/rescue and final whole-phase CI/compatibility/merge remain unfinished.
+See PHASE6GC_CURRENT_CLAIMS.md and its public evidence file.

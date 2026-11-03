@@ -51,6 +51,47 @@ fn proof(
     pin.verify(msg, &sig)
 }
 impl Policy {
+    pub(super) fn current_claim_approval(
+        &self,
+        class: &str,
+        approval: &wallet_mpc_protocol::solana_claim_authority::CurrentClaimApproval,
+        lifecycle: &PinnedIdentity,
+        time: u64,
+        live: bool,
+    ) -> Result<()> {
+        ensure!(
+            approval.statement.root.wallet_class == class,
+            "current Claim approval requires exact custody class"
+        );
+        approval.validate_live(time)?;
+        wallet_mpc_protocol::solana_claim_authority::verify_authority(
+            &approval.authority,
+            &approval.statement.root,
+            &lifecycle.key_id,
+            |message, signature| lifecycle.verify(message, signature),
+            |der, role, expected, message, signature| {
+                wallet_mpc_transport::verify_bound_public_identity(
+                    der, role, &ROLES, expected, message, signature,
+                )
+            },
+        )?;
+        let message = approval.message()?;
+        if live {
+            proof(
+                &self.custody,
+                &self.custody_key,
+                &message,
+                &approval.custody_authorization,
+            )
+        } else {
+            self.custody_key.verify(
+                &message,
+                &decode_hex(&approval.custody_authorization.signature_der_hex)
+                    .context("archival current Claim Custody signature")?,
+            )
+        }
+    }
+
     pub(super) fn migration_approvals(
         &self,
         approvals: &wallet_mpc_protocol::solana_profile_migration::MigrationApprovals,
@@ -186,21 +227,37 @@ impl Policy {
         a: &AuthorizedIntent,
         package: &[u8],
         now: u64,
+        lifecycle: Option<&PinnedIdentity>,
     ) -> Result<()> {
         ensure!(
             a.intent.claim.root.wallet_class == class,
             "wrong protected custody class"
         );
         a.validate_shape(package, now, &self.limits)?;
-        for (report, p) in a.claim_evidence.participant_agreement.iter().zip(PARTIES) {
-            let message = receipt_message("claim", &a.intent.claim, p)?;
-            let sig = decode_hex(&report.signer_signature).context("claim receipt encoding")?;
-            ensure!(
-                self.receipts[p]
-                    .iter()
-                    .any(|pin| pin.verify(&message, &sig).is_ok()),
-                "original receipt unverifiable"
-            );
+        if a.claim_evidence.authority.is_some() {
+            let life =
+                lifecycle.context("current Claim evidence requires explicit Lifecycle pin")?;
+            wallet_mpc_protocol::solana_claim_authority::verify_evidence(
+                &a.claim_evidence,
+                &life.key_id,
+                |message, signature| life.verify(message, signature),
+                |der, role, expected, message, signature| {
+                    wallet_mpc_transport::verify_bound_public_identity(
+                        der, role, &ROLES, expected, message, signature,
+                    )
+                },
+            )?;
+        } else {
+            for (report, p) in a.claim_evidence.participant_agreement.iter().zip(PARTIES) {
+                let message = receipt_message("claim", &a.intent.claim, p)?;
+                let sig = decode_hex(&report.signer_signature).context("claim receipt encoding")?;
+                ensure!(
+                    self.receipts[p]
+                        .iter()
+                        .any(|pin| pin.verify(&message, &sig).is_ok()),
+                    "original receipt unverifiable"
+                );
+            }
         }
         proof(
             &self.custody,

@@ -158,6 +158,7 @@ mod tests {
         // Synthetic public signatures exercise shape only; they are never
         // supplied as genuine cryptographic authorization or MPC acceptance.
         let evidence = Evidence {
+            authority: None,
             statement: root.clone(),
             participant_agreement: PARTIES
                 .iter()

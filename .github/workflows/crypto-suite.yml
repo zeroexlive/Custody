@@ -48,6 +48,7 @@ jobs:
       PYTHONPATH: backend-side:mpc-side/integration
       PHASE6FB_SOLANA_BIN: /tmp/phase6fb-solana/solana-release/bin
       PHASE6GC_PROFILE_COMPAT_BIN: work/profile-compat-target/debug
+      PHASE6GC_CURRENT_CLAIM_COMPAT_BIN: work/current-claim-compat-target/debug
       PHASE6GC_SOLANA_PLATFORM_TOOLS: work/solana-platform-tools
     steps:
       - uses: actions/checkout@v4
@@ -148,6 +149,18 @@ jobs:
         run: |
           CARGO_TARGET_DIR="$PWD/work/profile-compat-target" cargo build --locked --manifest-path work/profile-compat-baseline/mpc-side/Cargo.toml --bin wallet-mpc-coordinator --bin wallet-mpc-witness --bin wallet-mpc-protected-signer --example frost_signing_package
           python mpc-side/integration/profile_migration_baseline.py --source work/profile-compat-baseline --bin "$PHASE6GC_PROFILE_COMPAT_BIN"
+      - name: Check out the fixed rules2 repaired-store writer
+        if: inputs.suite == 'solana'
+        uses: actions/checkout@v4
+        with:
+          ref: 7ff1e56340a000e9eeefb02ee6f199340062ee85
+          path: work/current-claim-compat-baseline
+          persist-credentials: false
+      - name: Build and identify genuine historical repaired-store services
+        if: inputs.suite == 'solana'
+        run: |
+          CARGO_TARGET_DIR="$PWD/work/current-claim-compat-target" cargo build --locked --manifest-path work/current-claim-compat-baseline/mpc-side/Cargo.toml --bin wallet-mpc-coordinator --bin wallet-mpc-witness --bin wallet-mpc-protected-signer --example frost_signing_package
+          python mpc-side/integration/current_claim_baseline.py --source work/current-claim-compat-baseline --bin "$PHASE6GC_CURRENT_CLAIM_COMPAT_BIN"
       - name: Check out the fixed pre-migration development baseline
         if: inputs.suite == 'network'
         uses: actions/checkout@v4
@@ -222,6 +235,11 @@ jobs:
             work/crypto/fixtures/**/solana-native-financial-pda-public-evidence.json
             work/crypto/fixtures/**/solana-seeded-token-sweep-public-evidence.json
             work/crypto/fixtures/**/solana-token-financial-public-evidence.json
+            work/crypto/fixtures/**/solana-current-claim-authority-public-evidence.json
+            work/crypto/fixtures/**/solana-current-claim-public-evidence.json
+            work/crypto/fixtures/**/solana-current-claim-faults-public-evidence.json
+            work/crypto/fixtures/**/solana-current-claim-upgrade-public-evidence.json
+            work/crypto/fixtures/**/solana-repaired-current-claim-public-evidence.json
             work/ton-review/mpc-tvm-evidence.json
             work/ton-review/validator-network-evidence.json
             work/ton-review/django-validator-evidence.json

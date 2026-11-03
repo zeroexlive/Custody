@@ -214,6 +214,7 @@ class MpcKeyset(models.Model):
     network_bindings = models.JSONField(default=dict, blank=True, editable=False)
     status = models.CharField(max_length=16, choices=STATUSES, default="CREATING")
     active_for_new_wallets = models.BooleanField(default=False)
+    solana_coordinator_required = models.BooleanField(default=False)
     created_at = models.DateTimeField(auto_now_add=True)
     retired_at = models.DateTimeField(null=True, blank=True)
 
@@ -272,6 +273,15 @@ class MpcKeyset(models.Model):
     def save(self, *args, **kwargs):
         self.full_clean()
         return super().save(*args, **kwargs)
+
+
+class MpcSolanaCoordinatorBinding(models.Model):
+    """Permanent operator-selected coordinator identity for one original keyset."""
+
+    keyset = models.OneToOneField(MpcKeyset, on_delete=models.PROTECT, primary_key=True)
+    url = models.CharField(max_length=512)
+    coordinator_key_id = models.CharField(max_length=64)
+    created_at = models.DateTimeField(auto_now_add=True)
 
 
 class MpcSolanaRoot(models.Model):

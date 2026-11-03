@@ -1,3 +1,25 @@
+## 2026-11-03 — original-keyset coordinator routes (unmerged development)
+
+Migration0048 permanently binds installed coordinator URL/P256identity before DKG
+metadata import. Keyset admission and row commit together; wrong/missing runtime
+config never falls back. Original Root/Claim/current collection and protected
+Create/Execute/recovery select the original route. Review fixed metadata/binding
+and financial allocation races, local pre-CAS TLS failure and W-only recovery.
+Typed Solana transport validation occurs at its actual pinned service; default
+generic runtime/startup requirements and all activation/network/PG guards remain.
+
+Independent338 unique PG/transport cases across qualified runs and3 genuine
+cases278.711s pass. Initial313PASS/one old-schema fixture failure is retained;
+only its setup changed to historical0031 models, retaining every assertion.
+Final48 cases62.767s pass; all130 production/source/binary paths stayed unchanged
+through the genuine runs, with131finalpaths including the corrected fixture.
+Actual separate cohorts, native deposit/sweep/withdrawal, W-only original-signature
+recovery after cache/configloss, and repaired native/SPL flows pass. No remaining
+identified bounded P0/P1; exact-source CI pending. Parent f9f4445 Fast41696076316
+passes4 jobs/1323 backend cases798.12s. Fund migration, retirement/rescue and final
+phase Fast/ALL/original3d32 compatibility/review/merge remain open. See
+[scope and trust](PHASE6GC_COORDINATOR_ROUTING.md).
+
 ## 2026-11-03 — immutable original receipt pins for independent cohorts (unmerged)
 
 Migration0047 adds per-Root public receipt archives from independently installed
@@ -12,7 +34,8 @@ Independent189 backend/PG cases135.216s and2 genuine cases158.945s pass, with al
 source/bin hashes unchanged. Two independent FROST DKG cohorts verify their original
 Root/Claim archives without global pin paths, and the repaired native/SPL financial
 flow still passes. No remaining identified bounded P0/P1 or concrete P2 gap.
-Exact-source CI is pending. Root-bound routing, actual fresh-key fund migration,
+Exact f9f4445 Fast41696076316 passes4 jobs/1323 backend cases798.12s.
+Root-bound routing, actual fresh-key fund migration,
 retirement/rescue and final whole-phase gates remain unfinished. Prior f58d219
 Fast41624031631 passes4 jobs/1283 backend cases785.63s, not ALL. See
 [receipt-pin scope](PHASE6GC_RECEIPT_PINS.md).

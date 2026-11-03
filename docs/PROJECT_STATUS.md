@@ -18,7 +18,7 @@ inventory276/shared hash and57 allowlisted Solana files. This is not ALL and
 does not cover subsequent uncommitted execution work. See
 [bounded CI evidence](evidence/phase6gc-financial-allocation-ci-99a055e.json).
 
-Latest committed Draft PR #2 checkpoint `c233a04` passed
+Earlier committed Draft PR #2 checkpoint `c233a04` passed
 [Fast41425030949](https://github.com/zeroexlive/Custody/actions/runs/41425030949)
 and the full local backend suite,1017 cases538.917s, zero failures/errors/skips.
 Its native financial execution adds exact-wire Custody and
@@ -565,5 +565,16 @@ archive case8.44s passing. All124 source/bin hashes stayed unchanged during the
 actual case. Explicit old archive import and new reservation preserve original
 receipts and all six encrypted shares. Independent189 backend cases135.216s and2 genuine cases158.945s pass with all124
 hashes unchanged and no remaining identified bounded P0/P1 or concrete P2 gap.
-This prerequisite has bounded development acceptance; exact-source CI is pending. Coordinator routing, actual fund migration,
+This prerequisite has bounded development acceptance. Exact f9f4445
+Fast41696076316 passes4 executed jobs/1323 backend cases798.12s; ten full-crypto
+jobs were unselected. It predates routing0048. Coordinator routing, actual fund migration,
 retirement/rescue and whole-phase gates remain open. See PHASE6GC_RECEIPT_PINS.md.
+
+The0048 Root-bound coordinator routing checkpoint has independent bounded
+development acceptance:338 unique PG/transport cases across explicitly qualified
+runs and3 genuine cases278.711s pass. The initial historical-fixture failure is
+resolved through0031 historical ORM setup; all assertions and production source
+remain unchanged. The final131-path manifest is stable. Exact-source CI is still
+required. Root routing creates no fund migration or retirement feature; those,
+late-deposit rescue and final whole-phase gates remain unfinished. See
+PHASE6GC_COORDINATOR_ROUTING.md.

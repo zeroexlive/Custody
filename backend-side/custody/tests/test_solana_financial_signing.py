@@ -332,3 +332,51 @@ def test_authenticated_witness_cannot_hide_invalid_original_report_or_signature(
     row.refresh_from_db()
     assert row.status == "RECONCILIATION_REQUIRED" and not row.attempt.signed_payload
     assert not MpcSolanaSignatureOwner.objects.exists()
+
+
+def test_local_transport_failure_keeps_ready_and_no_private_dispatch(signing, settings):
+    settings.MPC_CA_CERT = "/nonexistent/original-coordinator-ca.crt"
+    with patch("custody.solana_financial_signing.coordinator_request") as private:
+        with pytest.raises(OSError):
+            execute_session(**start(signing))
+        private.assert_not_called()
+    row = MpcSolanaFinancialSession.objects.get(pk=signing["ready"].pk)
+    assert row.status == "READY" and row.coordinator_evidence == {}
+    assert row.operation.status == "HELD"
+
+
+def test_public_witness_recovery_survives_unavailable_coordinator_route(signing):
+    _, client = timeout_client()
+    with patch("custody.solana_financial_signing.coordinator_request", side_effect=client):
+        with pytest.raises(TimeoutError):
+            execute_session(**start(signing))
+    row = MpcSolanaFinancialSession.objects.get(pk=signing["ready"].pk)
+    original = row.pk, row.crypto_execution_id, row.attempt_id, row.operation_id
+
+    def authoritative_witness(query_value):
+        evidence = synthetic_completion(signing, row, {"query": query_value})
+        return signed(signing, evidence["key_id"], evidence["value"])
+
+    with (
+        patch(
+            "custody.solana_financial_signing.resolve_route",
+            side_effect=MpcBindingError("route unavailable"),
+        ),
+        patch("custody.solana_financial_signing.coordinator_request") as coordinator,
+        patch(
+            "custody.solana_financial_signing.query_witness", side_effect=authoritative_witness
+        ) as witness,
+    ):
+        result = reconcile_session(
+            session_id=row.pk, tenant_id=signing["tenant"].pk, operator_ref="operator"
+        )
+        coordinator.assert_not_called()
+        witness.assert_called_once()
+    assert result.status == "COMPLETED"
+    assert (
+        result.pk,
+        result.crypto_execution_id,
+        result.attempt_id,
+        result.operation_id,
+    ) == original
+    assert result.operation.status == "HELD"

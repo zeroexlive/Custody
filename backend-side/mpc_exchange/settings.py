@@ -194,6 +194,7 @@ MPC_HD_SIGNER_CERTIFICATES = config("MPC_HD_SIGNER_CERTIFICATES", default="{}", 
 MPC_SOLANA_ROOT_SIGNER_CERTIFICATES = config(
     "MPC_SOLANA_ROOT_SIGNER_CERTIFICATES", default="{}", cast=json.loads
 )
+MPC_SOLANA_COORDINATOR_ROUTES = config("MPC_SOLANA_COORDINATOR_ROUTES", default="{}", cast=json.loads)
 # Current independently installed public authority only; the backend never owns
 # its lifecycle signing key. Empty settings disable seeded wallet publication.
 MPC_SOLANA_WITNESS_CERTIFICATE = config("MPC_SOLANA_WITNESS_CERTIFICATE", default="")

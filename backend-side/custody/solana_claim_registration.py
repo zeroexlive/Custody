@@ -34,8 +34,8 @@ from .models import (
 from .mpc_binding import MpcBindingError
 from .mpc_request_auth import _authorize_message
 from .mpc_solana_network import network_identity
-from .signer_adapter import SelfHostedMpcAdapter
 from .solana_claim_authority import _authority, verify_current_claim
+from .solana_coordinator import solana_adapter
 from .solana_issuance import _canonical, _fingerprint, _locked_claim, _pin
 from .solana_provisioning import _asset_statement, _runtime, _validate_root, _verify
 from .solana_seeded import account_address
@@ -404,7 +404,9 @@ def collect_current_claim_evidence(*, attempt_id, tenant_id, operator_ref, clien
     attempt = MpcSolanaClaimApproval.objects.select_related("claim__root__keyset").get(
         pk=_uuid(attempt_id), claim__root__tenant_id=_uuid(tenant_id)
     )
-    response = (client or SelfHostedMpcAdapter()).approve_current_solana_claim(
+    response = (
+        client or solana_adapter(attempt.claim.root.keyset.keyset_id)
+    ).approve_current_solana_claim(
         str(attempt.claim.root.keyset.keyset_id), copy.deepcopy(attempt.approval)
     )
     return record_current_claim_evidence(

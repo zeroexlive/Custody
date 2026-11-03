@@ -30,7 +30,8 @@ from .mpc_solana_network import (
     verify_solana_rpc_endpoints,
 )
 from .native_tx import RequestsTransport
-from .signer_adapter import SelfHostedMpcAdapter, assert_mpc_backend_runtime_safe
+from .signer_adapter import assert_mpc_backend_runtime_safe
+from .solana_coordinator import solana_adapter
 from .solana_receipt_pins import (
     capture_new_root,
     certificates_for_statement,
@@ -45,7 +46,9 @@ VERSION = "solana_seeded_v1"
 def _runtime():
     if settings.MPC_SIGNER_BACKEND != "self_hosted_mpc":
         raise MpcBindingError("seeded provisioning requires genuine self-hosted MPC")
-    assert_mpc_backend_runtime_safe("SOL")
+    # Each actual coordinator or W request validates its own pinned transport.
+    # Public W recovery must not depend on an unrelated global coordinator URL.
+    assert_mpc_backend_runtime_safe("SOL", validate_coordinator_transport=False)
 
 
 def _audit(action, row, operator_ref):
@@ -143,7 +146,7 @@ def register_root(*, keyset_id, tenant_id, operator_ref, client=None, transport=
     _runtime()
     keyset_id, tenant_id = _uuid(keyset_id), _uuid(tenant_id)
     operator_ref = _text(operator_ref, "operator audit reference")
-    client = client or SelfHostedMpcAdapter()
+    client = client or solana_adapter(keyset_id)
     transport = transport or RequestsTransport()
     spec = authorize_solana_network("SOL")
     network = network_identity("SOL")
@@ -348,7 +351,7 @@ def approve_claim(*, reservation_id, tenant_id, operator_ref, client=None, trans
     ):
         raise MpcBindingError("recover earlier pending reservations before later approval")
     verify_solana_rpc_endpoints("SOL", transport or RequestsTransport())
-    evidence = (client or SelfHostedMpcAdapter()).approve_solana_claim(
+    evidence = (client or solana_adapter(root.keyset.keyset_id)).approve_solana_claim(
         str(root.keyset.keyset_id), claim.statement
     )
     _verify("claim", claim.statement, evidence)

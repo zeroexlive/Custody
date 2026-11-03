@@ -60,6 +60,20 @@ CAPS = {
 
 
 @pytest.mark.django_db(transaction=True)
+def test_phase6gc_root_bound_coordinator_cohorts(tmp_path):
+    from coordinator_route_acceptance import run_coordinator_cohorts
+
+    run_coordinator_cohorts(tmp_path)
+
+
+@pytest.mark.django_db(transaction=True)
+def test_phase6gc_routed_native_finances_and_witness_only_recovery(tmp_path):
+    from coordinator_route_acceptance import run_routed_finances
+
+    run_routed_finances(tmp_path)
+
+
+@pytest.mark.django_db(transaction=True)
 def test_phase6gc_independent_receipt_pin_cohorts_and_archival_claims(tmp_path):
     from receipt_pin_acceptance import run_receipt_pin_cohorts
 
@@ -483,7 +497,7 @@ def test_phase6gc_seeded_corrupt_original_store_rejected(tmp_path, fault):
     run_corruption(tmp_path, fault)
 
 
-def import_root(binding):
+def import_root(binding, *, before_import=None):
     keyset = MpcKeyset.objects.create(
         keyset_id=binding["keyset_id"],
         algorithm="FROST_ED25519",
@@ -493,6 +507,8 @@ def import_root(binding):
         threshold=2,
         party_count=3,
     )
+    if before_import is not None:
+        before_import(keyset)
     call_command("mpc_keyset", "import-dkg", keyset_id=str(keyset.keyset_id))
     call_command("mpc_keyset", "activate", keyset_id=str(keyset.keyset_id))
     keyset.refresh_from_db()

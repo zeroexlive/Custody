@@ -32,7 +32,17 @@
     "sha256": "422b5fdceddf0c73e49fa0cdb1225d265d102e562fe3c4ee496d3b62aaa6a586"
   },
   "independent_review": "No remaining identified bounded P0/P1 or concrete P2 gap after reservation/import/approval/pre-RPC validation fixes. This is not an external audit.",
-  "exact_source_fast": "PENDING",
+  "exact_source_fast": {
+    "head": "f9f4445d30eadae5fad2ef1359e13f98e5b1241c",
+    "run_id": 41696076316,
+    "url": "https://github.com/zeroexlive/Custody/actions/runs/41696076316",
+    "result": "SUCCESS",
+    "executed_jobs": 4,
+    "backend_tests": 1323,
+    "backend_seconds": 798.12,
+    "unselected_crypto_jobs": 10,
+    "scope_limit": "Predates0048 coordinator routing. Not whole-phase ALL or original-store compatibility."
+  },
   "whole_phase_all_original_3d32_compatibility": "PENDING",
   "algorithm_changes": false,
   "scanner_exemptions": false,

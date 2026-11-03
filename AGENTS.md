@@ -182,6 +182,21 @@ approved legacy import, final Claim-lock reverify and populated downgrade guard
 have40 new/149 affected legacy PG cases and one actual two-cohort case8.44s with
 124 unchanged source/bin hashes. Independent189 backend cases135.216s and2
 genuine cases158.945s pass with unchanged124 hashes; no remaining identified
-bounded P0/P1 or concrete P2 gap. Exact-source CI remains required. No whole-phase
+bounded P0/P1 or concrete P2 gap. Exact f9f4445 Fast41696076316 passes4 jobs/1323
+backend cases798.12s, predating0048; full-crypto jobs unselected. No whole-phase
 acceptance follows. See PHASE6GC_RECEIPT_PINS.md. Preserve no-row-only
 legacy fallback; malformed/required-missing snapshots must fail before remote work.
+
+The0048 coordinator-routing prerequisite has bounded independent338 unique PG/
+transport cases across qualified runs, plus3 genuine cases278.711s. The original
+313PASS/one historicalGBfixture failure is retained; historical0031ORM-only setup
+correction passed final48 cases62.767s. Production130paths stayed unchanged across
+allruntime cases; correctedtest gives131finalstablepaths. No identified bounded
+P0/P1 remains; exact-source CI still required. URL/SPKIbinding/forwardkeysetmarker
+must commit before backend import, with no alternate coordinator after ambiguity.
+Typed private dispatch preflights localTLS beforeREADY CAS; public W-onlyrecovery
+can proceed withoutcoor config, preservingallcryptographicproofs. Genericstartup/
+legacyflows retain their existingglobaltransport requirements. SharedCustodybody
+credentials remainrequired; noactivationflagrelaxation. Read
+PHASE6GC_COORDINATOR_ROUTING.md beforechangingthesecontracts. Actualfundmigration,
+retirement/rescue andfinalwholephase gates remainunfinished.

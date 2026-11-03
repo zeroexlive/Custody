@@ -58,6 +58,7 @@ def preparation(financial, settings, tmp_path):
     c["policy_key"], c["policy_cert"] = identity(tmp_path / "policy", "policy-hot", policy_ca)
     settings.MPC_CLIENT_CERT = str(tmp_path / "custody/tls.crt")
     settings.MPC_CLIENT_KEY = str(tmp_path / "custody/tls.key")
+    settings.MPC_CA_CERT = str(tmp_path / "custody-ca/tls.crt")
     settings.MPC_SOLANA_FINANCIAL_POLICY_CERTIFICATE = str(tmp_path / "policy/tls.crt")
     settings.MPC_SOLANA_FINANCIAL_POLICY_VERSION = 7
     settings.MPC_SOLANA_FINANCIAL_MAX_LIFETIME_SECONDS = 120

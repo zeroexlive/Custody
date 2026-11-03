@@ -20,7 +20,7 @@ from test_network import settings_for
 from witness_acceptance import sign, verify
 
 
-def run_financial_mode_import(root_path, *, after_mode=None):
+def run_financial_mode_import(root_path, *, after_mode=None, before_keyset_import=None):
     from test_solana import import_root
 
     tenant = register_tenant(reference="genuine-financial-mode-import", operator_ref="integration")
@@ -48,7 +48,14 @@ def run_financial_mode_import(root_path, *, after_mode=None):
                 MPC_SOLANA_WITNESS_CERTIFICATE=str(g.w.identity / "tls.crt"),
             ),
         ):
-            keyset, _base = import_root(g.dkg_binding)
+            keyset, _base = import_root(
+                g.dkg_binding,
+                before_import=(
+                    None
+                    if before_keyset_import is None
+                    else lambda keyset: before_keyset_import(g, keyset)
+                ),
+            )
             arguments = {
                 "keyset_id": keyset.keyset_id,
                 "tenant_id": tenant.pk,

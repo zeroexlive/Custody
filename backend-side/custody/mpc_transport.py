@@ -1,33 +1,52 @@
 """Isolated HTTPS transport. This does not enable the guarded MPC signing backend."""
 
+import hashlib
 import http.client
 import json
 import ssl
+from dataclasses import dataclass
 from urllib.parse import urlencode, urlsplit
 
 import requests
 from cryptography import x509
+from cryptography.hazmat.primitives import serialization
 from django.conf import settings
 from django.utils import timezone
 
 
-def coordinator_tls_context():
-    url = urlsplit(settings.MPC_COORDINATOR_URL)
+@dataclass(frozen=True)
+class CoordinatorRoute:
+    url: str
+    ca_certificate: str
+    client_certificate: str
+    client_key: str
+    coordinator_key_id: str
+
+
+def coordinator_tls_context(route=None):
+    url = urlsplit(settings.MPC_COORDINATOR_URL if route is None else route.url)
     if url.scheme != "https" or not url.hostname or url.username or url.password:
         raise ValueError("MPC coordinator requires an HTTPS service URL")
     if url.path not in ("", "/") or url.query or url.fragment:
         raise ValueError("MPC coordinator URL must not contain a path, query or fragment")
     if not 1 <= settings.MPC_REQUEST_TIMEOUT_SECONDS <= 120:
         raise ValueError("MPC timeout must be between 1 and 120 seconds")
-    context = ssl.create_default_context(cafile=settings.MPC_CA_CERT)
+    context = ssl.create_default_context(
+        cafile=settings.MPC_CA_CERT if route is None else route.ca_certificate
+    )
     context.minimum_version = context.maximum_version = ssl.TLSVersion.TLSv1_3
-    context.load_cert_chain(settings.MPC_CLIENT_CERT, settings.MPC_CLIENT_KEY)
+    context.load_cert_chain(
+        settings.MPC_CLIENT_CERT if route is None else route.client_certificate,
+        settings.MPC_CLIENT_KEY if route is None else route.client_key,
+    )
     return context
 
 
-def coordinator_request(method, path, *, json_payload=None, params=None, dispatch_deadline=None):
-    context = coordinator_tls_context()
-    url = urlsplit(settings.MPC_COORDINATOR_URL)
+def coordinator_request(
+    method, path, *, json_payload=None, params=None, dispatch_deadline=None, route=None
+):
+    context = coordinator_tls_context() if route is None else coordinator_tls_context(route)
+    url = urlsplit(settings.MPC_COORDINATOR_URL if route is None else route.url)
     if not path.startswith("/") or path.startswith("//"):
         raise ValueError("MPC request requires an absolute service path")
     connection = http.client.HTTPSConnection(
@@ -44,6 +63,16 @@ def coordinator_request(method, path, *, json_payload=None, params=None, dispatc
         ).value.get_values_for_type(x509.UniformResourceIdentifier)
         if identities != ["spiffe://wallet-mpc/coordinator"]:
             raise ssl.SSLCertVerificationError("unexpected coordinator certificate identity")
+        if (
+            route is not None
+            and hashlib.sha256(
+                certificate.public_key().public_bytes(
+                    serialization.Encoding.DER, serialization.PublicFormat.SubjectPublicKeyInfo
+                )
+            ).hexdigest()
+            != route.coordinator_key_id
+        ):
+            raise ssl.SSLCertVerificationError("unexpected bound coordinator public identity")
         if params:
             path += "?" + urlencode(params)
         body = None if json_payload is None else json.dumps(json_payload).encode()

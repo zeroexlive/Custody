@@ -32,7 +32,9 @@ from test_dkg import encrypted_files
 from witness_acceptance import verify
 
 
-def run_financial_wallets(root_path, *, after_wallets=None, freeze_before_completion=True):
+def run_financial_wallets(
+    root_path, *, after_wallets=None, freeze_before_completion=True, before_keyset_import=None
+):
     def publish(g, root_path, tenant, customer_claim, arguments):
         records = publish_native_wallets(
             g,
@@ -45,7 +47,9 @@ def run_financial_wallets(root_path, *, after_wallets=None, freeze_before_comple
         if after_wallets is not None:
             after_wallets(g, root_path, tenant, records)
 
-    run_financial_mode_import(root_path, after_mode=publish)
+    run_financial_mode_import(
+        root_path, after_mode=publish, before_keyset_import=before_keyset_import
+    )
 
 
 def publish_native_wallets(

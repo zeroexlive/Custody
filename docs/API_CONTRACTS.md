@@ -346,3 +346,15 @@ pending enrollment cannot adopt new pins. No new public/customer HTTP endpoint,
 wallet issuance, private permission or ledger mutation is introduced. Original
 Root/Claim domains and effective current-Claim authority stay unchanged. See
 [trust, SQL guards and remaining gates](PHASE6GC_RECEIPT_PINS.md).
+
+### Solana original coordinator binding (0048 development, under review)
+
+Default-empty `MPC_SOLANA_COORDINATOR_ROUTES` maps original keyset UUIDs to installed
+HTTPS/TLS identities. Privileged `solana_coordinator bind --keyset-id --operator-ref`
+commits the immutable URL/public identity and forward admission marker before DKG
+metadata import. Existing approved Roots additionally require `--tenant-id`, verified
+original receipt archives and resolved tracked private work. Bound Root/Claim and
+financial Create/Execute/public recovery never choose an alternate coordinator;
+independent authenticated W recovery remains available when that route is missing.
+No new public/customer API, private-key storage or ledger is introduced. See
+[operator trust, legacy compatibility and pending gates](PHASE6GC_COORDINATOR_ROUTING.md).

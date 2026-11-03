@@ -30,6 +30,7 @@ from .models import (
 from .mpc_binding import MpcBindingError
 from .mpc_transport import coordinator_request
 from .native_tx import RequestsTransport
+from .solana_coordinator import preflight_route, resolve_route
 from .solana_financial_preparation import (
     _business,
     _fresh_witness,
@@ -244,6 +245,8 @@ def execute_session(*, session_id, tenant_id, challenge, evidence, operator_ref,
         return snapshot
     if snapshot.status != "READY":
         raise MpcBindingError("original READY policy-approved session required")
+    keyset_id = snapshot.operation.source.claim.root.keyset.keyset_id
+    route = preflight_route(keyset_id)
     lease = MpcSolanaFinancialQuery.objects.get(
         pk=challenge, session=snapshot, purpose="ADMISSION", status="PENDING"
     )
@@ -254,6 +257,8 @@ def execute_session(*, session_id, tenant_id, challenge, evidence, operator_ref,
         row, parent = _locked(snapshot, tenant_id)
         if row.status != "READY":
             return row
+        if preflight_route(keyset_id) != route:
+            raise MpcBindingError("coordinator binding changed before dispatch; preserve READY")
         _business(row.operation, parent)
         _verify_policy_grant(row, row.policy_authorization)
         if quote.fee_metadata["policy"] != get_chain_spec("SOL").gas_settings:
@@ -293,13 +298,14 @@ def execute_session(*, session_id, tenant_id, challenge, evidence, operator_ref,
             datetime.fromtimestamp(row.intent["expires_at"], datetime_timezone.utc),
         )
     try:
+        routing = {} if route is None else {"route": route}
         result = coordinator_request(
-            "POST", PREFIX, json_payload=request, dispatch_deadline=deadline
+            "POST", PREFIX, json_payload=request, dispatch_deadline=deadline, **routing
         )
         _result(row, result)
         if result["status"] == "CREATED":
             result = coordinator_request(
-                "POST", f"{PREFIX}/{row.pk}/execute", dispatch_deadline=deadline
+                "POST", f"{PREFIX}/{row.pk}/execute", dispatch_deadline=deadline, **routing
             )
         row = _remember(row, result, operator_ref)
         return _recover_witness(row, tenant_id, operator_ref)
@@ -414,10 +420,17 @@ def reconcile_session(*, session_id, tenant_id, operator_ref):
     if row.status not in {"IN_PROGRESS", "RECONCILIATION_REQUIRED"}:
         raise MpcBindingError("original dispatched session required")
     try:
+        result = None
         try:
-            result = coordinator_request("POST", f"{PREFIX}/{row.pk}/reconcile")
-        except (OSError, TimeoutError, requests.RequestException, CoordinatorSessionNotFound):
-            result = None  # W may already have the signature despite coordinator loss.
+            route = resolve_route(row.operation.source.claim.root.keyset.keyset_id)
+        except (MpcBindingError, OSError):
+            pass  # W public truth remains usable without any alternate coordinator.
+        else:
+            routing = {} if route is None else {"route": route}
+            try:
+                result = coordinator_request("POST", f"{PREFIX}/{row.pk}/reconcile", **routing)
+            except (OSError, TimeoutError, requests.RequestException, CoordinatorSessionNotFound):
+                pass  # W may already have the signature despite coordinator loss.
         if result is not None:
             row = _remember(row, result, operator_ref)
         return _recover_witness(row, tenant_id, operator_ref)

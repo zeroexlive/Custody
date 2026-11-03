@@ -572,7 +572,6 @@ def test_migration_quarantines_unsigned_issued_evidence_without_rewriting_histor
     from django.db.migrations.executor import MigrationExecutor
 
     from custody.mpc_issuance import verified_account
-    from custody.mpc_provisioning import reserve_derivation_path
 
     executor = MigrationExecutor(connection)
     final = executor.loader.graph.leaf_nodes()
@@ -590,11 +589,15 @@ def test_migration_quarantines_unsigned_issued_evidence_without_rewriting_histor
         old.get_model("custody", "MpcHdRootEvidence").objects.create(
             root_id=root.pk, evidence=evidence
         )
-        reservation = reserve_derivation_path(
-            keyset_id=root.keyset.keyset_id,
-            ownership_scope=root.ownership_scope,
+        # Seed0031 through its historical ORM and actual SQL guards. Current
+        # keyset models may contain fields that did not exist in this schema.
+        old_root = old.get_model("custody", "MpcProvisioningRoot").objects.get(pk=root.pk)
+        reservation = old.get_model("custody", "MpcDerivationReservation").objects.create(
+            root_id=old_root.pk,
             customer_ref="old-owner",
             idempotency_key="old-request",
+            child_index=old_root.next_index,
+            derivation_path=f"m/0/{old_root.next_index}",
         )
         request = child_request(reservation, evidence["root"])
         child_evidence = client.approve_child(str(root.keyset.keyset_id), request)

@@ -97,7 +97,8 @@ and2 genuine cases158.945s, zero failures/errors/skips. The two-cohort case pass
 verifying that the original archive lookup preserves the separate current authority.
 All124 hashes (120 source/fixture/workflow files and4 binaries) stayed unchanged
 before/after. No remaining identified bounded P0/P1 or concrete P2 gap was found.
-Exact committed-source CI remains required. The prior0046 checkpoint f58d219 Fast41624031631 passed4 executed
+Exact f9f4445 Fast41696076316 passes4 executed jobs, including1323 backend
+cases798.12s; ten full-crypto jobs were unselected. This predates routing0048. The prior0046 checkpoint f58d219 Fast41624031631 passed4 executed
 jobs/1283 backend tests785.63s; ten full-crypto jobs were unselected. Whole-phase
 Fast/ALL/original3d32 compatibility, independent acceptance, conditional merge and
 main verification remain open. Root-bound coordinator routing is the next

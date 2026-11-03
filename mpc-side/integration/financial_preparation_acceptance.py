@@ -27,11 +27,16 @@ from test_dkg import encrypted_files
 from witness_acceptance import verify
 
 
-def run_financial_preparation(root_path, *, after_ready=None):
+def run_financial_preparation(root_path, *, after_ready=None, before_keyset_import=None):
     def prepare(g, root_path, tenant, records):
         prepare_and_authorize(g, root_path, tenant, records, after_ready=after_ready)
 
-    run_financial_wallets(root_path, after_wallets=prepare, freeze_before_completion=False)
+    run_financial_wallets(
+        root_path,
+        after_wallets=prepare,
+        freeze_before_completion=False,
+        before_keyset_import=before_keyset_import,
+    )
 
 
 def prepare_and_authorize(g, root_path, tenant, records, *, after_ready=None):

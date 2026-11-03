@@ -16,13 +16,15 @@ from protected_coordinator_acceptance import SignerRelay, enable_coordinator
 from test_dkg import encrypted_files
 
 
-def run_financial_signing(root_path, fault=None, *, after_signed=None):
+def run_financial_signing(root_path, fault=None, *, after_signed=None, before_keyset_import=None):
     def capture(g, root_path, tenant, row):
         signed = sign_and_capture(g, root_path, tenant, row, fault=fault)
         if after_signed is not None:
             after_signed(g, root_path, tenant, signed)
 
-    run_financial_preparation(root_path, after_ready=capture)
+    run_financial_preparation(
+        root_path, after_ready=capture, before_keyset_import=before_keyset_import
+    )
 
 
 def sign_and_capture(g, root_path, tenant, row, *, fault=None):
@@ -52,7 +54,7 @@ def sign_and_capture(g, root_path, tenant, row, *, fault=None):
             with patch(
                 "custody.solana_financial_signing.coordinator_request", wraps=actual_request
             ) as calls:
-                if fault == "audit_and_cache_loss":
+                if fault in {"audit_and_cache_loss", "route_config_loss"}:
                     original_audit = AdminActionLog.objects.create
 
                     def failed_public_audit(**kwargs):
@@ -81,9 +83,21 @@ def sign_and_capture(g, root_path, tenant, row, *, fault=None):
                     saved = g.coordinator_directory / f"{row.pk}.json"
                     saved.rename(root_path / "held-coordinator-session.json")
                     g.net.start("coordinator")
-                    signed = reconcile_session(
-                        session_id=row.pk, tenant_id=tenant.pk, operator_ref="integration"
-                    )
+                    if fault == "route_config_loss":
+                        before_recovery = calls.call_count
+                        with override_settings(
+                            MPC_SOLANA_COORDINATOR_ROUTES={},
+                            MPC_COORDINATOR_URL="http://unavailable.invalid",
+                            MPC_CA_CERT="/unavailable/global-coordinator-ca.crt",
+                        ):
+                            signed = reconcile_session(
+                                session_id=row.pk, tenant_id=tenant.pk, operator_ref="integration"
+                            )
+                        assert calls.call_count == before_recovery
+                    else:
+                        signed = reconcile_session(
+                            session_id=row.pk, tenant_id=tenant.pk, operator_ref="integration"
+                        )
                 else:
                     signed = execute_session(**arguments)
                     if relay:

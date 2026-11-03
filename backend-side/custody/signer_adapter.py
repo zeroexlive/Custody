@@ -28,7 +28,7 @@ SELF_HOSTED_MPC_DISABLED_MESSAGE = (
 )
 
 
-def assert_mpc_backend_runtime_safe(chain_id=None) -> None:
+def assert_mpc_backend_runtime_safe(chain_id=None, *, validate_coordinator_transport=True) -> None:
     """Defense-in-depth guard used before any signing or outbound side effect."""
     from django.conf import settings
 
@@ -53,7 +53,12 @@ def assert_mpc_backend_runtime_safe(chain_id=None) -> None:
             raise RuntimeError("Phase 6E MPC integration requires PostgreSQL execution ownership")
         from .mpc_transport import coordinator_tls_context
 
-        coordinator_tls_context()
+        if validate_coordinator_transport:
+            coordinator_tls_context()
+        elif chain_id != "SOL":
+            raise RuntimeError(
+                "deferred transport validation is scoped to protected Solana workflows"
+            )
         if chain_id is not None:
             from .mpc_evm_network import authorize_evm_network
             from .mpc_tron_network import authorize_tron_network

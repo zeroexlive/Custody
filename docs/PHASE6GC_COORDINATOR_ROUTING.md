@@ -137,7 +137,9 @@ historical test as path131; all131 hashes stayed unchanged during final48. No
 production correction was made for the fixture; the genuine evidence carries
 forward with that qualification. No remaining identified bounded P0/P1 was found.
 
-Exact committed-source CI and all whole-phase gates remain required. Parent
+Exact143dfb5 Fast41702205647 passes4 executed jobs, including1364 backend
+cases815.43s; ten full-crypto jobs were unselected. Final whole-phase gates
+remain required. Parent
 f9f4445 Fast41696076316 passes4 executed jobs/1323 backend cases798.12s, with full
 crypto unselected; it predates0048. Root-bound transport is a development
 prerequisite, not fund migration, retirement or whole-phase acceptance.

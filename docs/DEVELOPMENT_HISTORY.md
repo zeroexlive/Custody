@@ -15,7 +15,8 @@ Final48 cases62.767s pass; all130 production/source/binary paths stayed unchange
 through the genuine runs, with131finalpaths including the corrected fixture.
 Actual separate cohorts, native deposit/sweep/withdrawal, W-only original-signature
 recovery after cache/configloss, and repaired native/SPL flows pass. No remaining
-identified bounded P0/P1; exact-source CI pending. Parent f9f4445 Fast41696076316
+identified bounded P0/P1. Exact143dfb5 Fast41702205647 passes4 jobs/1364 backend
+cases815.43s; full-crypto jobs were unselected. Parent f9f4445 Fast41696076316
 passes4 jobs/1323 backend cases798.12s. Fund migration, retirement/rescue and final
 phase Fast/ALL/original3d32 compatibility/review/merge remain open. See
 [scope and trust](PHASE6GC_COORDINATOR_ROUTING.md).

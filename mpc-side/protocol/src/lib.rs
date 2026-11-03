@@ -15,6 +15,7 @@ pub mod solana_intent;
 pub mod solana_profile_migration;
 pub mod solana_provisioning;
 pub mod solana_recovery;
+pub mod solana_rotation;
 pub mod solana_seeded;
 pub mod ton;
 pub mod witness;

@@ -1,4 +1,4 @@
-# Current project status — 2026-11-03
+# Current project status — 2026-11-04
 
 Verified `zeroexlive/Custody` main is **`587e0969a216102879d17cadb6ffeee8dfb8b6c6`**,
 merged [PR #1](https://github.com/zeroexlive/Custody/pull/1). Its parents are the
@@ -574,7 +574,15 @@ The0048 Root-bound coordinator routing checkpoint has independent bounded
 development acceptance:338 unique PG/transport cases across explicitly qualified
 runs and3 genuine cases278.711s pass. The initial historical-fixture failure is
 resolved through0031 historical ORM setup; all assertions and production source
-remain unchanged. The final131-path manifest is stable. Exact-source CI is still
-required. Root routing creates no fund migration or retirement feature; those,
+remain unchanged. The final131-path manifest is stable. Exact143dfb5
+Fast41702205647 passes4 jobs/1364 backend cases815.43s; full-crypto jobs were
+unselected. Root routing creates no fund migration or retirement feature; those,
 late-deposit rescue and final whole-phase gates remain unfinished. See
 PHASE6GC_COORDINATOR_ROUTING.md.
+
+As of2026-11-04, a separate uncommitted migration-contract draft adds exact source/
+owner/membership inventory, distinct approval and business identities, destination
+asset coverage, cumulative fee budgets and bounded manifest chunks. Independent26 protocol cases75.66s and workspace/all-targets Clippy10.27s pass
+with136 frozen paths unchanged. This is bounded data-contract validation only. No witness
+rotation command, transfer, retirement, late-rescue API or activation follows from
+this unconnected data layer. Phase6G-C remains incomplete.

@@ -64,7 +64,17 @@
     "Custody body-authority credentials remain independent of route TLS credentials.",
     "Fresh-key fund migration/retirement/late rescue and final whole-phase gates remain unfinished."
   ],
-  "exact_source_fast": "PENDING",
+  "exact_source_fast": {
+    "head": "143dfb5e277d37deb09b12610ecbc0a2e02dab71",
+    "run_id": 41702205647,
+    "url": "https://github.com/zeroexlive/Custody/actions/runs/41702205647",
+    "result": "SUCCESS",
+    "executed_jobs": 4,
+    "backend_tests": 1364,
+    "backend_seconds": 815.43,
+    "unselected_crypto_jobs": 10,
+    "scope_limit": "Predates uncommitted rotation data contract; not final phase ALL or compatibility."
+  },
   "whole_phase_all_original_3d32_compatibility": "PENDING",
   "algorithm_changes": false,
   "dependency_changes": false,

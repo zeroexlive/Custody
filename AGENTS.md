@@ -192,7 +192,8 @@ transport cases across qualified runs, plus3 genuine cases278.711s. The original
 313PASS/one historicalGBfixture failure is retained; historical0031ORM-only setup
 correction passed final48 cases62.767s. Production130paths stayed unchanged across
 allruntime cases; correctedtest gives131finalstablepaths. No identified bounded
-P0/P1 remains; exact-source CI still required. URL/SPKIbinding/forwardkeysetmarker
+P0/P1 remains. Exact143dfb5 Fast41702205647 passes4 jobs/1364 backend cases815.43s
+(fullcrypto unselected). URL/SPKIbinding/forwardkeysetmarker
 must commit before backend import, with no alternate coordinator after ambiguity.
 Typed private dispatch preflights localTLS beforeREADY CAS; public W-onlyrecovery
 can proceed withoutcoor config, preservingallcryptographicproofs. Genericstartup/
@@ -200,3 +201,15 @@ legacyflows retain their existingglobaltransport requirements. SharedCustodybody
 credentials remainrequired; noactivationflagrelaxation. Read
 PHASE6GC_COORDINATOR_ROUTING.md beforechangingthesecontracts. Actualfundmigration,
 retirement/rescue andfinalwholephase gates remainunfinished.
+
+2026-11-04 rotation-data draft: solana_rotation is a PURE contract layer, no W/
+private/ledger authority. SourceMembership distinguishes unpublished/control-only/
+financial PENDING or ACTIVE; never synthesize financial activation or ownership.
+Stable business fingerprints exclude fresh authorization/gen/TTL but include all
+Roots/inventory/targets/budgets. Fee caps are per movement AND cumulative; renewal
+cannot replenish. All namespace/generation/target-currentness/actual-control and
+inflight-budget checks remain mandatory in W before future permits. Independent26
+protocol cases75.66s and workspaceClippy10.27s pass with136 paths unchanged; no
+bounded P0/P1/concreteP2. Do not present this as runtime rotation acceptance.
+Read PHASE6GC_ROTATION_CONTRACT.md before integrating it. Existing original signed
+messages and encrypted-store compatibility must remain unchanged.

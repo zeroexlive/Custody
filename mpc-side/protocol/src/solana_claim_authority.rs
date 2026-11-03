@@ -20,6 +20,8 @@ use std::collections::{BTreeMap, BTreeSet};
 
 pub const VERSION: u16 = 1;
 
+pub type PreparedClaimRoster<'a> = (&'a [Signed<GenerationReady>], &'a BTreeMap<String, String>);
+
 /// The original public Prepare command authorizes exactly these three keys.
 /// Public DER leaves are checked against those key IDs, never trusted as CAs.
 #[derive(Clone, Debug, Serialize, Deserialize, PartialEq, Eq)]
@@ -31,7 +33,7 @@ pub struct ClaimAuthority {
 }
 
 impl ClaimAuthority {
-    pub fn prepared(&self) -> Result<(&[Signed<GenerationReady>], &BTreeMap<String, String>)> {
+    pub fn prepared(&self) -> Result<PreparedClaimRoster<'_>> {
         match &self.prepare.value.action {
             CommandAction::Prepare { ready, node_keys } => Ok((ready, node_keys)),
             _ => anyhow::bail!("original Lifecycle Prepare required for current Claim authority"),

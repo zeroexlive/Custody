@@ -83,7 +83,7 @@ fn event_hash(event: &Signed<Event>) -> Result<String> {
 }
 fn replay(state: &mut Snapshot, event: &Event) -> Result<()> {
     ensure!(
-        event.rules.is_none() || matches!(event.rules, Some(1 | 2 | 3)),
+        event.rules.is_none() || matches!(event.rules, Some(1..=3)),
         "unsupported authority event rules"
     );
     ensure!(

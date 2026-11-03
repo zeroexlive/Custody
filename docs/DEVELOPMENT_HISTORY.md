@@ -893,3 +893,9 @@ No remaining identified P0/P1 in this bounded node/public component. Backend
 registration, financial publication after replacement, fresh-DKG migration/
 retirement/rescue and final whole-phase CI/compatibility/merge remain unfinished.
 See PHASE6GC_CURRENT_CLAIMS.md and its public evidence file.
+
+Current-Claim checkpoint008bb48 Fast41593189180 passed1228 backend tests492.48s,
+frontend and Rust audit; Clippy rejected return-type complexity. A separately
+reviewed identical tuple alias and rules1–3 range pattern pass full local
+workspace/all-targets Clippy4.69s, with no exemptions or behavioral change. New-head
+CI is required. Original runtime evidence remains explicitly tied to008bb48.

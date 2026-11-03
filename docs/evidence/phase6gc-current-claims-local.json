@@ -1,5 +1,16 @@
 {
   "algorithm_changes": false,
+  "checkpoint_ci": {
+    "backend_result": "SUCCESS",
+    "backend_seconds": 492.48,
+    "backend_tests": 1228,
+    "frontend_result": "SUCCESS",
+    "full_crypto": "UNSELECTED",
+    "head": "008bb484f1edd2cead2d37eb3995e75af92ec7d1",
+    "run_id": 41593189180,
+    "rust_audit_result": "SUCCESS",
+    "rust_check_result": "FAILED: Clippy type_complexity; no runtime/assertion failure"
+  },
   "date": "2026-11-03",
   "final_head_fast": "PENDING",
   "historical_upgrade_writer": {
@@ -66,6 +77,7 @@
     "total_paths": 112
   },
   "independent_review": "No remaining identified P0/P1 within this bounded node/public component after restore-fence and historical-pin fixes; backend drafts excluded.",
+  "post_acceptance_cleanup": "Independently reviewed PreparedClaimRoster type alias and equivalent Some(1..=3) pattern replace identical Rust types/set; full workspace/all-targets Clippy passes4.69s with no exemption. No new execution claim; new-head Fast pending.",
   "production_activation": false,
   "remaining": [
     "Backend current registration and immutable effective-evidence consumers, including legacy pending public intents",

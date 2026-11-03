@@ -103,6 +103,13 @@ retained separately. No remaining bounded P0/P1 was identified. See
 [public evidence](evidence/phase6gc-current-claims-local.json).
 Exact-head CI and all whole-phase gates remain required.
 
+Committed008bb48 Fast41593189180 passed backend1228 cases492.48s, frontend and
+Rust audit, but failed the Clippy type-complexity lint. The reviewed follow-up
+names the identical return tuple and expresses the identical rules1–3 set as a
+range. Full workspace/all-targets Clippy passes4.69s without exemptions. Independent
+review confirms unchanged behavior; this is no new runtime execution evidence.
+The follow-up still requires exact-source CI.
+
 Backend completion must retain immutable original Claim approval while storing
 the exact W-registered effective Evidence separately. It must handle a legacy
 approved/unregistered Claim with a pending public issuance intent without changing

@@ -296,4 +296,5 @@ mod tests {
     }
 }
 
+pub mod solana_finality;
 pub mod solana_financial;

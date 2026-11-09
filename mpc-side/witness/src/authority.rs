@@ -83,7 +83,7 @@ fn event_hash(event: &Signed<Event>) -> Result<String> {
 }
 fn replay(state: &mut Snapshot, event: &Event) -> Result<()> {
     ensure!(
-        event.rules.is_none() || matches!(event.rules, Some(1..=4)),
+        event.rules.is_none() || matches!(event.rules, Some(1..=5)),
         "unsupported authority event rules"
     );
     ensure!(
@@ -163,7 +163,7 @@ impl Authority {
                 sequence: 0,
                 previous_hash: "00".repeat(32),
                 time: now()?,
-                rules: Some(4),
+                rules: Some(5),
                 transition: Transition::Initialize,
             };
             let signed = trust.sign("WITNESS_EVENT_V1", genesis)?;
@@ -307,7 +307,7 @@ impl Authority {
             sequence: candidate.sequence,
             previous_hash: j.last_hash.clone(),
             time,
-            rules: Some(4),
+            rules: Some(5),
             transition,
         };
         let signed = self.trust.sign("WITNESS_EVENT_V1", event)?;
@@ -350,7 +350,7 @@ impl Authority {
             j.command_proofs
                 .insert(command.value.request_id, command.as_ref().clone());
         }
-        candidate.journal_rules = 4;
+        candidate.journal_rules = 5;
         j.last_hash = next_hash;
         j.state = candidate;
         Ok(())
@@ -362,6 +362,50 @@ impl Authority {
             lock_fresh(&self.journal, |time| command.value.validate(time), now).await?;
         ensure!(!j.poisoned, "authority durability uncertain");
         match &command.value.action {
+            CommandAction::AcknowledgeFinality { reports } => {
+                for report in reports {
+                    let ready = &report.value;
+                    let class = &ready.plan().root.wallet_class;
+                    self.trust.check_node(
+                        class,
+                        &ready.party_id,
+                        report,
+                        wallet_mpc_protocol::solana_finality::REPORT_DOMAIN,
+                    )?;
+                    self.trust.check_signed(
+                        &ready.observed.lease.request.authorization,
+                        wallet_mpc_protocol::solana_finality::PLAN_DOMAIN,
+                        &self.trust.lifecycle,
+                    )?;
+                    self.trust.check_node(
+                        class,
+                        &ready.party_id,
+                        &ready.observed.lease.query,
+                        "WITNESS_QUERY_V1",
+                    )?;
+                    self.trust.check_node(
+                        class,
+                        &ready.party_id,
+                        &ready.observed.final_query,
+                        "WITNESS_QUERY_V1",
+                    )?;
+                    let current = self
+                        .trust
+                        .witness_keys
+                        .get(&self.trust.identity.key_id())
+                        .context("current W identity required")?;
+                    self.trust.check_signed(
+                        &ready.observed.initial_witness,
+                        "WITNESS_QUERY_REPLY_V1",
+                        current,
+                    )?;
+                    self.trust.check_signed(
+                        &ready.final_witness,
+                        "WITNESS_QUERY_REPLY_V1",
+                        current,
+                    )?;
+                }
+            }
             CommandAction::InstallNodeProfile { fence, renewal } => {
                 let first = !j
                     .state
@@ -465,7 +509,7 @@ impl Authority {
         }
         let fingerprint = hash(&command.signing_message("WITNESS_COMMAND_V1")?);
         let mut candidate = j.state.clone();
-        candidate.journal_rules = 4;
+        candidate.journal_rules = 5;
         if candidate.command_at(&command.value, time)? {
             self.commit(
                 &mut j,
@@ -514,7 +558,7 @@ impl Authority {
             time,
         )?;
         let mut candidate = j.state.clone();
-        candidate.journal_rules = 4;
+        candidate.journal_rules = 5;
         let permit = candidate.permit(&request.value, &request.key_id, time)?;
         let response = self.trust.sign("WITNESS_PERMIT_V1", permit)?;
         self.commit(
@@ -595,6 +639,7 @@ impl Authority {
                     status: e.status.clone(),
                     signature: e.signature.clone(),
                     reports: e.reports.clone(),
+                    finality: j.state.finalities.get(&id).cloned(),
                 })
             } else {
                 None
@@ -814,8 +859,15 @@ mod tests {
     }
 
     async fn expired_while_queued(validate: impl FnOnce(u64) -> Result<()> + Send + 'static) {
+        expired_while_queued_at(validate, 1000, 1011).await;
+    }
+    async fn expired_while_queued_at(
+        validate: impl FnOnce(u64) -> Result<()> + Send + 'static,
+        initial: u64,
+        after: u64,
+    ) {
         let mutex = Arc::new(Mutex::new(()));
-        let clock = Arc::new(AtomicU64::new(1000));
+        let clock = Arc::new(AtomicU64::new(initial));
         let held = mutex.lock().await;
         let (started, waiting) = tokio::sync::oneshot::channel();
         let task = {
@@ -831,7 +883,7 @@ mod tests {
         waiting.await.unwrap();
         tokio::task::yield_now().await;
         assert!(!task.is_finished());
-        clock.store(1011, Ordering::SeqCst);
+        clock.store(after, Ordering::SeqCst);
         drop(held);
         assert!(
             task.await.unwrap(),
@@ -859,6 +911,14 @@ mod tests {
         assert_eq!(command.expires_at, 1200);
         command.validate(1000).unwrap();
         expired_while_queued(move |time| command.validate(time)).await;
+    }
+
+    #[tokio::test]
+    async fn queued_finality_reports_expire_even_while_life_plan_and_command_are_live() {
+        let command = crate::finality::tests::admission_command();
+        command.validate(1003).unwrap();
+        assert_eq!(command.expires_at, 1200);
+        expired_while_queued_at(move |time| command.validate(time), 1003, 1016).await;
     }
 
     #[tokio::test]

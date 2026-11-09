@@ -155,7 +155,7 @@ async fn main() -> Result<()> {
             },
         ))
         .layer(DefaultBodyLimit::max(1024 * 1024))
-        .with_state(service);
+        .with_state(service.clone());
     let provisioning_and_dkg = wallet_mpc_signer::dkg::router(dkg)
         .merge(solana_provisioning::router(provisioning))
         .route_layer(middleware::from_fn(
@@ -218,6 +218,9 @@ async fn main() -> Result<()> {
         })
         .merge(protected)
         .merge(current_claims)
+        .merge(wallet_mpc_signer::protected::finality::router(
+            service.clone(),
+        ))
         .merge(wallet_mpc_signer::protected::refresh::router(refresh))
         .merge(wallet_mpc_signer::protected::repair::router(repair));
     serve_roles_in(

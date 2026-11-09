@@ -470,6 +470,13 @@ impl Service {
         let _guard = self.lock.lock().await;
         self.enrolled(root)
     }
+    /// Public enrollment verification only, for observation of an already
+    /// accepted signature. This does not load a DKG share or authorize signing.
+    pub async fn require_public_enrollment(&self, root: &Root) -> Result<()> {
+        root.validate()?;
+        let _guard = self.lock.lock().await;
+        self.enrolled(root)
+    }
     /// Read existing original aliases without creating old-identity receipts.
     /// Absence is not availability; current approvals separately require a
     /// fresh signed W frontier/occupancy proof, including on fresh recipients.

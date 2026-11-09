@@ -1,3 +1,15 @@
+## 2026-11-09 — original-wire public finality draft (unmerged development)
+
+Current source nodes now have a bounded read-only query/observe/complete/recover
+handoff. W separately authenticates all3 current source reports and their embedded
+Life/node/W proofs, matches the exact old SignedPending binding/signature/package,
+and stores an immutable terminal-wire fact without settling a ledger or releasing
+logical ownership. Rules5 preserves old signed replay. Independent39 protocol/55 W cases, Clippy and9 genuine strict-source cases
+356.041s pass with167 stable source/binary paths. Actual missing-old-share
+observation, HOT/Gen1/native/SPL/COLD and finalized-failure/alias retention pass.
+No bounded P0/P1 identified; serial-ACK availability remains documented. See [scope](PHASE6GC_PUBLIC_FINALITY.md).
+Parent8a9c796 Fast42651565984 passes4 jobs/1364 backend cases774.17s; crypto unselected.
+
 ## 2026-11-09 — governed witness rotation manifest staging (unmerged development)
 
 Implemented authentic Custody/Policy/Life admission, durable bounded contiguous

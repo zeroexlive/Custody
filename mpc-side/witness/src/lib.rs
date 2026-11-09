@@ -2,6 +2,7 @@
 //! from signer backups; rollback of this authority itself is outside that claim.
 mod authority;
 mod candidate;
+mod finality;
 mod incoming;
 mod rotation;
 mod state;

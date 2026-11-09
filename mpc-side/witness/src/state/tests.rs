@@ -164,7 +164,7 @@ fn retry(b: &Binding) -> Binding {
     b
 }
 
-fn migration_fence(
+pub(crate) fn migration_fence(
     s: &Snapshot,
     bindings: &[Binding],
 ) -> Signed<wallet_mpc_protocol::solana_profile_migration::MigrationFence> {

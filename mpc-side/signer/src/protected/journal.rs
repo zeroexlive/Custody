@@ -77,6 +77,15 @@ pub(super) enum Change {
     Result {
         report: Box<Signed<PublicRound>>,
     },
+    FinalityQuery {
+        lease: Box<wallet_mpc_protocol::solana_finality::FinalityLease>,
+    },
+    FinalityObserved {
+        observed: Box<wallet_mpc_protocol::solana_finality::ObservedFinality>,
+    },
+    FinalityReport {
+        report: Box<Signed<wallet_mpc_protocol::solana_finality::FinalityReady>>,
+    },
     CurrentClaimQuery {
         lease: Box<wallet_mpc_protocol::solana_claim_authority::ClaimQueryLease>,
     },
@@ -113,6 +122,10 @@ struct Event {
 type Head = wallet_mpc_protocol::solana_profile_migration::MigrationSourceHead;
 #[derive(Clone, Default)]
 pub(super) struct Records {
+    pub finality_queries: BTreeMap<String, wallet_mpc_protocol::solana_finality::FinalityLease>,
+    pub finality_observed: BTreeMap<Uuid, wallet_mpc_protocol::solana_finality::ObservedFinality>,
+    pub finality_reports:
+        BTreeMap<Uuid, Signed<wallet_mpc_protocol::solana_finality::FinalityReady>>,
     pub current_claim_queries:
         BTreeMap<String, wallet_mpc_protocol::solana_claim_authority::ClaimQueryLease>,
     pub current_claim_grants:
@@ -191,7 +204,10 @@ impl Records {
             })
     }
     fn private_id_reserved(&self, id: Uuid) -> bool {
-        self.migration_id_reserved(id)
+        self.finality_queries
+            .values()
+            .any(|l| l.request.plan().observation_id == id)
+            || self.migration_id_reserved(id)
             || self.repair_id_reserved(id)
             || self
                 .ceremonies
@@ -219,6 +235,66 @@ impl Records {
             "original profile permanently fenced; no valid journal suffix allowed"
         );
         match change {
+            Change::FinalityQuery { lease } => {
+                let life = lifecycle.context("explicit finality Life authority required")?;
+                lease.validate_shape(party)?;
+                verify(
+                    life,
+                    wallet_mpc_protocol::solana_finality::PLAN_DOMAIN,
+                    &lease.request.authorization,
+                )?;
+                verify(own, "WITNESS_QUERY_V1", &lease.query)?;
+                ensure!(
+                    lease.request.plan().root.wallet_class == class
+                        && !self.private_id_reserved(lease.request.plan().observation_id)
+                        && !self
+                            .finality_queries
+                            .contains_key(&lease.query.value.challenge),
+                    "original finality public identity and challenge are one-shot"
+                );
+                self.finality_queries
+                    .insert(lease.query.value.challenge.clone(), lease.as_ref().clone());
+            }
+            Change::FinalityObserved { observed } => {
+                observed.validate_shape(party)?;
+                ensure!(
+                    self.finality_queries
+                        .get(&observed.lease.query.value.challenge)
+                        == Some(&observed.lease)
+                        && !self
+                            .finality_observed
+                            .contains_key(&observed.lease.request.plan().observation_id),
+                    "exact original public observation required"
+                );
+                verify(witness, "WITNESS_QUERY_REPLY_V1", &observed.initial_witness)?;
+                verify(own, "WITNESS_QUERY_V1", &observed.final_query)?;
+                self.finality_observed.insert(
+                    observed.lease.request.plan().observation_id,
+                    observed.as_ref().clone(),
+                );
+            }
+            Change::FinalityReport { report } => {
+                let ready = &report.value;
+                ready.validate(ready.reported_at)?;
+                ensure!(
+                    ready.party_id == party
+                        && ready.profile_fingerprint == profile
+                        && self.finality_observed.get(&ready.plan().observation_id)
+                            == Some(&ready.observed)
+                        && !self
+                            .finality_reports
+                            .contains_key(&ready.plan().observation_id),
+                    "exact own durable original finality report required"
+                );
+                verify(witness, "WITNESS_QUERY_REPLY_V1", &ready.final_witness)?;
+                verify(
+                    own,
+                    wallet_mpc_protocol::solana_finality::REPORT_DOMAIN,
+                    report,
+                )?;
+                self.finality_reports
+                    .insert(ready.plan().observation_id, report.as_ref().clone());
+            }
             Change::CurrentClaimQuery { lease } => {
                 let life = lifecycle
                     .context("current Claim receipts require explicit Lifecycle authority")?;

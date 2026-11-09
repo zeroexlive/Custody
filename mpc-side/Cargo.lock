@@ -2361,6 +2361,7 @@ name = "wallet-mpc-protocol"
 version = "0.1.0"
 dependencies = [
  "anyhow",
+ "base64",
  "bs58",
  "cggmp24",
  "cggmp24-keygen",

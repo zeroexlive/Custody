@@ -27,7 +27,9 @@ impl SolanaRpc {
                 "isBlockhashValid",
                 "getFeeForMessage",
                 "getMinimumBalanceForRentExemption",
-                "getAccountInfo"
+                "getAccountInfo",
+                "getSignatureStatuses",
+                "getTransaction"
             ]
             .contains(&method),
             "unsupported isolated RPC operation"

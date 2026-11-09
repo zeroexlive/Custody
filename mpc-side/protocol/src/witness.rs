@@ -300,6 +300,10 @@ pub struct GenerationReady {
 #[derive(Clone, Debug, Serialize, Deserialize, PartialEq, Eq)]
 #[serde(tag = "kind", deny_unknown_fields)]
 pub enum CommandAction {
+    AcknowledgeFinality {
+        reports: Vec<Signed<crate::solana_finality::FinalityReady>>,
+    },
+
     Enroll {
         evidence: Box<Evidence<Root>>,
         node_keys: BTreeMap<String, String>,
@@ -389,6 +393,16 @@ impl Command {
             approvals.plan().validate(now)?;
         }
         match &self.action {
+            CommandAction::AcknowledgeFinality { reports } => {
+                ensure!(
+                    reports.len() == 3,
+                    "all three current source finality reports required"
+                );
+                for report in reports {
+                    report.value.validate(now)?;
+                    report.signature_bytes()?;
+                }
+            }
             CommandAction::StageRotationInventory { approvals, chunk } => {
                 approvals.validate_shape()?;
                 approvals.plan().validate(now)?;
@@ -463,7 +477,7 @@ pub enum ExecutionStatus {
     SignedPending,
 }
 
-#[derive(Clone, Debug, Serialize, Deserialize)]
+#[derive(Clone, Debug, Serialize, Deserialize, PartialEq, Eq)]
 #[serde(deny_unknown_fields)]
 pub struct RootView {
     pub original: Root,
@@ -479,15 +493,17 @@ pub struct RootView {
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub rotation: Option<crate::solana_rotation::RotationView>,
 }
-#[derive(Clone, Debug, Serialize, Deserialize)]
+#[derive(Clone, Debug, Serialize, Deserialize, PartialEq, Eq)]
 #[serde(deny_unknown_fields)]
 pub struct ExecutionView {
     pub binding_fingerprint: String,
     pub status: ExecutionStatus,
     pub signature: Option<String>,
     pub reports: std::collections::BTreeMap<String, Signed<PublicRound>>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub finality: Option<crate::solana_finality::FinalityReceipt>,
 }
-#[derive(Clone, Debug, Serialize, Deserialize)]
+#[derive(Clone, Debug, Serialize, Deserialize, PartialEq, Eq)]
 #[serde(deny_unknown_fields)]
 pub struct QueryReply {
     pub query: Query,

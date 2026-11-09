@@ -70,11 +70,9 @@ impl Snapshot {
         Ok(())
     }
     pub(crate) fn has_unsettled_incoming(&self, root: &str) -> Result<bool> {
-        for execution in self
-            .executions
-            .values()
-            .filter(|e| e.status != ExecutionStatus::NoSignature)
-        {
+        for (_id, execution) in self.executions.iter().filter(|(id, e)| {
+            e.status != ExecutionStatus::NoSignature && !self.finalities.contains_key(id)
+        }) {
             if self.incoming_roots(&execution.binding)?.contains(root) {
                 return Ok(true);
             }

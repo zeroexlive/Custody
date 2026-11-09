@@ -1,6 +1,7 @@
 //! Explicit protected deployment. Its independent public execution anchor and
 //! mandatory profile survive restoration of any private-share backup.
 pub mod claims;
+pub mod finality;
 pub mod generations;
 mod journal;
 pub mod migration;

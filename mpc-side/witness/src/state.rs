@@ -99,6 +99,8 @@ pub struct Snapshot {
     pub known_recipients: BTreeMap<String, BTreeSet<String>>,
     #[serde(default, skip_serializing_if = "BTreeMap::is_empty")]
     pub claim_candidates: BTreeMap<Uuid, Claim>,
+    #[serde(default, skip_serializing_if = "BTreeMap::is_empty")]
+    pub finalities: BTreeMap<Uuid, wallet_mpc_protocol::solana_finality::FinalityReceipt>,
 }
 
 pub(crate) fn slot(party: &str, round: u16) -> String {
@@ -175,6 +177,7 @@ impl Snapshot {
             rotations: BTreeMap::new(),
             known_recipients: BTreeMap::new(),
             claim_candidates: BTreeMap::new(),
+            finalities: BTreeMap::new(),
         })
     }
     fn advance(&mut self, root: &str) -> Result<()> {
@@ -204,6 +207,9 @@ impl Snapshot {
                 .iter()
                 .any(|(rotation_id, r)| *rotation_id == id || r.authorizations.contains_key(&id))
             || self.commands.values().any(|command| match &command.action {
+                CommandAction::AcknowledgeFinality { reports } => reports
+                    .first()
+                    .is_some_and(|r| r.value.plan().observation_id == id),
                 CommandAction::EnableFinancialMode { approvals } => {
                     approvals.plan().activation_id == id
                 }
@@ -354,10 +360,14 @@ impl Snapshot {
                 ensure!(matches!(command.action,
                     CommandAction::StageRotationInventory { .. }
                     | CommandAction::BeginRotation { .. }
-                    | CommandAction::AbandonRotationInventory { .. }),
+                    | CommandAction::AbandonRotationInventory { .. }
+                    | CommandAction::AcknowledgeFinality { .. }),
                     "durable rotation fences ordinary source lifecycle changes until explicit abandonment");
             }
             match &command.action {
+                CommandAction::AcknowledgeFinality { reports } => {
+                    self.acknowledge_finality(command, reports, time)?
+                }
                 CommandAction::StageRotationInventory { approvals, chunk } => {
                     self.stage_rotation(command, approvals, chunk, time)?;
                 }

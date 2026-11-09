@@ -370,3 +370,15 @@ route, customer API or backend membership write is exposed. `Migrating` is a clo
 source phase here. Used-source SignedPending and known uncertain inbound history
 require future original-wire finality, never local inference. See
 [staging contract and pending gates](PHASE6GC_ROTATION_INVENTORY.md).
+
+
+### Public original-wire finality (unmerged development, under validation)
+
+Protected signer `/internal/v1/solana/finality/{query,observe,complete,recover}`
+requires explicit Life capability and current class coordinator/courier transport.
+The own post-observation query does not renew the original15-second lease. Existing
+Life-only W command adds `AcknowledgeFinality` with all3 current source reports and
+all embedded P256 authorities. Signed query `execution.finality` is optional/omitted
+when absent; original SignedPending/signature/aliases remain unchanged. It is no
+private permit, hold release or ledger settlement. See
+[exact proof/clock/RPC contract](PHASE6GC_PUBLIC_FINALITY.md).

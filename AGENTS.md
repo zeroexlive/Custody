@@ -224,3 +224,16 @@ migration, strengthen abandonment against possible signatures and implement actu
 original-wire finality, in-flight fee budgets and existing financial parent/effect/
 ledger integration. Root49 W tests and Clippy pass; independent28 protocol/49 W cases and6 genuine cases pass across qualified
 runs with159 stable paths; exact-source CI remains pending. No whole-phase completion, merge or production follows.
+
+
+2026-11-09 public finality draft: read PHASE6GC_PUBLIC_FINALITY.md. All3 CURRENT
+SOURCE nodes only; exact old W SignedPending signature/binding/package, Frozen and
+resolved maintenance, own initial/post-observation W proof under original15s lease.
+Runtime MUST verify all embedded Life/node/W P256 signatures; content validation
+alone is not authority. Separate immutable facts never rewrite SignedPending,
+release holds, replenish fees or allow a signed logical retry. Rules5 preserves
+old0–4 signed messages. Exact-revision ACKs currently process serially. Public
+observation uses only enrollment/provenance/public package, not an old missing
+share. Independent39 protocol/55 W cases, Clippy and9 genuine strict-source cases
+356.041s pass with167 stable paths and no concrete bounded P0/P1. Serial ACK
+availability remains documented. Exact-head/whole-phase gates are pending. No movement/retirement/phase completion.

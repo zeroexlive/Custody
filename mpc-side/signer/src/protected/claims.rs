@@ -40,7 +40,7 @@ impl Service {
             .current_claim_approval(&self.profile.class, approval, life, time, live)
     }
 
-    fn current_claim_profile(&self, local: &Local, view: &QueryReply) -> Result<()> {
+    pub(super) fn current_claim_profile(&self, local: &Local, view: &QueryReply) -> Result<()> {
         let party = &self.profile.signer.party_id;
         let pin = view.node_profiles.get(party);
         if let Some(pin) = pin {
@@ -300,7 +300,7 @@ fn reject(_: anyhow::Error) -> (StatusCode, Json<serde_json::Value>) {
     )
 }
 
-fn allowed(s: &Service, peer: &PeerIdentity) -> Result<()> {
+pub(super) fn allowed(s: &Service, peer: &PeerIdentity) -> Result<()> {
     ensure!(
         peer.role()
             == if s.profile.class == "COLD" {

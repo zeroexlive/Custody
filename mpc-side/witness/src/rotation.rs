@@ -57,7 +57,7 @@ impl Snapshot {
             .values()
             .find(|r| r.source_identity == root && r.status != RotationStatus::Abandoned)
     }
-    fn rotation_identity_used(&self, id: Uuid) -> bool {
+    pub(crate) fn rotation_identity_used(&self, id: Uuid) -> bool {
         self.migration_identity_used(id)
             || self.claims.contains_key(&id)
             || self.issuance_ids.contains_key(&id)
@@ -378,14 +378,15 @@ impl Snapshot {
         for entry in &old.entries {
             self.check_rotation_entry(entry)?;
         }
-        // No finality inference from SignedPending. A later independently
-        // attested finality contract must resolve these before real movement.
+        // Only an independently acknowledged terminal wire can resolve a
+        // SignedPending blocker; the original status/signature is preserved.
         ensure!(
             !self
                 .executions
-                .values()
-                .any(|e| e.root_identity == old.source_identity
-                    && e.status == ExecutionStatus::SignedPending),
+                .iter()
+                .any(|(id, e)| e.root_identity == old.source_identity
+                    && e.status == ExecutionStatus::SignedPending
+                    && !self.finalities.contains_key(id)),
             "unsettled original signed execution blocks migration entry"
         );
         ensure!(

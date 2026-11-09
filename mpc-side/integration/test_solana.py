@@ -59,6 +59,19 @@ CAPS = {
 }
 
 
+def test_phase6gc_failed_public_finality_preserves_signed_aliases_after_refresh(tmp_path):
+    from finality_observation_acceptance import run_failed_public_finality
+
+    run_failed_public_finality(tmp_path)
+
+
+@pytest.mark.parametrize("custody_class", ["HOT", "COLD"])
+def test_phase6gc_public_finality_current_nodes_original_signed_wire(tmp_path, custody_class):
+    from finality_observation_acceptance import run_public_finality
+
+    run_public_finality(tmp_path, custody_class)
+
+
 @pytest.mark.parametrize("financial", [False, True])
 def test_phase6gc_governed_rotation_inventory_two_actual_cohorts(tmp_path, financial):
     from rotation_inventory_acceptance import run_rotation_inventory

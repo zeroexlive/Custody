@@ -382,7 +382,7 @@ def run_rotation_inventory(root_path, *, financial=False, count=33):
                 json.loads(p.read_text())["value"]
                 for p in sorted((w.directory / "journal/events").glob("*.json"))
             ]
-            assert all(e["rules"] == 4 for e in events)
+            assert all(e["rules"] == 5 for e in events)
             assert all(e["transition"]["kind"] != "Permit" for e in events)
             assert [
                 encrypted_files(net, root["dkg"]) for net, root in ((a, source), (b, target))

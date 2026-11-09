@@ -599,3 +599,15 @@ future original-wire finality attestation. No retirement, rescue or phase comple
 follows. See [exact scope and remaining work](PHASE6GC_ROTATION_INVENTORY.md).
 Parent0c24faf Fast41730430453 passed4 jobs/1364 backend cases830.90s; crypto jobs
 were unselected and that run predates this W implementation.
+
+
+The next public finality development checkpoint has bounded independent validation. All3 current source
+nodes observe an exact original signed wire under Frozen, with own initial/end
+W queries and unchanged15s lease. Separate immutable W facts preserve SignedPending,
+original signatures and all held logical aliases; no financial settlement or hold
+release follows. Root55 W tests pass; initial actual HOT/Gen1/native/SPL and COLD
+courier cases pass2/124.57s, plus actual failed-wire/no-new-attempt case77.74s.
+Final strict-source independent39 protocol/55 W cases, Clippy and9 genuine cases
+356.041s pass with167 unchanged source/binary paths. No bounded P0/P1 was identified;
+serial revision-bound ACK availability remains documented. Read [scope and limitations](PHASE6GC_PUBLIC_FINALITY.md).
+Exact parent8a9c796 Fast42651565984 passes4 jobs/1364 backend cases774.17s; not ALL.

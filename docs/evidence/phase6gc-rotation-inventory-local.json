@@ -1,0 +1,83 @@
+{
+  "date": "2026-11-09",
+  "status": "BOUNDED_UNMERGED_DEVELOPMENT_VALIDATION",
+  "source_parent": "0c24faf3d26aa0360eadcafbee10f579ef557ccc",
+  "scope": "Authenticated witness manifest staging, permanent non-spending allocation bindings and ordinary incoming fences; no migration private authority, settlement, retirement or rescue",
+  "independent": {
+    "protocol_cases": 28,
+    "protocol_seconds": 77.39,
+    "witness_cases": 49,
+    "witness_seconds": 0.63,
+    "workspace_all_targets_clippy_seconds": 0.15,
+    "warnings_denied": true,
+    "genuine_unique_passed": 6,
+    "genuine_passing_call_seconds": 70.843,
+    "qualification": "Two new cases pass63.675s; four old cases pass7.168s after test-only correction of current-writer rules2 expectation to4. Not one six-case pass run. Production and all four binaries stayed unchanged.",
+    "failures_retained": [
+      {
+        "cases": 1,
+        "wall_seconds": 4.872,
+        "cause": "New candidate-query helper omitted mandatory claim_reservation_id; only helper corrected."
+      },
+      {
+        "passed": 2,
+        "failed": 1,
+        "wall_seconds": 64.373,
+        "cause": "Historical archive helper expected newly appended rules2 instead of current rules4; original signed bytes/signature/downgrade assertions unchanged."
+      }
+    ],
+    "review": "Separate agent static and execution review; no remaining identified bounded P0/P1 or actionable P2. Not an external audit."
+  },
+  "manifest": {
+    "paths": 159,
+    "source_fixtures_manifests_workflows_helpers": 155,
+    "runtime_binaries": 4,
+    "sha256": "394c74e1601f351c468f897217d11c0574bb49d544583d9423419b3880244745",
+    "final_hashes_unchanged": true
+  },
+  "genuine_scope": {
+    "mode_off_entries": 33,
+    "financial_mode_entries": 1000,
+    "real_registered_source_claims_per_case": 1,
+    "other_entries": "Explicit unpublished allocation fixtures, not backend wallet publications",
+    "target_active_membership": "Independent declaration, not DB membership acceptance",
+    "private_permits": 0,
+    "ledger_mutations": 0,
+    "six_distinct_wrapping_keys_unchanged_per_case": true,
+    "original_six_encrypted_dkg_shares_unchanged_per_case": true,
+    "foreign_all_three_node_receipts_rejected_after_restart_and_abandonment": true,
+    "largest_debug_replay_seconds": 13.324411383015104,
+    "test_startup_wait_seconds": 60,
+    "private_lease_seconds_unchanged": 15
+  },
+  "root": {
+    "witness_cases": 49,
+    "witness_seconds": 0.56,
+    "workspace_clippy_seconds": 1.69,
+    "earlier_two_genuine_seconds": 57.53,
+    "earlier_runtime_qualification": "Predates permanent candidate binding correction; independent final runtime supersedes it."
+  },
+  "algorithm_changes": false,
+  "production_dependency_versions_changed": false,
+  "test_dependency": "bs58=0.5.1, already present in lockfile",
+  "activation_flags_relaxed": false,
+  "production_activation": false,
+  "parent_exact_fast": {
+    "run_id": 41730430453,
+    "head": "0c24faf3d26aa0360eadcafbee10f579ef557ccc",
+    "executed_jobs": 4,
+    "backend_cases": 1364,
+    "backend_seconds": 830.9,
+    "full_crypto_selected": false
+  },
+  "exact_current_source_fast": "PENDING",
+  "whole_phase_all_and_original_3d32_six_case_store_gate": "PENDING",
+  "remaining": [
+    "Durable local allocation pause and DB frontier/hold rechecks",
+    "Authenticated original-wire finality for SignedPending and uncertain inbound history",
+    "Explicit MIGRATION/RESCUE private authority, fee exposure and existing operation/effect/ledger/finality integration",
+    "Actual native/SPL customer and treasury source migration",
+    "Retirement readiness, continued address watching and late-deposit rescue",
+    "Final exact-SHA Fast/ALL/original3d32 compatibility, whole-phase review, conditional merge and main verification"
+  ]
+}

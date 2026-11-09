@@ -72,3 +72,12 @@ remain held, and same-key repair never cryptographically revokes an old threshol
 Final exact-SHA Fast/ALL/original3d32 compatibility and whole-phase review/merge
 remain required. Parent143dfb5 Fast41702205647 passed4 jobs/1364 backend cases815.43s;
 it predates this data layer and selected no full-crypto jobs.
+
+
+Subsequent witness staging now lives in PHASE6GC_ROTATION_INVENTORY.md. It extends
+LegacyControl with default/skipNone archival issuance, preserving the original
+valid None JSON while retaining mode-off W grants without financial adoption.
+One empty chunk is valid only for a genuinely empty high-water0 manifest. These
+later changes require their own runtime review; the26-case evidence above remains
+tied to0c24faf. Its exactFast41730430453 passed4 jobs/1364 backend cases830.90s,
+with full-crypto jobs unselected, predating the witness implementation.

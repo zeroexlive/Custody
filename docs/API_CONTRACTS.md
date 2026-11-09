@@ -358,3 +358,15 @@ financial Create/Execute/public recovery never choose an alternate coordinator;
 independent authenticated W recovery remains available when that route is missing.
 No new public/customer API, private-key storage or ledger is introduced. See
 [operator trust, legacy compatibility and pending gates](PHASE6GC_COORDINATOR_ROUTING.md).
+
+
+### Witness rotation inventory (unmerged development)
+
+Existing Life-only command transport gains `StageRotationInventory`, `BeginRotation`
+and `AbandonRotationInventory`. Custody and class Policy separately approve the
+same original plan; progress is optional signed `root.rotation`, omitted when
+absent. Plans/chunks/authorization IDs remain immutable and no private migration
+route, customer API or backend membership write is exposed. `Migrating` is a closed
+source phase here. Used-source SignedPending and known uncertain inbound history
+require future original-wire finality, never local inference. See
+[staging contract and pending gates](PHASE6GC_ROTATION_INVENTORY.md).

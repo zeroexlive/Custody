@@ -1,6 +1,9 @@
 //! Independent generation/replay authority. State must be deployed separately
 //! from signer backups; rollback of this authority itself is outside that claim.
 mod authority;
+mod candidate;
+mod incoming;
+mod rotation;
 mod state;
 mod trust;
 pub use authority::Authority;

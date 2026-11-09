@@ -379,6 +379,44 @@ impl Trust {
         }
         Ok(())
     }
+    pub fn rotation(
+        &self,
+        approvals: &wallet_mpc_protocol::solana_rotation::RotationApprovals,
+    ) -> Result<()> {
+        use wallet_mpc_protocol::solana_rotation::PLAN_DOMAIN;
+        approvals.validate_shape()?;
+        let profile = self.profile(&approvals.plan().source.wallet_class)?;
+        ensure!(
+            approvals.custody.key_id == profile.custody_key.key_id
+                && approvals.policy.key_id == profile.operator_key.key_id,
+            "current independent class Custody and Policy pins required for rotation"
+        );
+        for (signed, verifier, pin, chain) in [
+            (
+                &approvals.custody,
+                &profile.custody,
+                &profile.custody_key,
+                &approvals.custody_certificate_chain_der_hex,
+            ),
+            (
+                &approvals.policy,
+                &profile.operator,
+                &profile.operator_key,
+                &approvals.policy_certificate_chain_der_hex,
+            ),
+        ] {
+            proof(
+                verifier,
+                pin,
+                &signed.signing_message(PLAN_DOMAIN)?,
+                &CustodyAuthorization {
+                    certificate_chain_der_hex: chain.clone(),
+                    signature_der_hex: signed.signature.clone(),
+                },
+            )?;
+        }
+        Ok(())
+    }
     pub fn profile_migration(
         &self,
         fence: &Signed<wallet_mpc_protocol::solana_profile_migration::MigrationFence>,

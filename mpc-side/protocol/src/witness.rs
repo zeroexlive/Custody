@@ -320,6 +320,16 @@ pub enum CommandAction {
     EnableFinancialMode {
         approvals: Box<crate::solana_financial::FinancialModeApprovals>,
     },
+    StageRotationInventory {
+        approvals: Box<crate::solana_rotation::RotationApprovals>,
+        chunk: Box<crate::solana_rotation::InventoryChunk>,
+    },
+    BeginRotation {
+        approvals: Box<crate::solana_rotation::RotationApprovals>,
+    },
+    AbandonRotationInventory {
+        rotation_id: Uuid,
+    },
     InstallNodeProfile {
         fence: Box<Signed<crate::solana_profile_migration::MigrationFence>>,
         renewal: Option<Box<crate::solana_profile_migration::RenewalApprovals>>,
@@ -378,6 +388,24 @@ impl Command {
             approvals.validate_shape()?;
             approvals.plan().validate(now)?;
         }
+        match &self.action {
+            CommandAction::StageRotationInventory { approvals, chunk } => {
+                approvals.validate_shape()?;
+                approvals.plan().validate(now)?;
+                chunk.validate(approvals.plan())?;
+            }
+            CommandAction::BeginRotation { approvals } => {
+                approvals.validate_shape()?;
+                approvals.plan().validate(now)?;
+            }
+            CommandAction::AbandonRotationInventory { rotation_id } => {
+                ensure!(
+                    !rotation_id.is_nil(),
+                    "exact original rotation identity required"
+                );
+            }
+            _ => {}
+        }
         if let CommandAction::ReserveRefresh { plan } = &self.action {
             plan.value.validate(now)?;
         }
@@ -425,6 +453,7 @@ pub enum Phase {
     Active,
     Frozen,
     Prepared,
+    Migrating,
 }
 
 #[derive(Clone, Debug, Serialize, Deserialize, PartialEq, Eq)]
@@ -447,6 +476,8 @@ pub struct RootView {
     pub next_claim_index: u64,
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub financial_mode: Option<crate::solana_financial::FinancialRootMode>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub rotation: Option<crate::solana_rotation::RotationView>,
 }
 #[derive(Clone, Debug, Serialize, Deserialize)]
 #[serde(deny_unknown_fields)]

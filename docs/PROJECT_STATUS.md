@@ -1,4 +1,4 @@
-# Current project status — 2026-11-04
+# Current project status — 2026-11-09
 
 Verified `zeroexlive/Custody` main is **`587e0969a216102879d17cadb6ffeee8dfb8b6c6`**,
 merged [PR #1](https://github.com/zeroexlive/Custody/pull/1). Its parents are the
@@ -586,3 +586,16 @@ asset coverage, cumulative fee budgets and bounded manifest chunks. Independent2
 with136 frozen paths unchanged. This is bounded data-contract validation only. No witness
 rotation command, transfer, retirement, late-rescue API or activation follows from
 this unconnected data layer. Phase6G-C remains incomplete.
+
+
+The next witness manifest-staging implementation now authenticates current
+Custody/Policy plus separate Life commands, preserves exact original W evidence/
+issuance, accepts contiguous bounded chunks and fences normal source maintenance.
+Rules4 adds locked incoming-recipient gates on every new ordinary R1/R2, preserving
+old signed replay. Root49 W tests and workspace Clippy pass; independent28 protocol/49 witness cases, Clippy and6 genuine cases across qualified
+runs pass with159 stable source/binary hashes. Exact-source CI remains pending. `Migrating` grants no private movement. Every
+source SignedPending/known uncertain inbound execution still blocks entry pending
+future original-wire finality attestation. No retirement, rescue or phase completion
+follows. See [exact scope and remaining work](PHASE6GC_ROTATION_INVENTORY.md).
+Parent0c24faf Fast41730430453 passed4 jobs/1364 backend cases830.90s; crypto jobs
+were unselected and that run predates this W implementation.

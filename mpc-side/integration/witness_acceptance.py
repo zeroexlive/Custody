@@ -137,9 +137,9 @@ class Witness:
         finally:
             log.close()
 
-    def start(self, initialize=False):
+    def start(self, initialize=False, *, startup_timeout=10):
         self.process = self.launch(initialize)
-        deadline = time.monotonic() + 10
+        deadline = time.monotonic() + startup_timeout
         while time.monotonic() < deadline:
             if self.process.poll() is not None:
                 raise AssertionError((self.directory / "service.log").read_text())
@@ -156,10 +156,10 @@ class Witness:
             self.process.wait(timeout=10)
             self.process = None
 
-    def rejected_start(self, initialize=False):
+    def rejected_start(self, initialize=False, *, startup_timeout=10):
         process = self.launch(initialize)
         try:
-            assert process.wait(timeout=10) != 0
+            assert process.wait(timeout=startup_timeout) != 0
         finally:
             if process.poll() is None:
                 process.kill()

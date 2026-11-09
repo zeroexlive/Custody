@@ -83,7 +83,7 @@ fn event_hash(event: &Signed<Event>) -> Result<String> {
 }
 fn replay(state: &mut Snapshot, event: &Event) -> Result<()> {
     ensure!(
-        event.rules.is_none() || matches!(event.rules, Some(1..=3)),
+        event.rules.is_none() || matches!(event.rules, Some(1..=4)),
         "unsupported authority event rules"
     );
     ensure!(
@@ -163,7 +163,7 @@ impl Authority {
                 sequence: 0,
                 previous_hash: "00".repeat(32),
                 time: now()?,
-                rules: Some(3),
+                rules: Some(4),
                 transition: Transition::Initialize,
             };
             let signed = trust.sign("WITNESS_EVENT_V1", genesis)?;
@@ -307,7 +307,7 @@ impl Authority {
             sequence: candidate.sequence,
             previous_hash: j.last_hash.clone(),
             time,
-            rules: Some(3),
+            rules: Some(4),
             transition,
         };
         let signed = self.trust.sign("WITNESS_EVENT_V1", event)?;
@@ -350,7 +350,7 @@ impl Authority {
             j.command_proofs
                 .insert(command.value.request_id, command.as_ref().clone());
         }
-        candidate.journal_rules = 3;
+        candidate.journal_rules = 4;
         j.last_hash = next_hash;
         j.state = candidate;
         Ok(())
@@ -370,6 +370,8 @@ impl Authority {
                 self.trust
                     .profile_migration(fence, renewal.as_deref(), first, time)?;
             }
+            CommandAction::StageRotationInventory { approvals, .. }
+            | CommandAction::BeginRotation { approvals } => self.trust.rotation(approvals)?,
             CommandAction::EnableFinancialMode { approvals } => {
                 self.trust.financial_mode(approvals)?
             }
@@ -463,7 +465,7 @@ impl Authority {
         }
         let fingerprint = hash(&command.signing_message("WITNESS_COMMAND_V1")?);
         let mut candidate = j.state.clone();
-        candidate.journal_rules = 3;
+        candidate.journal_rules = 4;
         if candidate.command_at(&command.value, time)? {
             self.commit(
                 &mut j,
@@ -512,7 +514,7 @@ impl Authority {
             time,
         )?;
         let mut candidate = j.state.clone();
-        candidate.journal_rules = 3;
+        candidate.journal_rules = 4;
         let permit = candidate.permit(&request.value, &request.key_id, time)?;
         let response = self.trust.sign("WITNESS_PERMIT_V1", permit)?;
         self.commit(
@@ -660,6 +662,7 @@ impl Authority {
                     prepared: r.prepared.as_ref().map(|p| p.generation.clone()),
                     next_claim_index: r.next_claim_index,
                     financial_mode: r.financial_mode.clone(),
+                    rotation: j.state.rotation_view(&r.evidence.statement.identity()?)?,
                 },
                 execution,
                 abandoned,
@@ -846,6 +849,14 @@ mod tests {
             expires_at: 1010,
             action: CommandAction::Freeze,
         };
+        command.validate(1000).unwrap();
+        expired_while_queued(move |time| command.validate(time)).await;
+    }
+
+    #[tokio::test]
+    async fn queued_rotation_plan_expires_even_while_lifecycle_command_is_live() {
+        let command = crate::rotation::tests::admission_command();
+        assert_eq!(command.expires_at, 1200);
         command.validate(1000).unwrap();
         expired_while_queued(move |time| command.validate(time)).await;
     }

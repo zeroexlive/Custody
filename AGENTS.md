@@ -213,3 +213,14 @@ protocol cases75.66s and workspaceClippy10.27s pass with136 paths unchanged; no
 bounded P0/P1/concreteP2. Do not present this as runtime rotation acceptance.
 Read PHASE6GC_ROTATION_CONTRACT.md before integrating it. Existing original signed
 messages and encrypted-store compatibility must remain unchanged.
+
+
+2026-11-09 witness rotation staging draft: read PHASE6GC_ROTATION_INVENTORY.md.
+Rules4 changes only fresh admission; preserve exact old signed replay. Staged source
+maintenance remains fenced; every new ordinary R1/R2 requires known recipient Roots
+Active. Mode-off issuance stays exact archival LegacyControl, never synthetic
+financial membership. Migrating currently grants NO movement. Before adding private
+migration, strengthen abandonment against possible signatures and implement actual
+original-wire finality, in-flight fee budgets and existing financial parent/effect/
+ledger integration. Root49 W tests and Clippy pass; independent28 protocol/49 W cases and6 genuine cases pass across qualified
+runs with159 stable paths; exact-source CI remains pending. No whole-phase completion, merge or production follows.

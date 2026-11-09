@@ -86,7 +86,11 @@ pub enum FinancialPublication {
 #[serde(tag = "kind", deny_unknown_fields)]
 pub enum SourceMembership {
     Unpublished {},
-    LegacyControl {},
+    LegacyControl {
+        /// Original mode-off issuance, if one exists; never financial adoption.
+        #[serde(default, skip_serializing_if = "Option::is_none")]
+        issuance: Option<ClaimIssuance>,
+    },
     Financial {
         issuance: ClaimIssuance,
         publication: FinancialPublication,
@@ -118,7 +122,12 @@ impl MigrationSource {
                     .is_none_or(digest),
             "original tenant, beneficial owner, asset and archival proof identity required"
         );
-        if let SourceMembership::Financial { issuance, .. } = &self.membership {
+        let issuance = match &self.membership {
+            SourceMembership::Financial { issuance, .. } => Some(issuance),
+            SourceMembership::LegacyControl { issuance } => issuance.as_ref(),
+            SourceMembership::Unpublished {} => None,
+        };
+        if let Some(issuance) = issuance {
             ensure!(
                 issuance.reservation_id == self.claim.reservation_id
                     && !issuance.issuance_id.is_nil()
@@ -389,7 +398,8 @@ impl InventoryChunk {
         plan.validate_shape()?;
         ensure!(
             self.business_fingerprint == plan.business_fingerprint()?
-                && !self.entries.is_empty()
+                && (!self.entries.is_empty()
+                    || (plan.allocated_high_water == 0 && self.start_index == 0))
                 && self.entries.len() <= MAX_INVENTORY_CHUNK
                 && self
                     .start_index
@@ -421,6 +431,27 @@ impl InventoryChunk {
         self.validate(plan)?;
         fingerprint("SOLANA_ROTATION_CHUNK_V1", self)
     }
+}
+
+/// Public progress is manifest admission only, never transfer or retirement proof.
+#[derive(Clone, Debug, Serialize, Deserialize, PartialEq, Eq)]
+pub enum RotationStatus {
+    Collecting,
+    Sealed,
+    Migrating,
+    Abandoned,
+}
+#[derive(Clone, Debug, Serialize, Deserialize, PartialEq, Eq)]
+#[serde(deny_unknown_fields)]
+pub struct RotationView {
+    pub rotation_id: Uuid,
+    pub source_identity: String,
+    pub target_identity: String,
+    pub business_fingerprint: String,
+    pub status: RotationStatus,
+    pub next_index: u64,
+    pub allocated_high_water: u64,
+    pub inventory_fingerprint: String,
 }
 
 /// Detached machine/Policy approvals of the same exact plan. Shape checks are
@@ -571,7 +602,7 @@ mod tests {
         assert!(inventory_fingerprint(&root, 2, &[b.clone(), a.clone()]).is_err());
         assert!(inventory_fingerprint(&root, 2, &[a.clone(), a.clone()]).is_err());
         let mut changed = entries.clone();
-        changed[0].membership = SourceMembership::LegacyControl {};
+        changed[0].membership = SourceMembership::LegacyControl { issuance: None };
         assert_ne!(identity, inventory_fingerprint(&root, 2, &changed).unwrap());
         assert!(changed[0].validate_movement_source().is_err());
         changed[0].witness_evidence_fingerprint = Some("22".repeat(32));
@@ -608,6 +639,33 @@ mod tests {
             issuance.initialization_execution_id = Some(Uuid::new_v4());
         }
         altered.validate_shape().unwrap();
+    }
+
+    #[test]
+    fn mode_off_optional_issuance_keeps_native_and_token_initialization_shape() {
+        let (root, _, _, _) = fixtures();
+        let mut value = financial(source(root, 0));
+        let SourceMembership::Financial { issuance, .. } = value.membership.clone() else {
+            unreachable!()
+        };
+        value.membership = SourceMembership::LegacyControl {
+            issuance: Some(issuance),
+        };
+        value.validate_shape().unwrap();
+        value.claim.asset = Asset::ClassicToken {
+            mint: value.claim.root.genesis_hash.clone(),
+            decimals: 6,
+        };
+        assert!(value.validate_shape().is_err());
+        if let SourceMembership::LegacyControl {
+            issuance: Some(issuance),
+        } = &mut value.membership
+        {
+            issuance.initialization_execution_id = Some(Uuid::new_v4());
+        }
+        value.validate_shape().unwrap();
+        value.witness_evidence_fingerprint = None;
+        assert!(value.validate_shape().is_err());
     }
 
     #[test]
@@ -904,5 +962,34 @@ mod tests {
         changed = original;
         changed.total_fee_budget_lamports = 0;
         assert!(changed.validate_shape().is_err());
+    }
+}
+
+#[cfg(test)]
+mod archival_contract_tests {
+    use super::*;
+    #[test]
+    fn legacy_control_optional_issuance_keeps_original_none_wire_shape() {
+        let original = serde_json::json!({"kind":"LegacyControl"});
+        let value: SourceMembership = serde_json::from_value(original.clone()).unwrap();
+        assert_eq!(serde_json::to_value(&value).unwrap(), original);
+        let issuance = ClaimIssuance {
+            reservation_id: Uuid::new_v4(),
+            issuance_id: Uuid::new_v4(),
+            command_id: Uuid::new_v4(),
+            initialization_execution_id: None,
+        };
+        let value = SourceMembership::LegacyControl {
+            issuance: Some(issuance),
+        };
+        let encoded = serde_json::to_value(&value).unwrap();
+        assert_eq!(
+            serde_json::from_value::<SourceMembership>(encoded).unwrap(),
+            value
+        );
+        assert!(serde_json::from_value::<SourceMembership>(
+            serde_json::json!({"kind":"LegacyControl","activate":true})
+        )
+        .is_err());
     }
 }

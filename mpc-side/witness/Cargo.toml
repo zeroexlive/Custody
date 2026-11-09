@@ -20,4 +20,5 @@ wallet-mpc-storage = { path = "../storage" }
 wallet-mpc-transport = { path = "../transport" }
 
 [dev-dependencies]
+bs58 = "=0.5.1"
 rand_core.workspace = true

@@ -59,6 +59,13 @@ CAPS = {
 }
 
 
+@pytest.mark.parametrize("financial", [False, True])
+def test_phase6gc_governed_rotation_inventory_two_actual_cohorts(tmp_path, financial):
+    from rotation_inventory_acceptance import run_rotation_inventory
+
+    run_rotation_inventory(tmp_path, financial=financial, count=1000 if financial else 33)
+
+
 @pytest.mark.django_db(transaction=True)
 def test_phase6gc_root_bound_coordinator_cohorts(tmp_path):
     from coordinator_route_acceptance import run_coordinator_cohorts
@@ -263,7 +270,9 @@ def test_phase6gc_current_claim_upgrade_genuine_rules2_repaired_store(tmp_path):
 
 
 @pytest.mark.django_db(transaction=True)
-def test_phase6gc_current_claim_financial_publication_and_native_spl_execution_after_repair(tmp_path):
+def test_phase6gc_current_claim_financial_publication_and_native_spl_execution_after_repair(
+    tmp_path,
+):
     from current_claim_financial_acceptance import run_current_claim_financial
 
     run_current_claim_financial(tmp_path)

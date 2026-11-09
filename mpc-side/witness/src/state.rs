@@ -93,6 +93,12 @@ pub struct Snapshot {
     pub refreshes: BTreeMap<String, wallet_mpc_protocol::solana_generation::RefreshReservation>,
     #[serde(default)]
     pub financial_reservations: BTreeMap<Uuid, String>,
+    #[serde(default, skip_serializing_if = "BTreeMap::is_empty")]
+    pub rotations: BTreeMap<Uuid, crate::rotation::RotationReservation>,
+    #[serde(default, skip_serializing_if = "BTreeMap::is_empty")]
+    pub known_recipients: BTreeMap<String, BTreeSet<String>>,
+    #[serde(default, skip_serializing_if = "BTreeMap::is_empty")]
+    pub claim_candidates: BTreeMap<Uuid, Claim>,
 }
 
 pub(crate) fn slot(party: &str, round: u16) -> String {
@@ -112,6 +118,7 @@ pub(crate) fn roster(keys: &BTreeMap<String, String>) -> Result<()> {
 impl Snapshot {
     pub fn claim_availability(&self, claim: &Claim) -> Result<ClaimAvailability> {
         claim.validate()?;
+        self.check_candidate_binding(claim)?;
         let root_id = claim.root.identity()?;
         ensure!(
             self.roots
@@ -165,6 +172,9 @@ impl Snapshot {
             profile_migrations: BTreeMap::new(),
             refreshes: BTreeMap::new(),
             financial_reservations: BTreeMap::new(),
+            rotations: BTreeMap::new(),
+            known_recipients: BTreeMap::new(),
+            claim_candidates: BTreeMap::new(),
         })
     }
     fn advance(&mut self, root: &str) -> Result<()> {
@@ -180,32 +190,44 @@ impl Snapshot {
         Ok(())
     }
     fn lifecycle_id_reserved(&self, id: Uuid) -> bool {
-        self.profile_migrations.values().any(|m| {
-            let p = m.fence.value.approvals.plan();
-            p.migration_id == id
-                || p.new_anchor_id == id
-                || m.renewal
-                    .as_ref()
-                    .is_some_and(|r| r.custody.value.renewal_id == id)
-        }) || self.commands.values().any(|command| match &command.action {
-            CommandAction::EnableFinancialMode { approvals } => {
-                approvals.plan().activation_id == id
-            }
-            CommandAction::ReserveRefresh { plan } => {
-                [plan.value.session_id, plan.value.ceremony_id].contains(&id)
-            }
-            CommandAction::ReserveReplacement { plan } => [
-                plan.repair_session_id,
-                plan.repair_ceremony_id,
-                plan.refresh.session_id,
-                plan.refresh.ceremony_id,
-                plan.recipient_anchor_id,
-            ]
-            .contains(&id),
-            _ => false,
-        })
+        self.claim_candidates.contains_key(&id)
+            || self.profile_migrations.values().any(|m| {
+                let p = m.fence.value.approvals.plan();
+                p.migration_id == id
+                    || p.new_anchor_id == id
+                    || m.renewal
+                        .as_ref()
+                        .is_some_and(|r| r.custody.value.renewal_id == id)
+            })
+            || self
+                .rotations
+                .iter()
+                .any(|(rotation_id, r)| *rotation_id == id || r.authorizations.contains_key(&id))
+            || self.commands.values().any(|command| match &command.action {
+                CommandAction::EnableFinancialMode { approvals } => {
+                    approvals.plan().activation_id == id
+                }
+                CommandAction::StageRotationInventory { approvals, .. }
+                | CommandAction::BeginRotation { approvals } => [
+                    approvals.plan().rotation_id,
+                    approvals.plan().authorization_id,
+                ]
+                .contains(&id),
+                CommandAction::ReserveRefresh { plan } => {
+                    [plan.value.session_id, plan.value.ceremony_id].contains(&id)
+                }
+                CommandAction::ReserveReplacement { plan } => [
+                    plan.repair_session_id,
+                    plan.repair_ceremony_id,
+                    plan.refresh.session_id,
+                    plan.refresh.ceremony_id,
+                    plan.recipient_anchor_id,
+                ]
+                .contains(&id),
+                _ => false,
+            })
     }
-    fn migration_identity_used(&self, id: Uuid) -> bool {
+    pub(crate) fn migration_identity_used(&self, id: Uuid) -> bool {
         self.lifecycle_id_reserved(id)
             || self.commands.contains_key(&id)
             || self.executions.contains_key(&id)
@@ -269,6 +291,10 @@ impl Snapshot {
                     && !self.lifecycle_id_reserved(root.dkg.execution_id),
                 "replacement identities cannot become new original DKG identities"
             );
+            ensure!(
+                self.journal_rules < 4 || !self.lifecycle_id_reserved(root.dkg.keyset_id),
+                "governed reserved identity cannot become a new keyset"
+            );
             roster(node_keys)?;
             ensure!(
                 root.identity()? == *id && command.expected_revision == 0,
@@ -283,6 +309,7 @@ impl Snapshot {
                             || r.evidence.statement.group_public_key == root.group_public_key),
                 "root/key identity already enrolled"
             );
+            self.index_root_recipient(root)?;
             self.roots.insert(
                 id.clone(),
                 RootState {
@@ -323,7 +350,23 @@ impl Snapshot {
                     "partial profile cohort migration fences lifecycle advance and replacement"
                 );
             }
+            if self.journal_rules >= 4 && self.active_rotation(id).is_some() {
+                ensure!(matches!(command.action,
+                    CommandAction::StageRotationInventory { .. }
+                    | CommandAction::BeginRotation { .. }
+                    | CommandAction::AbandonRotationInventory { .. }),
+                    "durable rotation fences ordinary source lifecycle changes until explicit abandonment");
+            }
             match &command.action {
+                CommandAction::StageRotationInventory { approvals, chunk } => {
+                    self.stage_rotation(command, approvals, chunk, time)?;
+                }
+                CommandAction::BeginRotation { approvals } => {
+                    self.begin_rotation(command, approvals, time)?;
+                }
+                CommandAction::AbandonRotationInventory { rotation_id } => {
+                    self.abandon_rotation(command, *rotation_id)?;
+                }
                 CommandAction::EnableFinancialMode { approvals } => {
                     ensure!(
                         self.journal_rules >= 2 && !legacy_roster,
@@ -402,6 +445,14 @@ impl Snapshot {
                     );
                     fence.value.validate_shape()?;
                     let p = fence.value.approvals.plan();
+                    ensure!(
+                        self.journal_rules < 4
+                            || p.cohort.iter().all(|c| c
+                                .original
+                                .identity()
+                                .is_ok_and(|id| self.active_rotation(&id).is_none())),
+                        "a staged rotation source cannot migrate through another cohort Root"
+                    );
                     ensure!(
                         fence.key_id == p.node_key_id
                             && p.witness_anchor == self.anchor_id
@@ -582,6 +633,10 @@ impl Snapshot {
                         && !self.claim_issuances.contains_key(reservation_id)
                         && !self.issuance_ids.contains_key(issuance_id),
                         "one original native claim, active root and globally unique issuance identity required");
+                    ensure!(
+                        self.journal_rules < 4 || !self.lifecycle_id_reserved(*issuance_id),
+                        "governed reserved identity cannot become an issuance"
+                    );
                     self.claim_issuances.insert(
                         *reservation_id,
                         wallet_mpc_protocol::witness::ClaimIssuance {
@@ -633,6 +688,10 @@ impl Snapshot {
                             && !self.issuance_ids.contains_key(issuance_id),
                         "one original signed classic initializer and unique issuance required"
                     );
+                    ensure!(
+                        self.journal_rules < 4 || !self.lifecycle_id_reserved(*issuance_id),
+                        "governed reserved identity cannot become an issuance"
+                    );
                     self.claim_issuances.insert(
                         *reservation_id,
                         wallet_mpc_protocol::witness::ClaimIssuance {
@@ -648,6 +707,7 @@ impl Snapshot {
                     evidence.validate_claim()?;
                     evidence.statement.validate()?;
                     let claim = &evidence.statement;
+                    self.check_candidate_binding(claim)?;
                     ensure!(
                         claim.root == r.evidence.statement && claim.root.identity()? == *id,
                         "claim requires exact enrolled original root"
@@ -666,6 +726,12 @@ impl Snapshot {
                             "original claim registration cannot change"
                         );
                     } else {
+                        ensure!(
+                            self.journal_rules < 4
+                                || !self.lifecycle_id_reserved(reservation)
+                                || self.claim_candidates.get(&reservation) == Some(claim),
+                            "governed reserved identity cannot become a Claim"
+                        );
                         if let Some(authority) = &evidence.authority {
                             let (_, keys) = authority.prepared()?;
                             ensure!(authority.prepare.value.anchor_id == self.anchor_id
@@ -689,6 +755,7 @@ impl Snapshot {
                         );
                         // One authority transaction commits all permanent aliases
                         // before a wallet may be issued or a permit acknowledged.
+                        self.index_claim_recipient(claim)?;
                         self.claims.insert(reservation, (**evidence).clone());
                         self.claim_indices.insert(index, reservation);
                         self.claim_owners.insert(owner, reservation);
@@ -1017,6 +1084,9 @@ impl Snapshot {
                     && (self.journal_rules < 3 || e == &req.binding.authorized.claim_evidence)),
             "exact original claim must be durably registered before private permission"
         );
+        if self.journal_rules >= 4 {
+            self.check_live_recipients(&req.binding)?;
+        }
         let challenge = format!("{node_key}:{}:{}", req.party_id, req.challenge);
         ensure!(
             !self.challenges.contains(&challenge),

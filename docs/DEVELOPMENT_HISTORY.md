@@ -1,3 +1,17 @@
+## 2026-11-09 — governed witness rotation manifest staging (unmerged development)
+
+Implemented authentic Custody/Policy/Life admission, durable bounded contiguous
+inventory sealing, immutable attempts/aliases and conservative migration entry.
+Mode-off W issuance remains archival control-only; financial PENDING publication
+cannot be omitted or invented. Rules4 preserves original signed history and checks
+known inactive incoming recipients on every new ordinary private round. A staged
+source cannot escape through ordinary maintenance. Root49 witness cases and
+workspace Clippy pass; independent28 protocol/49 W cases and6 genuine cases across qualified runs pass
+with159 stable source/bin hashes. Exact-source CI remains pending. No movement,
+retirement, rescue, financial membership or ledger authority is introduced. Read
+[scope, failure history and open gates](PHASE6GC_ROTATION_INVENTORY.md).
+Parent0c24faf Fast41730430453 passes4 jobs/1364 backend cases830.90s; not ALL.
+
 ## 2026-11-03 — original-keyset coordinator routes (unmerged development)
 
 Migration0048 permanently binds installed coordinator URL/P256identity before DKG

@@ -2477,3 +2477,150 @@ fn rules3_private_permission_binds_exact_registered_evidence_across_generations(
     let req = request(&state, &b, PARTIES[0], 1);
     assert!(state.permit(&req, &keys[PARTIES[0]], 1000).is_ok());
 }
+
+#[test]
+fn rules4_incoming_fence_covers_native_classic_and_each_private_round() {
+    use wallet_mpc_protocol::{solana_intent::Action, solana_provisioning::Root};
+    let (mut s, original) = setup();
+    s.journal_rules = 4;
+    let f: Value = serde_json::from_str(include_str!(
+        "../../../protocol/tests/fixtures/solana-rotation-roots.json"
+    ))
+    .unwrap();
+    let mut target: Root = serde_json::from_value(f["target"]["root"].clone()).unwrap();
+    target.genesis_hash = original.authorized.intent.claim.root.genesis_hash.clone();
+    let mut target_binding = original.clone();
+    target_binding.authorized.intent.claim.root = target.clone();
+    let enroll = command(
+        &s,
+        &target_binding,
+        CommandAction::Enroll {
+            evidence: Box::new(evidence(target.clone())),
+            node_keys: node_keys(),
+        },
+    );
+    s.command_at(&enroll, 1000).unwrap();
+    let target_claim = Claim {
+        root: target.clone(),
+        index: 0,
+        reservation_id: Uuid::new_v4(),
+        owner_ref: "recipient".into(),
+        idempotency_key: "recipient".into(),
+        asset: wallet_mpc_protocol::solana_provisioning::Asset::Native,
+    };
+    let mut target_binding = target_binding.clone();
+    target_binding.authorized.intent.claim = target_claim.clone();
+    register(&mut s, &target_binding);
+    let base = bs58::encode(target.base().unwrap()).into_string();
+    let actions = [
+        Action::NativeTransfer {
+            destination: target_claim.address().unwrap(),
+            amount: 1,
+        },
+        Action::NativeTransfer {
+            destination: base.clone(),
+            amount: 1,
+        },
+        Action::ClassicTransfer {
+            destination_owner: base.clone(),
+            amount: 1,
+            create_ata: false,
+        },
+        Action::ClassicSeededTransfer {
+            destination_base: base,
+            destination_index: 500,
+            amount: 1,
+        },
+    ];
+    for action in actions {
+        let mut b = original.clone();
+        b.authorized.intent.action = action;
+        assert_eq!(
+            s.incoming_roots(&b).unwrap(),
+            BTreeSet::from([target.identity().unwrap()])
+        );
+        s.check_live_recipients(&b).unwrap();
+        let req = request(&s, &b, PARTIES[0], 1);
+        let mut admitted = s.clone();
+        admitted
+            .permit(&req, &node_keys()[PARTIES[0]], 1000)
+            .unwrap();
+        // Freeze wins before a new R1: no grant/alias is admitted.
+        let freeze = command(&s, &target_binding, CommandAction::Freeze);
+        let mut frozen = s.clone();
+        frozen.command_at(&freeze, 1000).unwrap();
+        let before = frozen.clone();
+        assert!(frozen
+            .permit(&req, &node_keys()[PARTIES[0]], 1000)
+            .unwrap_err()
+            .to_string()
+            .contains("incoming recipient"));
+        assert_eq!(frozen, before);
+        // R1 wins before Freeze: the already open inbound execution is retained,
+        // but a later R2 is fenced before any package/private grant.
+        let freeze = command(&admitted, &target_binding, CommandAction::Freeze);
+        admitted.command_at(&freeze, 1000).unwrap();
+        assert!(admitted
+            .has_unsettled_incoming(&target.identity().unwrap())
+            .unwrap());
+        let mut r2 = request(&admitted, &b, PARTIES[0], 2);
+        r2.signing_package = Some(vec![1]);
+        assert!(admitted
+            .permit(&r2, &node_keys()[PARTIES[0]], 1000)
+            .unwrap_err()
+            .to_string()
+            .contains("incoming recipient"));
+        assert!(
+            !admitted.executions[&b.authorized.intent.crypto_execution_id]
+                .grants
+                .contains_key(&slot(PARTIES[0], 2))
+        );
+        // Historical replay keeps its original rules; no retroactive new fence.
+        let mut historical = before;
+        historical.journal_rules = 3;
+        historical
+            .permit(&req, &node_keys()[PARTIES[0]], 1000)
+            .unwrap();
+    }
+}
+
+#[test]
+fn incoming_index_is_genesis_scoped_and_public_results_remain_recoverable() {
+    let (mut s, b) = setup();
+    s.journal_rules = 4;
+    let mut inbound = b.clone();
+    inbound.authorized.intent.action = wallet_mpc_protocol::solana_intent::Action::NativeTransfer {
+        destination: b.authorized.intent.claim.address().unwrap(),
+        amount: 1,
+    };
+    assert!(s
+        .incoming_roots(&inbound)
+        .unwrap()
+        .contains(&b.authorized.intent.claim.root.identity().unwrap()));
+    inbound.authorized.intent.claim.root.genesis_hash = bs58::encode([91u8; 32]).into_string();
+    assert!(s.incoming_roots(&inbound).unwrap().is_empty());
+    let req = grant(&mut s, &b, PARTIES[0]);
+    let c = command(&s, &b, CommandAction::Freeze);
+    s.command_at(&c, 1000).unwrap();
+    let mut rng = rand_core::OsRng;
+    let (secrets, _) =
+        frost::keys::generate_with_dealer(3, 2, frost::keys::IdentifierList::Default, rng).unwrap();
+    let key = frost::keys::KeyPackage::try_from(secrets[&identifier(PARTIES[0]).unwrap()].clone())
+        .unwrap();
+    let (_, commitments) = frost::round1::commit(key.signing_share(), &mut rng);
+    let report = signed(
+        PARTIES[0],
+        PublicRound {
+            anchor_id: s.anchor_id,
+            execution_id: b.authorized.intent.crypto_execution_id,
+            binding_fingerprint: b.identity().unwrap(),
+            party_id: PARTIES[0].into(),
+            round: 1,
+            commitments: Some(commitments.serialize().unwrap()),
+            signature_share: None,
+            signing_package: None,
+        },
+    );
+    assert_eq!(req.round, 1);
+    s.record(&report).unwrap();
+}

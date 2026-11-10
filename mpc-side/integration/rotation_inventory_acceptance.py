@@ -212,7 +212,8 @@ def run_rotation_inventory(root_path, *, financial=False, count=33):
             domain = "WITNESS_SOLANA_ROTATION_PLAN_V1"
             approvals = approved(w, plan, domain)
 
-            def action(start, chunk, proofs=approvals):
+            def action(start, chunk, proofs=None):
+                proofs = approvals if proofs is None else proofs
                 return {
                     "kind": "StageRotationInventory",
                     "approvals": proofs,
@@ -308,7 +309,8 @@ def run_rotation_inventory(root_path, *, financial=False, count=33):
             candidate_query["candidate_claim"] = dict(
                 entries[1]["claim"], owner_ref=f"p1:{uuid.uuid4()}"
             )
-            assert w.request("query", sign(w.life, "WITNESS_QUERY_V1", candidate_query))[0] == 409
+            # Life's partial proposals are not authenticated owner bindings.
+            assert w.request("query", sign(w.life, "WITNESS_QUERY_V1", candidate_query))[0] == 200
             command(w, source, {"kind": "Activate"}, expected=409)
             command(
                 w,
@@ -316,6 +318,82 @@ def run_rotation_inventory(root_path, *, financial=False, count=33):
                 {"kind": "AbandonRefresh", "ceremony_id": str(uuid.uuid4())},
                 expected=409,
             )
+            # Recover the original committed data after abandoning a partial
+            # upload. Chunks missing at W must match the original C/P full hash.
+            old_plan = copy.deepcopy(plan)
+            command(
+                w, source, {"kind": "AbandonRotationInventory", "rotation_id": plan["rotation_id"]}
+            )
+            recovery_id = str(uuid.uuid4())
+
+            def recovery_view(root=source):
+                request = {
+                    "anchor_id": w.config["anchor_id"],
+                    "root_identity": fingerprint("SOLANA_SEEDED_ROOT_V1", root),
+                    "challenge": hashlib.sha256(uuid.uuid4().bytes).hexdigest(),
+                    "execution_id": None,
+                    "materialization_id": recovery_id,
+                }
+                code, result = w.request("query", sign(w.life, "WITNESS_QUERY_V1", request))
+                assert code == 200, (code, result)
+                reply = verify(w.identity, "WITNESS_QUERY_REPLY_V1", result)
+                assert reply["query"] == request
+                return reply.get("inventory_materialization")
+
+            assert recovery_view() is None
+            for start in range(0, count, 32):
+                original_chunk = entries[start : start + 32]
+                recovery_action = {
+                    "kind": "MaterializeRotationInventory",
+                    "rotation_id": old_plan["rotation_id"],
+                    "materialization_id": recovery_id,
+                    "chunk": {
+                        "business_fingerprint": business(old_plan),
+                        "start_index": start,
+                        "entries": original_chunk,
+                    },
+                }
+                if start == 0:
+                    with root_context(w, source):
+                        no_life = w.command(recovery_action, w.query()["root"]["revision"])
+                    assert (
+                        w.request(
+                            "command", sign(w.custody, "WITNESS_COMMAND_V1", no_life["value"])
+                        )[0]
+                        == 409
+                    )
+                if start + len(original_chunk) == count:
+                    before_recovery = recovery_view()
+                    altered = copy.deepcopy(recovery_action)
+                    altered["chunk"]["entries"][-1]["claim"]["owner_ref"] = f"p1:{uuid.uuid4()}"
+                    command(w, source, altered, expected=409)
+                    assert recovery_view() == before_recovery
+                accepted = command(w, source, recovery_action)
+                if start == 0:
+                    progress = recovery_view()
+                    assert progress["status"] == "Collecting" and progress["next_index"] == 32
+                    w.stop()
+                    w.start(startup_timeout=60)
+                    assert recovery_view() == progress
+                    assert w.request("command", accepted)[0] == 200
+            recovered = recovery_view()
+            assert recovered["status"] == "Verified" and recovered["next_index"] == count
+            assert recovered["inventory_fingerprint"] == old_plan["inventory_fingerprint"]
+            assert "conflict" not in recovered
+            if financial:
+                entries[0]["membership"]["publication"] = "ACTIVE"
+            plan = dict(
+                plan,
+                rotation_id=str(uuid.uuid4()),
+                authorization_id=str(uuid.uuid4()),
+                inventory_fingerprint=fingerprint(
+                    "SOLANA_ROTATION_INVENTORY_V1",
+                    [fingerprint("SOLANA_SEEDED_ROOT_V1", source), count, entries],
+                ),
+                expires_at=int(time.time()) + 120,
+            )
+            approvals = approved(w, plan, domain)
+            command(w, source, action(0, entries[:32]))
             for start in range(32, count, 32):
                 command(w, source, action(start, entries[start : start + 32]))
             sealed = query(w, source)["root"]
@@ -407,7 +485,7 @@ def run_rotation_inventory(root_path, *, financial=False, count=33):
                 json.loads(p.read_text())["value"]
                 for p in sorted((w.directory / "journal/events").glob("*.json"))
             ]
-            assert all(e["rules"] == 6 for e in events)
+            assert all(e["rules"] == 7 for e in events)
             assert all(e["transition"]["kind"] != "Permit" for e in events)
             assert [
                 encrypted_files(net, root["dkg"]) for net, root in ((a, source), (b, target))
@@ -431,6 +509,11 @@ def run_rotation_inventory(root_path, *, financial=False, count=33):
                         "authenticated_rules_downgrade_rejected": True,
                         "foreign_three_node_receipts_rejected_after_restart_abandonment": True,
                         "retained_allocation_frontier_cannot_shrink_after_abandonment": True,
+                        "partial_original_commitment_materialized_before_new_plan": True,
+                        "materialization_restart_and_exact_retry": True,
+                        "materialization_wrong_whole_hash_rollback": True,
+                        "pending_to_active_metadata_evolution_is_declaration_only": financial,
+                        "partial_life_proposal_does_not_bind_owner": True,
                         "staged_candidate_has_no_registered_evidence_or_issuance": True,
                         "head_write_failure_poisoned_then_recovered": not financial,
                         "private_permits": 0,

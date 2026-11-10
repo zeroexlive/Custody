@@ -404,3 +404,16 @@ proofs, publication state and allocation aliases are immutable. Export returns
 contiguous source data capped at32 entries/128KiB, reducing count to fit; it sends
 no W command and grants no private or ledger authority. See
 [full data/recovery boundary](PHASE6GC_BACKEND_INVENTORY.md).
+
+
+### Historical rotation inventory data recovery (unmerged development)
+
+Existing Life-only W command transport gains `MaterializeRotationInventory` with
+an original admitted rotation ID, unique recovery attempt ID and bounded chunk.
+The old accepted C/P fingerprint authenticates complete data; old approval expiry
+is not reused for private authority. Fresh Life/CAS and Frozen source still apply.
+Optional `materialization_id` query selector returns signed compact
+`inventory_materialization` progress: Collecting/Verified/Conflict. A command ACK
+alone does not attest successful binding recovery. Ordinary query encodings omit
+both new optional fields. No customer/private/ledger route is exposed. See
+[authority and conflict behavior](PHASE6GC_INVENTORY_MATERIALIZATION.md).

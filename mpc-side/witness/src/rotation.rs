@@ -29,6 +29,29 @@ pub struct RotationReservation {
 }
 impl Snapshot {
     pub(crate) fn unresolved_rotation_commitment(&self, root: &str) -> Result<bool> {
+        if self.journal_rules >= 7 {
+            if self.has_inventory_conflict(root) {
+                return Ok(true);
+            }
+            for old in self
+                .rotations
+                .values()
+                .filter(|r| r.source_identity == root)
+            {
+                for approval in old.authorizations.values() {
+                    let Some(entries) = self.historical_inventory(approval.plan())? else {
+                        return Ok(true);
+                    };
+                    if self
+                        .check_historical_bindings(approval.plan(), entries)
+                        .is_err()
+                    {
+                        return Ok(true);
+                    }
+                }
+            }
+            return Ok(false);
+        }
         for old in self
             .rotations
             .values()
@@ -91,7 +114,7 @@ impl Snapshot {
             .find(|r| r.source_identity == root && r.status != RotationStatus::Abandoned)
     }
     pub(crate) fn rotation_identity_used(&self, id: Uuid) -> bool {
-        self.migration_identity_used(id)
+        self.migration_identity_used_without_proposals(id)
             || self.claims.contains_key(&id)
             || self.issuance_ids.contains_key(&id)
             || self
@@ -166,6 +189,24 @@ impl Snapshot {
                 "manifest must cover all retained candidates and prior declared allocation frontiers"
             );
         }
+        if self.journal_rules >= 7 {
+            ensure!(
+                !self.has_inventory_conflict(&source_id),
+                "conflicting archival inventory requires explicit recovery"
+            );
+            for prior in self
+                .rotations
+                .iter()
+                .filter(|(id, r)| **id != plan.rotation_id && r.source_identity == source_id)
+            {
+                for old in prior.1.authorizations.values() {
+                    ensure!(
+                        self.historical_inventory(old.plan())?.is_some(),
+                        "materialize every prior original commitment before new admission"
+                    );
+                }
+            }
+        }
         // A renewal may refer to a newly repaired/refreshed target. Freshness
         // must hold against BOTH complete histories on every admission, not
         // only the rosters at the first chunk.
@@ -204,7 +245,7 @@ impl Snapshot {
         }
         Ok(())
     }
-    fn check_rotation_entry(&self, entry: &MigrationSource) -> Result<()> {
+    pub(crate) fn check_rotation_entry(&self, entry: &MigrationSource) -> Result<()> {
         entry.validate_shape()?;
         self.check_candidate_binding(&entry.claim)?;
         let root = entry.claim.root.identity()?;
@@ -280,7 +321,9 @@ impl Snapshot {
             );
         } else {
             ensure!(
-                !self.rotation_identity_used(plan.authorization_id),
+                !self.rotation_identity_used(plan.authorization_id)
+                    && (self.journal_rules < 7
+                        || !self.provisional_claim_id(plan.authorization_id)),
                 "rotation approval identity is globally reserved"
             );
             self.rotations
@@ -307,6 +350,7 @@ impl Snapshot {
             ensure!(
                 chunk.start_index == 0
                     && !self.rotation_identity_used(plan.rotation_id)
+                    && (self.journal_rules < 7 || !self.provisional_claim_id(plan.rotation_id))
                     && self.active_rotation(&source).is_none(),
                 "one original rotation; inventory must begin at zero"
             );
@@ -337,6 +381,10 @@ impl Snapshot {
         );
         self.add_rotation_authorization(plan.rotation_id, approvals)?;
         for entry in &chunk.entries {
+            ensure!(
+                self.journal_rules < 7 || entry.claim.reservation_id != command.request_id,
+                "proposed Claim identity cannot equal its lifecycle command"
+            );
             self.check_rotation_entry(entry)?;
         }
         let old = &self.rotations[&plan.rotation_id];
@@ -381,7 +429,7 @@ impl Snapshot {
         if u64::try_from(mutable.entries.len())? == plan.allocated_high_water {
             let complete_entries = mutable.entries.clone();
             plan.validate_inventory(&complete_entries)?;
-            if self.journal_rules >= 6 {
+            if self.journal_rules == 6 {
                 // An old partial plan commits even the tuples whose chunks W
                 // never received. A mere high-water floor cannot authenticate
                 // those missing owners/aliases. Until explicit historical
@@ -406,6 +454,33 @@ impl Snapshot {
                     }
                 }
             }
+            if self.journal_rules >= 7 {
+                ensure!(
+                    !self.has_inventory_conflict(&source),
+                    "conflicting archive remains quarantined"
+                );
+                for (id, prior) in self
+                    .rotations
+                    .iter()
+                    .filter(|(_, r)| r.source_identity == source)
+                {
+                    if *id == plan.rotation_id {
+                        continue;
+                    }
+                    for approval in prior.authorizations.values() {
+                        let proved = self
+                            .historical_inventory(approval.plan())?
+                            .context("original historical inventory data must be materialized")?;
+                        ensure!(
+                            Self::same_inventory_bindings(proved, &complete_entries),
+                            "original Claim, asset key and approved role must remain unchanged"
+                        );
+                    }
+                }
+                for entry in &complete_entries {
+                    self.check_rotation_entry(entry)?;
+                }
+            }
             // Every source W Claim is mandatory, even when never published.
             for registered in self
                 .claims
@@ -422,10 +497,23 @@ impl Snapshot {
             }
             self.rotations.get_mut(&plan.rotation_id).unwrap().status = RotationStatus::Sealed;
         }
-        for entry in &chunk.entries {
+        let admitted = &self.rotations[&plan.rotation_id];
+        let promote = if self.journal_rules >= 7 {
+            if admitted.status == RotationStatus::Sealed {
+                admitted.entries.clone()
+            } else {
+                vec![]
+            }
+        } else {
+            chunk.entries.clone()
+        };
+        for entry in &promote {
             if !self.claims.contains_key(&entry.claim.reservation_id) {
                 self.bind_claim_candidate(&entry.claim)?;
             }
+        }
+        // Watched addresses remain even for unverified partial proposals.
+        for entry in &chunk.entries {
             self.index_claim_recipient(&entry.claim)?;
         }
         Ok(())

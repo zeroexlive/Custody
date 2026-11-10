@@ -1,3 +1,14 @@
+## 2026-11-10 — public historical inventory recovery draft
+
+Forwardrules7 separates original commitment proof from current publication
+metadata. Immutable recovery attempts have signed progress and explicit persistent
+Conflict quarantine; legacy candidates are never silently overwritten. New partial
+staging promotes aliases only after the full C/P hash verifies. Root71 W cases1.69s
+and Clippy2.06s pass; four genuine cases161.712s pass; independent71 W/39 protocol/14 contracts/Clippy and4 genuine175.174s pass
+with181 unchanged paths and no bounded P0/P1/new P2 blocker. Exact-source CI pending. Original0–6
+signed replay remains unchanged. Actual movement/fees, retirement/watch/rescue and
+whole-phase acceptance remain open. See [scope](PHASE6GC_INVENTORY_MATERIALIZATION.md).
+
 ## 2026-11-10 — retained inventory interim admission quarantine
 
 Forwardrules6 protects old full C/P commitments and prior allocated high-waters,

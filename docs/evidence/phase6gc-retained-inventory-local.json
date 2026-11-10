@@ -64,5 +64,14 @@
   "whole_phase_complete": false,
   "private_movement_enabled": false,
   "production_activated": false,
-  "test_fixture_failures_retained": "Initial E0502 compile and mismatched genesis / stale detached claim evidence in new test controls; test-only fixes, no production changes"
+  "test_fixture_failures_retained": "Initial E0502 compile and mismatched genesis / stale detached claim evidence in new test controls; test-only fixes, no production changes",
+  "exact_checkpoint_fast_ci": {
+    "sha": "00e49a443902d7337d18ab4a4db312850d7f1df2",
+    "run": 42848404456,
+    "result": "SUCCESS",
+    "executed_jobs": 4,
+    "backend_passed": 1431,
+    "backend_seconds": 1001.7,
+    "all_crypto": false
+  }
 }

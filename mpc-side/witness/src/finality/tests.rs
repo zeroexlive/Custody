@@ -123,6 +123,7 @@ fn reports(s: &Snapshot, request: &FinalityRequest) -> Vec<Signed<FinalityReady>
                 execution_id: Some(p.execution_id),
                 claim_reservation_id: None,
                 candidate_claim: None,
+                materialization_id: None,
             };
             let final_query = Query {
                 challenge: hash(format!("{party}:final").as_bytes()),
@@ -159,6 +160,7 @@ fn reports(s: &Snapshot, request: &FinalityRequest) -> Vec<Signed<FinalityReady>
                 refresh: None,
                 claim_availability: None,
                 generation_authority: None,
+                inventory_materialization: None,
             };
             let lease = FinalityLease {
                 request: request.clone(),

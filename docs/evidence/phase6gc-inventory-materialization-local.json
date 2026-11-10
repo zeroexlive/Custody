@@ -1,0 +1,161 @@
+{
+  "date": "2026-11-10",
+  "status": "UNMERGED_BOUNDED_INDEPENDENT_VALIDATION_PASS_EXACT_SOURCE_CI_PENDING",
+  "source_parent": "00e49a443902d7337d18ab4a4db312850d7f1df2",
+  "forward_journal_rules": 7,
+  "scope": "Public archival data recovery, immutable binding proof and conflict quarantine; no private movement/retirement/phase completion",
+  "root_witness": {
+    "passed": 71,
+    "failed": 0,
+    "ignored": 0,
+    "seconds": 1.69
+  },
+  "root_workspace_alltargets_clippy": {
+    "result": "PASS",
+    "seconds": 2.06
+  },
+  "root_genuine": {
+    "tests": 4,
+    "failures": 0,
+    "errors": 0,
+    "skipped": 0,
+    "seconds": 161.712,
+    "cases": [
+      {
+        "name": "test_phase6gc_governed_rotation_inventory_two_actual_cohorts[False]",
+        "seconds": 12.485
+      },
+      {
+        "name": "test_phase6gc_governed_rotation_inventory_two_actual_cohorts[True]",
+        "seconds": 146.079
+      },
+      {
+        "name": "test_phase6gc_witness_replacement_reservation_and_original_signed_store_upgrade",
+        "seconds": 0.741
+      },
+      {
+        "name": "test_phase6gc_witness_journal_restart_corruption_and_concurrency",
+        "seconds": 1.994
+      }
+    ],
+    "public_reports": [
+      {
+        "sha256": "1ab37ea9843a2be5fe816b2ea6b458c7ad9a4eed43401eb06da95aab32919ed3",
+        "manifest_entries": 33,
+        "registered_source_claims": 1,
+        "replay_seconds": 1.3711717419937486,
+        "private_permits": 0,
+        "materialization_restart_and_exact_retry": true,
+        "materialization_wrong_whole_hash_rollback": true
+      },
+      {
+        "sha256": "dc5759569c7a135a4bf0647bb61f171f5018a21b391ad1b7cebb31db0494928a",
+        "manifest_entries": 1000,
+        "registered_source_claims": 1,
+        "replay_seconds": 29.72333760499896,
+        "private_permits": 0,
+        "materialization_restart_and_exact_retry": true,
+        "materialization_wrong_whole_hash_rollback": true
+      }
+    ]
+  },
+  "failed_runs_retained": [
+    {
+      "tests": 4,
+      "passed": 2,
+      "failed": 2,
+      "seconds": 38.18,
+      "cause": "Inventory helper tried plain Activate on Frozen target; existing Prepared-only guard correctly rejected. Helper-only fix, guard unchanged."
+    },
+    {
+      "tests": 2,
+      "passed": 1,
+      "failed": 1,
+      "seconds": 193.45,
+      "cause": "1000-entry ordinary permit rejection exceeded existing5s HTTP timeout due to repeated whole-archive cryptographic validation. Exact journal-derived full-proof fast paths and indexed immutable-alias comparison replace repeated validation; deadlines unchanged."
+    },
+    {
+      "tests": 4,
+      "passed": 3,
+      "failed": 1,
+      "seconds": 173.44,
+      "cause": "1000-entry restart exceeded original60s startup while equal-length known-different whole hashes were needlessly recomputed for unfinished new metadata. Skip only those known different complete hashes; retain all cross-length and unfinished larger-plan prefix verification. Startup deadline unchanged."
+    }
+  ],
+  "original_signed_rules_0_to_6_preserved": true,
+  "ordinary_query_optional_fields_omitted": true,
+  "conflicting_proof_preserved_without_alias_override": true,
+  "new_partial_aliases_promoted_only_after_full_hash": true,
+  "independent": {
+    "scope": "Public historical materialization; not migration/retirement/phase acceptance",
+    "witness": {
+      "passed": 71,
+      "failed": 0,
+      "ignored": 0,
+      "seconds": 1.55
+    },
+    "protocol_library": {
+      "passed": 39,
+      "failed": 0,
+      "ignored": 0,
+      "seconds": 82.53
+    },
+    "external_contracts": {
+      "passed": 14,
+      "suites": [
+        {
+          "passed": 4,
+          "seconds": 0.01
+        },
+        {
+          "passed": 9,
+          "seconds": 0.23
+        },
+        {
+          "passed": 1,
+          "seconds": 0.16
+        }
+      ]
+    },
+    "workspace_alltargets_clippy": {
+      "result": "PASS",
+      "seconds": 0.32
+    },
+    "genuine": {
+      "tests": 4,
+      "failures": 0,
+      "errors": 0,
+      "skipped": 0,
+      "seconds": 175.174,
+      "final_1000_replay_seconds": 34.708,
+      "private_permits": 0,
+      "six_original_encrypted_shares_and_wrapping_keys_unchanged": true
+    },
+    "final_hash_handback": {
+      "result": "PASS",
+      "frozen_paths": 181,
+      "source_helper_fixture_workflow_paths": 177,
+      "runtime_binaries": 4,
+      "changes": []
+    },
+    "source_findings": {
+      "P0": [],
+      "P1": [],
+      "new_blocking_P2": []
+    },
+    "candidate_retries_or_failures": 0
+  },
+  "whole_phase_complete": false,
+  "private_movement_enabled": false,
+  "production_activated": false,
+  "parent_fast_ci": {
+    "sha": "00e49a443902d7337d18ab4a4db312850d7f1df2",
+    "run": 42848404456,
+    "result": "SUCCESS",
+    "executed_jobs": 4,
+    "backend_passed": 1431,
+    "backend_seconds": 1001.7,
+    "predates_this_source": true,
+    "all_crypto": false
+  }
+}

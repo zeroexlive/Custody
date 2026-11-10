@@ -279,3 +279,16 @@ source and runtime binaries stayed unchanged. This deliberately blocks legitimat
 metadata evolution; full historical materialization and explicit provisional
 poison reconciliation remain mandatory before movement/retirement. No new
 MIGRATION/RESCUE, financial or phase authority follows.
+
+
+2026-11-10 historical inventory materialization draft: read
+PHASE6GC_INVENTORY_MATERIALIZATION.md. Forwardrules7 adds public fresh-Life/CAS
+transport against original accepted whole commitments, immutable attempts and
+signed progress. Complete proved binding conflicts persist as Conflict and never
+release quarantine or overwrite legacy candidates. New staging defers candidate
+promotion until full-hash verification, retaining UUID/address tombstones.
+Fresh publication metadata still requires current W checks and C/P/Life approval;
+Claim/asset-key/role stay exact. Original0–6 replay unchanged. Root71 W cases1.69s
+and workspaceClippy2.06s pass; four genuine cases161.712s pass; independent71 W/39 protocol/14 contracts/Clippy and4 genuine175.174s pass
+with181 unchanged paths and no bounded P0/P1/new P2 blocker. Exact-source CI pending.
+This grants no private movement/retirement or phase/production completion.

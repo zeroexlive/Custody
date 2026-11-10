@@ -83,7 +83,7 @@ fn event_hash(event: &Signed<Event>) -> Result<String> {
 }
 fn replay(state: &mut Snapshot, event: &Event) -> Result<()> {
     ensure!(
-        event.rules.is_none() || matches!(event.rules, Some(1..=6)),
+        event.rules.is_none() || matches!(event.rules, Some(1..=7)),
         "unsupported authority event rules"
     );
     ensure!(
@@ -163,7 +163,7 @@ impl Authority {
                 sequence: 0,
                 previous_hash: "00".repeat(32),
                 time: now()?,
-                rules: Some(6),
+                rules: Some(7),
                 transition: Transition::Initialize,
             };
             let signed = trust.sign("WITNESS_EVENT_V1", genesis)?;
@@ -307,7 +307,7 @@ impl Authority {
             sequence: candidate.sequence,
             previous_hash: j.last_hash.clone(),
             time,
-            rules: Some(6),
+            rules: Some(7),
             transition,
         };
         let signed = self.trust.sign("WITNESS_EVENT_V1", event)?;
@@ -350,7 +350,7 @@ impl Authority {
             j.command_proofs
                 .insert(command.value.request_id, command.as_ref().clone());
         }
-        candidate.journal_rules = 6;
+        candidate.journal_rules = 7;
         j.last_hash = next_hash;
         j.state = candidate;
         Ok(())
@@ -509,7 +509,7 @@ impl Authority {
         }
         let fingerprint = hash(&command.signing_message("WITNESS_COMMAND_V1")?);
         let mut candidate = j.state.clone();
-        candidate.journal_rules = 6;
+        candidate.journal_rules = 7;
         if candidate.command_at(&command.value, time)? {
             self.commit(
                 &mut j,
@@ -558,7 +558,7 @@ impl Authority {
             time,
         )?;
         let mut candidate = j.state.clone();
-        candidate.journal_rules = 6;
+        candidate.journal_rules = 7;
         let permit = candidate.permit(&request.value, &request.key_id, time)?;
         let response = self.trust.sign("WITNESS_PERMIT_V1", permit)?;
         self.commit(
@@ -693,6 +693,15 @@ impl Authority {
         self.trust.sign(
             "WITNESS_QUERY_REPLY_V1",
             QueryReply {
+                inventory_materialization: request
+                    .value
+                    .materialization_id
+                    .map(|id| {
+                        j.state
+                            .materialization_view(&request.value.root_identity, id)
+                    })
+                    .transpose()?
+                    .flatten(),
                 claim_availability,
                 generation_authority,
                 query: request.value,

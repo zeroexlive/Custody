@@ -328,6 +328,11 @@ pub enum CommandAction {
         approvals: Box<crate::solana_rotation::RotationApprovals>,
         chunk: Box<crate::solana_rotation::InventoryChunk>,
     },
+    MaterializeRotationInventory {
+        rotation_id: Uuid,
+        materialization_id: Uuid,
+        chunk: Box<crate::solana_rotation::InventoryChunk>,
+    },
     BeginRotation {
         approvals: Box<crate::solana_rotation::RotationApprovals>,
     },
@@ -408,6 +413,22 @@ impl Command {
                 approvals.plan().validate(now)?;
                 chunk.validate(approvals.plan())?;
             }
+            CommandAction::MaterializeRotationInventory {
+                rotation_id,
+                materialization_id,
+                chunk,
+            } => {
+                ensure!(
+                    !rotation_id.is_nil()
+                        && !materialization_id.is_nil()
+                        && rotation_id != materialization_id
+                        && self.request_id != *materialization_id
+                        && chunk.entries.len() <= crate::solana_rotation::MAX_INVENTORY_CHUNK
+                        && serde_json::to_vec(&serde_json::to_value(chunk)?)?.len()
+                            <= crate::solana_rotation::MAX_CHUNK_BYTES,
+                    "bounded original historical data recovery identity required"
+                );
+            }
             CommandAction::BeginRotation { approvals } => {
                 approvals.validate_shape()?;
                 approvals.plan().validate(now)?;
@@ -441,6 +462,8 @@ pub struct Query {
     pub claim_reservation_id: Option<Uuid>,
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub candidate_claim: Option<Box<Claim>>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub materialization_id: Option<Uuid>,
 }
 
 #[derive(Clone, Debug, Serialize, Deserialize, PartialEq, Eq)]
@@ -526,6 +549,8 @@ pub struct QueryReply {
     pub claim_availability: Option<ClaimAvailability>,
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub generation_authority: Option<Box<Signed<Command>>>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub inventory_materialization: Option<crate::solana_rotation::InventoryMaterializationView>,
 }
 
 /// Durable permission to publish one already registered native deposit claim.

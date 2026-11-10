@@ -4,6 +4,7 @@ mod authority;
 mod candidate;
 mod finality;
 mod incoming;
+mod materialization;
 mod rotation;
 mod state;
 mod trust;

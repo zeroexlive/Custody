@@ -1,4 +1,4 @@
-# Current project status — 2026-11-09
+# Current project status — 2026-11-10
 
 Verified `zeroexlive/Custody` main is **`587e0969a216102879d17cadb6ffeee8dfb8b6c6`**,
 merged [PR #1](https://github.com/zeroexlive/Custody/pull/1). Its parents are the
@@ -9,6 +9,29 @@ main ref and exact tree identity were independently confirmed.
 authorized this bounded development checkpoint merge and continuation within6G-C.
 It supersedes retaining the entire unfinished phase in one Draft PR. Phase7–9
 remain planned; production/mainnet/customer-fund activation remains unauthorized.
+
+Verified preceding development checkpoint: `00e49a4` in Draft [PR #2](https://github.com/zeroexlive/Custody/pull/2)
+adds retained-inventory quarantine. Exact [Fast42848404456](https://github.com/zeroexlive/Custody/actions/runs/42848404456)
+passed four selected jobs, including1431 backend tests1001.70s; full crypto was
+unselected. The subsequent public historical-inventory materialization is under
+bounded independent validation complete:71 witness/39 protocol/14 contract
+cases, Clippy and four genuine process cases175.174s pass with181 unchanged
+source/binary paths. Exact-source CI is pending. Root four process cases161.712s
+also pass. Its1000-entry final replay is29.723s under the unchanged60s
+limit. [Scope and qualified failures](PHASE6GC_INVENTORY_MATERIALIZATION.md).
+
+Remaining before Phase6G-C completion:
+
+- Actual MIGRATION/RESCUE signing and financial execution across independent fresh
+  cohorts, with cumulative possible-fee caps and original beneficial ownership/holds.
+- Retirement readiness, permanent successor history, continued old-address watching
+  and governed late-deposit rescue, including interrupted/unknown outcomes.
+- Final exact-SHA Fast+ALL, original3d32 six-case encrypted-store compatibility,
+  independent whole-phase review, repository rules, merge and main verification.
+
+Sources with conflicting historical bindings remain quarantined for explicit
+recovery; materialization never silently overrides them. The following paragraphs
+retain earlier development checkpoints and their original evidence qualifications.
 
 Earlier Draft PR #2 allocation checkpoint `99a055e` passed exact
 [Fast41361207460](https://github.com/zeroexlive/Custody/actions/runs/41361207460)
@@ -650,3 +673,16 @@ source and runtime binaries stayed unchanged. This deliberately blocks legitimat
 metadata evolution; full historical materialization and explicit provisional
 poison reconciliation remain mandatory before movement/retirement. No new
 MIGRATION/RESCUE, financial or phase authority follows.
+
+
+2026-11-10 historical inventory materialization draft: read
+PHASE6GC_INVENTORY_MATERIALIZATION.md. Forwardrules7 adds public fresh-Life/CAS
+transport against original accepted whole commitments, immutable attempts and
+signed progress. Complete proved binding conflicts persist as Conflict and never
+release quarantine or overwrite legacy candidates. New staging defers candidate
+promotion until full-hash verification, retaining UUID/address tombstones.
+Fresh publication metadata still requires current W checks and C/P/Life approval;
+Claim/asset-key/role stay exact. Original0–6 replay unchanged. Root71 W cases1.69s
+and workspaceClippy2.06s pass; four genuine cases161.712s pass; independent71 W/39 protocol/14 contracts/Clippy and4 genuine175.174s pass
+with181 unchanged paths and no bounded P0/P1/new P2 blocker. Exact-source CI pending.
+This grants no private movement/retirement or phase/production completion.

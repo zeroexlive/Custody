@@ -101,6 +101,9 @@ pub struct Snapshot {
     pub claim_candidates: BTreeMap<Uuid, Claim>,
     #[serde(default, skip_serializing_if = "BTreeMap::is_empty")]
     pub finalities: BTreeMap<Uuid, wallet_mpc_protocol::solana_finality::FinalityReceipt>,
+    #[serde(default, skip_serializing_if = "BTreeMap::is_empty")]
+    pub inventory_materializations:
+        BTreeMap<Uuid, crate::materialization::InventoryMaterialization>,
 }
 
 pub(crate) fn slot(party: &str, round: u16) -> String {
@@ -178,6 +181,7 @@ impl Snapshot {
             known_recipients: BTreeMap::new(),
             claim_candidates: BTreeMap::new(),
             finalities: BTreeMap::new(),
+            inventory_materializations: BTreeMap::new(),
         })
     }
     fn advance(&mut self, root: &str) -> Result<()> {
@@ -192,8 +196,22 @@ impl Snapshot {
             .context("root revision exhausted")?;
         Ok(())
     }
+    pub(crate) fn provisional_claim_id(&self, id: Uuid) -> bool {
+        self.rotations
+            .values()
+            .any(|r| r.entries.iter().any(|e| e.claim.reservation_id == id))
+            || self
+                .inventory_materializations
+                .values()
+                .any(|m| m.entries.iter().any(|e| e.claim.reservation_id == id))
+    }
     fn lifecycle_id_reserved(&self, id: Uuid) -> bool {
-        self.claim_candidates.contains_key(&id)
+        self.lifecycle_id_reserved_inner(id, true)
+    }
+    fn lifecycle_id_reserved_inner(&self, id: Uuid, include_proposals: bool) -> bool {
+        (include_proposals && self.journal_rules >= 7 && self.provisional_claim_id(id))
+            || self.inventory_materializations.contains_key(&id)
+            || self.claim_candidates.contains_key(&id)
             || self.profile_migrations.values().any(|m| {
                 let p = m.fence.value.approvals.plan();
                 p.migration_id == id
@@ -234,7 +252,13 @@ impl Snapshot {
             })
     }
     pub(crate) fn migration_identity_used(&self, id: Uuid) -> bool {
-        self.lifecycle_id_reserved(id)
+        self.migration_identity_used_inner(id, true)
+    }
+    pub(crate) fn migration_identity_used_without_proposals(&self, id: Uuid) -> bool {
+        self.migration_identity_used_inner(id, false)
+    }
+    fn migration_identity_used_inner(&self, id: Uuid, include_proposals: bool) -> bool {
+        self.lifecycle_id_reserved_inner(id, include_proposals)
             || self.commands.contains_key(&id)
             || self.executions.contains_key(&id)
             || self.sessions.contains_key(&id)
@@ -367,6 +391,7 @@ impl Snapshot {
             if self.journal_rules >= 4 && self.active_rotation(id).is_some() {
                 ensure!(matches!(command.action,
                     CommandAction::StageRotationInventory { .. }
+                    | CommandAction::MaterializeRotationInventory { .. }
                     | CommandAction::BeginRotation { .. }
                     | CommandAction::AbandonRotationInventory { .. }
                     | CommandAction::AcknowledgeFinality { .. }),
@@ -378,6 +403,13 @@ impl Snapshot {
                 }
                 CommandAction::StageRotationInventory { approvals, chunk } => {
                     self.stage_rotation(command, approvals, chunk, time)?;
+                }
+                CommandAction::MaterializeRotationInventory {
+                    rotation_id,
+                    materialization_id,
+                    chunk,
+                } => {
+                    self.materialize_inventory(command, *rotation_id, *materialization_id, chunk)?;
                 }
                 CommandAction::BeginRotation { approvals } => {
                     self.begin_rotation(command, approvals, time)?;

@@ -51,6 +51,7 @@ impl Service {
                 execution_id: Some(request.plan().execution_id),
                 claim_reservation_id: None,
                 candidate_claim: None,
+                materialization_id: None,
             },
         )
     }

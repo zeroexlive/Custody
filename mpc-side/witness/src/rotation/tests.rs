@@ -947,3 +947,272 @@ fn rules6_conservative_commitment_gate_does_not_silently_evolve_publication() {
     // Public historical materialization is still required before allowing this
     // legitimate metadata evolution; refusing is safer than losing old tuples.
 }
+
+fn materialize(
+    s: &Snapshot,
+    a: &RotationApprovals,
+    id: Uuid,
+    entries: &[MigrationSource],
+    start: u64,
+) -> Command {
+    command(
+        s,
+        &a.plan().source,
+        CommandAction::MaterializeRotationInventory {
+            rotation_id: a.plan().rotation_id,
+            materialization_id: id,
+            chunk: Box::new(InventoryChunk {
+                business_fingerprint: a.plan().business_fingerprint().unwrap(),
+                start_index: start,
+                entries: entries.to_vec(),
+            }),
+        },
+    )
+}
+
+#[test]
+fn rules7_materializes_missing_history_before_legitimate_metadata_evolution() {
+    let (mut s, a, mut entries) = setup(2, true);
+    s.journal_rules = 6;
+    let c = stage(&s, &a, &entries[..1], 0);
+    apply(&mut s, &c).unwrap();
+    abandon(&mut s, &a);
+    s.journal_rules = 7;
+    let original = s.rotations[&a.plan().rotation_id].clone();
+    let root = a.plan().source.identity().unwrap();
+    let mut evolved = entries.clone();
+    if let SourceMembership::Financial { publication, .. } = &mut evolved[0].membership {
+        *publication = FinancialPublication::Active;
+    }
+    let fresh = replanned(&a, &evolved);
+    let c = stage(&s, &fresh, &evolved, 0);
+    assert!(apply(&mut s, &c).is_err());
+    let id = Uuid::new_v4();
+    let c = materialize(&s, &a, id, &entries[..1], 0);
+    apply(&mut s, &c).unwrap();
+    assert!(s.unresolved_rotation_commitment(&root).unwrap());
+    assert!(!s
+        .claim_candidates
+        .contains_key(&entries[1].claim.reservation_id));
+    assert_eq!(
+        s.materialization_view(&root, id).unwrap().unwrap().status,
+        wallet_mpc_protocol::solana_rotation::InventoryMaterializationStatus::Collecting
+    );
+    let c = materialize(&s, &a, id, &entries[1..], 1);
+    apply(&mut s, &c).unwrap();
+    assert!(!s.unresolved_rotation_commitment(&root).unwrap());
+    assert_eq!(s.rotations[&a.plan().rotation_id], original);
+    let c = stage(&s, &fresh, &evolved[..1], 0);
+    apply(&mut s, &c).unwrap();
+    // An equal-length old complete vector with another publication fingerprint
+    // cannot prove the new unfinished commitment, even with identical owners.
+    assert!(s.unresolved_rotation_commitment(&root).unwrap());
+    let c = stage(&s, &fresh, &evolved[1..], 1);
+    apply(&mut s, &c).unwrap();
+    assert!(!s.unresolved_rotation_commitment(&root).unwrap());
+    assert_eq!(
+        s.rotations[&fresh.plan().rotation_id].status,
+        RotationStatus::Sealed
+    );
+    // The original publication remains archival, and no financial grant changes.
+    entries[0].membership = original.entries[0].membership.clone();
+    assert_eq!(original.entries[0], entries[0]);
+    assert_eq!(s.executions.len(), 0);
+    assert_eq!(s.roots[&root].phase, Phase::Frozen);
+}
+
+#[test]
+fn rules7_partial_life_proposals_do_not_bind_owners_and_can_recover_exact_commitment() {
+    let (mut s, a, entries) = setup(3, false);
+    s.journal_rules = 7;
+    let mut proposal = entries[..2].to_vec();
+    proposal[1].claim.owner_ref = format!("p1:{}", Uuid::new_v4());
+    let c = stage(&s, &a, &proposal, 0);
+    apply(&mut s, &c).unwrap();
+    let id = entries[1].claim.reservation_id;
+    assert!(s.provisional_claim_id(id));
+    assert!(!s.claim_candidates.contains_key(&id));
+    assert!(s.claim_availability(&entries[1].claim).is_ok());
+    assert!(s.claim_availability(&proposal[1].claim).is_ok());
+    abandon(&mut s, &a);
+    let recovery = Uuid::new_v4();
+    let c = materialize(&s, &a, recovery, &entries, 0);
+    apply(&mut s, &c).unwrap();
+    assert_eq!(
+        s.inventory_materializations[&recovery].status,
+        wallet_mpc_protocol::solana_rotation::InventoryMaterializationStatus::Verified
+    );
+    assert_eq!(s.claim_candidates[&id], entries[1].claim);
+    assert_eq!(s.rotations[&a.plan().rotation_id].entries, proposal);
+    assert!(s.claim_availability(&proposal[1].claim).is_err());
+    let fresh = replanned(&a, &entries);
+    let c = stage(&s, &fresh, &entries, 0);
+    apply(&mut s, &c).unwrap();
+}
+
+#[test]
+fn rules7_proved_conflicting_legacy_proposals_are_archived_but_never_release_quarantine() {
+    let (mut s, a, entries) = setup(3, false);
+    s.journal_rules = 6;
+    let mut poisoned = entries[..2].to_vec();
+    poisoned[1].claim.owner_ref = format!("p1:{}", Uuid::new_v4());
+    let c = stage(&s, &a, &poisoned, 0);
+    apply(&mut s, &c).unwrap();
+    abandon(&mut s, &a);
+    s.journal_rules = 7;
+    let recovery = Uuid::new_v4();
+    let c = materialize(&s, &a, recovery, &entries, 0);
+    apply(&mut s, &c).unwrap();
+    let archived = &s.inventory_materializations[&recovery];
+    assert_eq!(archived.entries, entries);
+    assert_eq!(
+        archived.status,
+        wallet_mpc_protocol::solana_rotation::InventoryMaterializationStatus::Conflict
+    );
+    assert!(archived
+        .conflict
+        .as_deref()
+        .unwrap()
+        .contains("permanently bound"));
+    assert_eq!(
+        s.claim_candidates[&entries[1].claim.reservation_id],
+        poisoned[1].claim
+    );
+    assert!(!s
+        .claim_candidates
+        .contains_key(&entries[2].claim.reservation_id));
+    let root = a.plan().source.identity().unwrap();
+    assert!(s.unresolved_rotation_commitment(&root).unwrap());
+    let before = s.clone();
+    let fresh = replanned(&a, &entries);
+    let c = stage(&s, &fresh, &entries, 0);
+    assert!(apply(&mut s, &c).is_err());
+    assert_eq!(s, before);
+    let c = command(&s, &a.plan().source, CommandAction::Activate);
+    assert!(apply(&mut s, &c).is_err());
+    assert_eq!(s, before);
+}
+
+#[test]
+fn rules7_recovery_rejects_wrong_hash_and_keeps_attempts_immutable() {
+    let (mut s, a, entries) = setup(3, false);
+    s.journal_rules = 7;
+    let c = stage(&s, &a, &entries[..1], 0);
+    apply(&mut s, &c).unwrap();
+    abandon(&mut s, &a);
+    let id = Uuid::new_v4();
+    let mut wrong = entries.clone();
+    wrong[1].claim.owner_ref = format!("p1:{}", Uuid::new_v4());
+    let c = materialize(&s, &a, id, &wrong[..2], 0);
+    apply(&mut s, &c).unwrap();
+    let before = s.clone();
+    let c = materialize(&s, &a, id, &wrong[2..], 2);
+    assert!(apply(&mut s, &c).is_err());
+    assert_eq!(s, before);
+    let c = materialize(&s, &a, id, &entries[..2], 0);
+    assert!(apply(&mut s, &c).is_err());
+    assert_eq!(s, before);
+    let second = Uuid::new_v4();
+    let c = materialize(&s, &a, second, &entries, 0);
+    apply(&mut s, &c).unwrap();
+    assert_eq!(s.inventory_materializations[&id].entries, wrong[..2]);
+    assert_eq!(
+        s.claim_candidates[&entries[1].claim.reservation_id],
+        entries[1].claim
+    );
+}
+
+#[test]
+fn rules7_archive_recovery_does_not_reuse_expired_target_or_generation_authority() {
+    let (mut s, a, entries) = setup(2, false);
+    s.journal_rules = 6;
+    let c = stage(&s, &a, &entries[..1], 0);
+    apply(&mut s, &c).unwrap();
+    abandon(&mut s, &a);
+    s.journal_rules = 7;
+    let source = a.plan().source.identity().unwrap();
+    let target = a.plan().target.identity().unwrap();
+    s.roots.get_mut(&target).unwrap().phase = Phase::Frozen;
+    s.roots.get_mut(&source).unwrap().generation.epoch = 1;
+    let id = Uuid::new_v4();
+    let mut c = materialize(&s, &a, id, &entries, 0);
+    c.expires_at = 1400;
+    c.validate(1300).unwrap(); // original plan expires1200; archive recovery is data only.
+    let mut candidate = s.clone();
+    candidate.command_at(&c, 1300).unwrap();
+    assert_eq!(
+        candidate.inventory_materializations[&id].status,
+        wallet_mpc_protocol::solana_rotation::InventoryMaterializationStatus::Verified
+    );
+    assert_eq!(candidate.roots[&source].phase, Phase::Frozen);
+    let fresh = replanned(&a, &entries);
+    let c = stage(&candidate, &fresh, &entries, 0);
+    assert!(apply(&mut candidate, &c).is_err()); // Current target/generation still required for new plans.
+}
+
+#[test]
+fn rules7_verified_bindings_do_not_allow_asset_or_role_reassignment() {
+    let (mut s, a, entries) = setup(1, true);
+    s.journal_rules = 7;
+    let c = stage(&s, &a, &entries, 0);
+    apply(&mut s, &c).unwrap();
+    abandon(&mut s, &a);
+    for field in ["role", "asset", "owner"] {
+        let mut changed = entries.clone();
+        match field {
+            "role" => changed[0].role = SourceRole::TenantTreasury,
+            "asset" => changed[0].asset_key = "OTHER".into(),
+            _ => changed[0].claim.owner_ref = format!("p1:{}", Uuid::new_v4()),
+        }
+        assert!(s.check_historical_bindings(a.plan(), &changed).is_err());
+    }
+}
+
+#[test]
+fn rules7_recovery_namespace_root_revision_and_frozen_context_are_exact() {
+    let (mut s, a, entries) = setup(2, false);
+    s.journal_rules = 7;
+    let c = stage(&s, &a, &entries[..1], 0);
+    apply(&mut s, &c).unwrap();
+    abandon(&mut s, &a);
+    let id = Uuid::new_v4();
+    let original = materialize(&s, &a, id, &entries, 0);
+    for mutation in [
+        "root", "revision", "attempt", "rotation", "active", "oldrules",
+    ] {
+        let mut history = s.clone();
+        let mut c = original.clone();
+        match mutation {
+            "root" => {
+                c.root_identity = a.plan().target.identity().unwrap();
+                c.expected_revision = history.roots[&c.root_identity].revision;
+            }
+            "revision" => c.expected_revision += 1,
+            "attempt" => {
+                if let CommandAction::MaterializeRotationInventory {
+                    materialization_id, ..
+                } = &mut c.action
+                {
+                    *materialization_id = a.plan().rotation_id;
+                }
+            }
+            "rotation" => {
+                if let CommandAction::MaterializeRotationInventory { rotation_id, .. } =
+                    &mut c.action
+                {
+                    *rotation_id = Uuid::new_v4();
+                }
+            }
+            "active" => history.roots.get_mut(&c.root_identity).unwrap().phase = Phase::Active,
+            _ => history.journal_rules = 6,
+        }
+        let before = history.clone();
+        assert!(apply(&mut history, &c).is_err(), "{mutation}");
+        assert_eq!(history, before, "{mutation}");
+    }
+    apply(&mut s, &original).unwrap();
+    assert!(!apply(&mut s, &original).unwrap());
+    assert!(s
+        .materialization_view(&a.plan().target.identity().unwrap(), id)
+        .is_err());
+}

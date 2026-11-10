@@ -158,6 +158,7 @@ impl Service {
                 execution_id: None,
                 claim_reservation_id: Some(approval.statement.reservation_id),
                 candidate_claim: Some(Box::new(approval.statement.clone())),
+                materialization_id: None,
             },
         )?;
         let lease = ClaimQueryLease {

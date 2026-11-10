@@ -433,6 +433,26 @@ impl InventoryChunk {
     }
 }
 
+/// Recovery progress is archival data validation, never a grant of authority.
+#[derive(Clone, Debug, Serialize, Deserialize, PartialEq, Eq)]
+pub enum InventoryMaterializationStatus {
+    Collecting,
+    Verified,
+    Conflict,
+}
+#[derive(Clone, Debug, Serialize, Deserialize, PartialEq, Eq)]
+#[serde(deny_unknown_fields)]
+pub struct InventoryMaterializationView {
+    pub materialization_id: Uuid,
+    pub rotation_id: Uuid,
+    pub next_index: u64,
+    pub allocated_high_water: u64,
+    pub inventory_fingerprint: String,
+    pub status: InventoryMaterializationStatus,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub conflict: Option<String>,
+}
+
 /// Public progress is manifest admission only, never transfer or retirement proof.
 #[derive(Clone, Debug, Serialize, Deserialize, PartialEq, Eq)]
 pub enum RotationStatus {

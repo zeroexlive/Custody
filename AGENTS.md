@@ -237,3 +237,15 @@ observation uses only enrollment/provenance/public package, not an old missing
 share. Independent39 protocol/55 W cases, Clippy and9 genuine strict-source cases
 356.041s pass with167 stable paths and no concrete bounded P0/P1. Serial ACK
 availability remains documented. Exact-head/whole-phase gates are pending. No movement/retirement/phase completion.
+
+
+2026-11-10 local pause draft: read docs/PHASE6GC_ALLOCATION_PAUSE.md. Immutable0049
+Root/frontier fence is separate from W freeze and inventory completeness. New
+operation births lock all source/known-destination keysets then Roots in order;
+HELD incoming work blocks target pause, supporting source-only private checks.
+NoSignature does not remove the original hold. Public retries/recovery remain
+separate; no release/reset or ledger authority exists. Root35 PG cases51.90s and
+one pre-lock-hardening two-cohort case15.00s pass. Final independent618 backend
+cases948.157s and4 genuine cases307.541s pass with174 unchanged paths and no
+bounded P0/P1. Exact-source CI remains pending. Parent473d86a Fast42704314910 passes4 jobs/1364 backend cases807.77s;
+not ALL or whole-phase acceptance. Do not enable production or merge partial phase.

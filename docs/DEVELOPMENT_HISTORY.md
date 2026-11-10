@@ -1,3 +1,15 @@
+## 2026-11-10 — durable local allocation pause (unmerged development)
+
+Migration0049 records an original-Root pause and exact allocator frontier. Ordered
+PG locks and SQL fences prevent new Claims/private business and known incoming
+operations; tracked HELD/ambiguous work must reconcile first. NoSignature does not
+clear a financial hold. Original membership, retries and public proof completion
+remain separate. Root35 PG cases51.90s and one actual two-cohort case15.00s pass;
+independent618 backend cases948.157s and4 genuine cases307.541s pass with174
+unchanged source/binary paths, no failures/errors/skips or bounded P0/P1. Read
+[scope and limitations](PHASE6GC_ALLOCATION_PAUSE.md). Parent473d86a
+Fast42704314910 passes4 jobs/1364 backend cases807.77s; not ALL.
+
 ## 2026-11-09 — original-wire public finality draft (unmerged development)
 
 Current source nodes now have a bounded read-only query/observe/complete/recover

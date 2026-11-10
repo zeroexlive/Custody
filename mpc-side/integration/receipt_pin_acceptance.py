@@ -66,7 +66,7 @@ def provision(net, tenant, principal, *, snapshot):
     return binding, root, claim, shares
 
 
-def run_receipt_pin_cohorts(root_path):
+def run_receipt_pin_cohorts(root_path, *, pause_source=False):
     tenant = register_tenant(reference="actual-receipt-cohorts", operator_ref="integration")
     principal = register_principal(
         tenant_id=tenant.pk, customer_ref="receipt-cohort-owner", operator_ref="integration"
@@ -146,6 +146,11 @@ def run_receipt_pin_cohorts(root_path):
                 for kind, a, b in [("root", a_root, b_root), ("claim", a_claim, b_claim)]:
                     with pytest.raises(MpcBindingError):
                         _verify(kind, a.statement, b.evidence)
+            if pause_source:
+                from allocation_pause_acceptance import check_source_pause
+
+                with settings_for(fresh):
+                    check_source_pause(tenant, principal, a_root, a_claim, b_root)
             a_root.refresh_from_db()
             a_claim.refresh_from_db()
             assert (a_root.evidence, a_claim.evidence) == original
@@ -166,6 +171,7 @@ def run_receipt_pin_cohorts(root_path):
                         "original_root_and_claim_receipts_unchanged": True,
                         "all_six_original_encrypted_shares_unchanged": True,
                         "ledger_changed": False,
+                        "local_allocation_pause_checked": pause_source,
                         "protected_rotation_or_fund_migration_acceptance": False,
                         "production_activation": False,
                     },

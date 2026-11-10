@@ -422,12 +422,16 @@ def prepare_session(*, session_id, tenant_id, challenge, evidence, operator_ref,
     snapshot = _snapshot(session_id, tenant_id)
     if snapshot.status != "ALLOCATED":
         raise MpcBindingError("only an original unprepared allocation can freeze its wire")
+    from .solana_allocation_pause import require_operation_open
+
+    require_operation_open(snapshot.operation)
     lease = MpcSolanaFinancialQuery.objects.get(pk=challenge, session=snapshot, purpose="ADMISSION")
     _fresh_witness(snapshot, lease, evidence)
     prepared = _quote(snapshot, transport or RequestsTransport())  # No transaction spans RPC.
     with transaction.atomic():
         row, parent = _locked(snapshot, tenant_id)
         operation = row.operation
+        require_operation_open(operation)
         wallet = _business(operation, parent)
         claim = wallet.claim
         lease = MpcSolanaFinancialQuery.objects.select_for_update().get(
@@ -595,8 +599,11 @@ def approve_session(
     session_id, tenant_id = _uuid(session_id), _uuid(tenant_id)
     operator_ref = _text(operator_ref, "operator audit reference")
     snapshot = _snapshot(session_id, tenant_id)
+    from .solana_allocation_pause import require_operation_open
+
     with transaction.atomic():
         row, parent = _locked(snapshot, tenant_id)
+        require_operation_open(row.operation)
         _business(row.operation, parent)
         version = _policy()[0]
         if (

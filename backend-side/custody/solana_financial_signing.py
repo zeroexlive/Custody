@@ -245,6 +245,9 @@ def execute_session(*, session_id, tenant_id, challenge, evidence, operator_ref,
         return snapshot
     if snapshot.status != "READY":
         raise MpcBindingError("original READY policy-approved session required")
+    from .solana_allocation_pause import require_operation_open
+
+    require_operation_open(snapshot.operation)
     keyset_id = snapshot.operation.source.claim.root.keyset.keyset_id
     route = preflight_route(keyset_id)
     lease = MpcSolanaFinancialQuery.objects.get(
@@ -257,6 +260,7 @@ def execute_session(*, session_id, tenant_id, challenge, evidence, operator_ref,
         row, parent = _locked(snapshot, tenant_id)
         if row.status != "READY":
             return row
+        require_operation_open(row.operation)
         if preflight_route(keyset_id) != route:
             raise MpcBindingError("coordinator binding changed before dispatch; preserve READY")
         _business(row.operation, parent)

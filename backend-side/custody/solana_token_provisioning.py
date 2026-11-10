@@ -113,6 +113,9 @@ def allocate_provision(
         source = validate_pending_source(MpcSolanaFinancialWallet.objects.get(pk=claim.pk))
         if MpcSolanaTokenProvision.objects.filter(claim=claim).exclude(status="FAILED").exists():
             raise MpcBindingError("original unresolved/successful initializer must be preserved")
+        from .solana_allocation_pause import require_allocation_open
+
+        require_allocation_open(claim.root_id)
         parent = MpcSolanaTokenProvision.objects.create(claim=claim, idempotency_key=key)
         operation = MpcSolanaFinancialOperation.objects.create(
             provision=parent,

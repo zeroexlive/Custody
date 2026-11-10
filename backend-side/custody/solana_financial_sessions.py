@@ -85,6 +85,9 @@ def _budget(value):
 
 def _wallet(claim_id, tenant_id, role):
     claim = _locked_claim(claim_id, tenant_id)
+    from .solana_allocation_pause import require_allocation_open
+
+    require_allocation_open(claim.root_id)
     row = validate_financial_wallet(MpcSolanaFinancialWallet.objects.get(pk=claim.pk))
     if row.role != role or claim.root.statement["wallet_class"] != "HOT":
         raise MpcBindingError("exact explicitly published HOT financial source role required")
@@ -295,6 +298,9 @@ def allocate_session(*, reservation_id, tenant_id, selected_signers, operator_re
         claim = operation.source.claim
         if claim.root.keyset.status != "ACTIVE":
             raise MpcBindingError("new session requires active original source")
+        from .solana_allocation_pause import require_allocation_open
+
+        require_allocation_open(claim.root_id)
         if operation.provision_id:
             from .solana_token_provisioning import validate_pending_source
 

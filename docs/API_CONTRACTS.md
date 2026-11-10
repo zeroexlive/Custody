@@ -382,3 +382,13 @@ all embedded P256 authorities. Signed query `execution.finality` is optional/omi
 when absent; original SignedPending/signature/aliases remain unchanged. It is no
 private permit, hold release or ledger settlement. See
 [exact proof/clock/RPC contract](PHASE6GC_PUBLIC_FINALITY.md).
+
+
+### Local original-Root allocation pause (unmerged development)
+
+Privileged `solana_allocation_pause --keyset-id --tenant-id --pause-id --operator-ref`
+requires default-disabled entry and the isolated PostgreSQL runtime. Its immutable
+result contains the original pause/keyset IDs and local frontier, and records that
+no W freeze/private work was performed. It does not attest W liveness. Exact retries
+survive entry disable; persisted fences always apply. No release/delete endpoint.
+See [concurrency and recovery boundaries](PHASE6GC_ALLOCATION_PAUSE.md).

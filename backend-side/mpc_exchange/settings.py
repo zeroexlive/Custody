@@ -194,7 +194,9 @@ MPC_HD_SIGNER_CERTIFICATES = config("MPC_HD_SIGNER_CERTIFICATES", default="{}", 
 MPC_SOLANA_ROOT_SIGNER_CERTIFICATES = config(
     "MPC_SOLANA_ROOT_SIGNER_CERTIFICATES", default="{}", cast=json.loads
 )
-MPC_SOLANA_COORDINATOR_ROUTES = config("MPC_SOLANA_COORDINATOR_ROUTES", default="{}", cast=json.loads)
+MPC_SOLANA_COORDINATOR_ROUTES = config(
+    "MPC_SOLANA_COORDINATOR_ROUTES", default="{}", cast=json.loads
+)
 # Current independently installed public authority only; the backend never owns
 # its lifecycle signing key. Empty settings disable seeded wallet publication.
 MPC_SOLANA_WITNESS_CERTIFICATE = config("MPC_SOLANA_WITNESS_CERTIFICATE", default="")
@@ -215,7 +217,12 @@ MPC_SOLANA_SEEDED_DEPOSITS_ENABLED = config(
     "MPC_SOLANA_SEEDED_DEPOSITS_ENABLED", default=False, cast=bool
 )
 MPC_SOLANA_SEEDED_SPL_ENABLED = config("MPC_SOLANA_SEEDED_SPL_ENABLED", default=False, cast=bool)
-MPC_SOLANA_CURRENT_CLAIMS_ENABLED = config("MPC_SOLANA_CURRENT_CLAIMS_ENABLED", default=False, cast=bool)
+MPC_SOLANA_CURRENT_CLAIMS_ENABLED = config(
+    "MPC_SOLANA_CURRENT_CLAIMS_ENABLED", default=False, cast=bool
+)
+MPC_SOLANA_ALLOCATION_PAUSE_ENABLED = config(
+    "MPC_SOLANA_ALLOCATION_PAUSE_ENABLED", default=False, cast=bool
+)
 MPC_SOLANA_LIFECYCLE_CERTIFICATE = config("MPC_SOLANA_LIFECYCLE_CERTIFICATE", default="")
 MPC_SOLANA_WITNESS_URL = config("MPC_SOLANA_WITNESS_URL", default="")
 MPC_SOLANA_WITNESS_CA_CERT = config("MPC_SOLANA_WITNESS_CA_CERT", default="")

@@ -269,6 +269,9 @@ def reserve_claim(*, keyset_id, tenant_id, principal_id, asset_key, idempotency_
             if original.principal_id != principal.pk or original.asset_id != asset.pk:
                 raise MpcBindingError("retry conflicts with original owner/asset")
             return original
+        from .solana_allocation_pause import require_allocation_open
+
+        require_allocation_open(root.pk)
         statement_asset, namespace = _asset_statement(asset)
         if MpcSolanaClaim.objects.filter(
             root=root, principal=principal, asset_namespace=namespace

@@ -315,6 +315,23 @@ class MpcSolanaRoot(models.Model):
         ]
 
 
+class MpcSolanaAllocationPause(models.Model):
+    """Permanent local allocator fence; not a witness freeze or migration grant."""
+
+    pause_id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
+    root = models.OneToOneField(MpcSolanaRoot, on_delete=models.PROTECT)
+    frontier = models.DecimalField(max_digits=20, decimal_places=0)
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        constraints = [
+            models.CheckConstraint(
+                condition=Q(frontier__gte=0, frontier__lte=9223372036854775808),
+                name="sol_pause_frontier_capacity",
+            ),
+        ]
+
+
 class MpcSolanaReceiptPins(models.Model):
     """Immutable installed public identities for this original Root's receipts."""
 

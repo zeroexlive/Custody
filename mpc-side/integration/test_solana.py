@@ -100,6 +100,13 @@ def test_phase6gc_independent_receipt_pin_cohorts_and_archival_claims(tmp_path):
     run_receipt_pin_cohorts(tmp_path)
 
 
+@pytest.mark.django_db(transaction=True)
+def test_phase6gc_local_allocation_pause_preserves_actual_cohort_receipts(tmp_path):
+    from receipt_pin_acceptance import run_receipt_pin_cohorts
+
+    run_receipt_pin_cohorts(tmp_path, pause_source=True)
+
+
 def test_phase6gc_witness_replacement_reservation_and_original_signed_store_upgrade(tmp_path):
     from replacement_acceptance import run_reserved_upgrade
 

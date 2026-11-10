@@ -611,3 +611,15 @@ Final strict-source independent39 protocol/55 W cases, Clippy and9 genuine cases
 356.041s pass with167 unchanged source/binary paths. No bounded P0/P1 was identified;
 serial revision-bound ACK availability remains documented. Read [scope and limitations](PHASE6GC_PUBLIC_FINALITY.md).
 Exact parent8a9c796 Fast42651565984 passes4 jobs/1364 backend cases774.17s; not ALL.
+
+
+The durable local allocation pause is implemented under default-disabled operator
+entry. Migration0049 freezes the allocator frontier and fences new ordinary source
+and known incoming work under ordered PG locks. Tracked HELD work, including SPL
+initializers and retained NoSignature holds, must reconcile before pause birth.
+Exact Claim retries and already-reserved public approval remain possible. Root35
+PG cases51.90s and one pre-lock-hardening two-cohort case15.00s pass. Final
+independent618 backend cases948.157s and4 genuine cases307.541s pass with174
+unchanged source/bin paths and no bounded P0/P1. Read [scope](PHASE6GC_ALLOCATION_PAUSE.md). Parent473d86a Fast42704314910
+passes4 jobs/1364 backend cases807.77s; not ALL. Actual MIGRATION/RESCUE execution,
+fee accounting, retirement and final whole-phase gates remain unfinished.

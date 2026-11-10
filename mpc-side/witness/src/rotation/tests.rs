@@ -1216,3 +1216,173 @@ fn rules7_recovery_namespace_root_revision_and_frozen_context_are_exact() {
         .materialization_view(&a.plan().target.identity().unwrap(), id)
         .is_err());
 }
+
+fn register_rotated(s: &Snapshot, a: &RotationApprovals, entry: &MigrationSource) -> Command {
+    command(
+        s,
+        &a.plan().source,
+        CommandAction::RegisterRotationClaim {
+            approvals: Box::new(a.clone()),
+            evidence: Box::new(evidence(entry.claim.clone())),
+        },
+    )
+}
+
+#[test]
+fn rules8_public_registration_preserves_sealed_unpublished_provenance_and_prefix() {
+    let (mut s, a, entries) = setup(3, true);
+    s.journal_rules = 8;
+    let c = stage(&s, &a, &entries, 0);
+    apply(&mut s, &c).unwrap();
+    let sealed = s.rotations[&a.plan().rotation_id].entries.clone();
+    let issuances = s.claim_issuances.clone();
+    let c = register_rotated(&s, &a, &entries[2]);
+    let before = s.clone();
+    assert!(apply(&mut s, &c).is_err());
+    assert_eq!(s, before);
+    for entry in &entries[1..] {
+        let c = register_rotated(&s, &a, entry);
+        apply(&mut s, &c).unwrap();
+        assert!(!apply(&mut s, &c).unwrap());
+        assert_eq!(s.claims[&entry.claim.reservation_id].statement, entry.claim);
+        assert!(s.check_rotation_entry(entry).is_err()); // No general missing-proof exception.
+        s.check_rotation_entry_for_rotation(entry, Some(a.plan().rotation_id))
+            .unwrap();
+        assert!(s
+            .check_rotation_entry_for_rotation(entry, Some(Uuid::new_v4()))
+            .is_err());
+    }
+    let root = a.plan().source.identity().unwrap();
+    assert_eq!(s.roots[&root].next_claim_index, 3);
+    assert_eq!(s.roots[&root].phase, Phase::Frozen);
+    assert_eq!(s.claim_issuances, issuances);
+    assert!(s.executions.is_empty());
+    assert_eq!(s.rotations[&a.plan().rotation_id].entries, sealed);
+    assert_eq!(s.rotation_claim_registrations.len(), 2);
+    act(
+        &mut s,
+        &a.plan().source,
+        CommandAction::BeginRotation {
+            approvals: Box::new(a.clone()),
+        },
+    );
+    assert_eq!(s.roots[&root].phase, Phase::Migrating);
+}
+
+#[test]
+fn rules8_rotation_registration_rejects_unsealed_foreign_or_changed_business_data() {
+    let (mut s, a, entries) = setup(3, false);
+    s.journal_rules = 8;
+    let c = stage(&s, &a, &entries[..1], 0);
+    apply(&mut s, &c).unwrap();
+    let c = register_rotated(&s, &a, &entries[1]);
+    let before = s.clone();
+    assert!(apply(&mut s, &c).is_err());
+    assert_eq!(s, before);
+    let c = stage(&s, &a, &entries[1..], 1);
+    apply(&mut s, &c).unwrap();
+    let mut changed = entries[1].clone();
+    changed.claim.owner_ref = format!("p1:{}", Uuid::new_v4());
+    let c = register_rotated(&s, &a, &changed);
+    let before = s.clone();
+    assert!(apply(&mut s, &c).is_err());
+    assert_eq!(s, before);
+    let mut plan = a.plan().clone();
+    plan.total_fee_budget_lamports += 1;
+    let c = register_rotated(&s, &approvals(plan), &entries[1]);
+    assert!(apply(&mut s, &c).is_err());
+    assert_eq!(s, before);
+    let mut c = register_rotated(&s, &a, &entries[1]);
+    c.root_identity = a.plan().target.identity().unwrap();
+    c.expected_revision = s.roots[&c.root_identity].revision;
+    assert!(apply(&mut s, &c).is_err());
+    assert_eq!(s, before);
+}
+
+#[test]
+fn rules8_rotation_registration_renewal_reserves_authorization_without_rewriting_receipts() {
+    let (mut s, a, entries) = setup(2, false);
+    s.journal_rules = 8;
+    let c = stage(&s, &a, &entries, 0);
+    apply(&mut s, &c).unwrap();
+    let c = register_rotated(&s, &a, &entries[1]);
+    apply(&mut s, &c).unwrap();
+    let proof = s
+        .rotation_claim_registrations
+        .values()
+        .next()
+        .unwrap()
+        .clone();
+    let mut plan = a.plan().clone();
+    plan.authorization_id = Uuid::new_v4();
+    let renewed = approvals(plan);
+    let c = register_rotated(&s, &renewed, &entries[1]);
+    apply(&mut s, &c).unwrap();
+    assert!(s.rotation_identity_used(renewed.plan().authorization_id));
+    assert_eq!(
+        s.rotation_claim_registrations.values().next().unwrap(),
+        &proof
+    );
+    let mut changed = register_rotated(&s, &renewed, &entries[1]);
+    if let CommandAction::RegisterRotationClaim { evidence, .. } = &mut changed.action {
+        evidence.participant_agreement[0].signer_signature = "31".repeat(70);
+    }
+    let before = s.clone();
+    assert!(apply(&mut s, &changed).is_err());
+    assert_eq!(s, before);
+}
+
+#[test]
+fn rules8_later_rotation_requires_positive_evidence_and_provenance_view_is_root_bound() {
+    let (mut s, a, mut entries) = setup(2, false);
+    s.journal_rules = 8;
+    let c = stage(&s, &a, &entries, 0);
+    apply(&mut s, &c).unwrap();
+    let c = register_rotated(&s, &a, &entries[1]);
+    apply(&mut s, &c).unwrap();
+    let root = a.plan().source.identity().unwrap();
+    let view = s
+        .rotation_claim_registration_view(
+            &root,
+            a.plan().rotation_id,
+            entries[1].claim.reservation_id,
+        )
+        .unwrap()
+        .unwrap();
+    assert_eq!(view.command_id, c.request_id);
+    assert_eq!(view.source_fingerprint, entries[1].identity().unwrap());
+    assert!(s
+        .rotation_claim_registration_view(
+            &a.plan().target.identity().unwrap(),
+            a.plan().rotation_id,
+            entries[1].claim.reservation_id
+        )
+        .is_err());
+    abandon(&mut s, &a);
+    let later = replanned(&a, &entries);
+    let c = stage(&s, &later, &entries, 0);
+    let before = s.clone();
+    assert!(apply(&mut s, &c).is_err());
+    assert_eq!(s, before);
+    entries[1].witness_evidence_fingerprint = Some(
+        fingerprint(
+            "SOLANA_ROTATION_CLAIM_EVIDENCE_V1",
+            &s.claims[&entries[1].claim.reservation_id],
+        )
+        .unwrap(),
+    );
+    let captured = replanned(&a, &entries);
+    let c = stage(&s, &captured, &entries, 0);
+    apply(&mut s, &c).unwrap();
+    assert_eq!(
+        s.rotations[&captured.plan().rotation_id].status,
+        RotationStatus::Sealed
+    );
+    assert!(s.rotations[&a.plan().rotation_id].entries[1]
+        .witness_evidence_fingerprint
+        .is_none());
+    assert!(!s
+        .claim_issuances
+        .contains_key(&entries[1].claim.reservation_id));
+    assert_eq!(s.rotation_claim_registrations.len(), 1);
+}

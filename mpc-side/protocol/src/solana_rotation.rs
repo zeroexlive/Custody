@@ -453,6 +453,17 @@ pub struct InventoryMaterializationView {
     pub conflict: Option<String>,
 }
 
+/// Permanent public registration provenance, without issuance or publication.
+#[derive(Clone, Debug, Serialize, Deserialize, PartialEq, Eq)]
+#[serde(deny_unknown_fields)]
+pub struct RotationClaimRegistrationView {
+    pub rotation_id: Uuid,
+    pub command_id: Uuid,
+    pub reservation_id: Uuid,
+    pub source_fingerprint: String,
+    pub evidence_fingerprint: String,
+}
+
 /// Public progress is manifest admission only, never transfer or retirement proof.
 #[derive(Clone, Debug, Serialize, Deserialize, PartialEq, Eq)]
 pub enum RotationStatus {

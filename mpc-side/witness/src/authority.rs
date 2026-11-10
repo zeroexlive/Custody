@@ -83,7 +83,7 @@ fn event_hash(event: &Signed<Event>) -> Result<String> {
 }
 fn replay(state: &mut Snapshot, event: &Event) -> Result<()> {
     ensure!(
-        event.rules.is_none() || matches!(event.rules, Some(1..=7)),
+        event.rules.is_none() || matches!(event.rules, Some(1..=8)),
         "unsupported authority event rules"
     );
     ensure!(
@@ -163,7 +163,7 @@ impl Authority {
                 sequence: 0,
                 previous_hash: "00".repeat(32),
                 time: now()?,
-                rules: Some(7),
+                rules: Some(8),
                 transition: Transition::Initialize,
             };
             let signed = trust.sign("WITNESS_EVENT_V1", genesis)?;
@@ -247,6 +247,23 @@ impl Authority {
                     && e.previous_hash == previous,
                 "corrupt authority journal chain"
             );
+            // Rules8 was introduced with exact source control provenance. Never
+            // admit an unreviewed older draft's other-cohort receipt record on
+            // reopen; original signed rules0–7 retain their old semantics.
+            if e.rules.is_some_and(|rules| rules >= 8) {
+                if let Transition::Command { command } = &e.transition {
+                    if let CommandAction::RegisterRotationClaim { evidence, .. } =
+                        &command.value.action
+                    {
+                        if evidence.authority.is_none() {
+                            let source = state.roots.get(&command.value.root_identity).context(
+                                "original source Root missing during registration replay",
+                            )?;
+                            trust.original_rotation_claim_evidence(evidence, &source.node_keys)?;
+                        }
+                    }
+                }
+            }
             replay(&mut state, e)?;
             if let Transition::Command { command } = &e.transition {
                 command_proofs.insert(command.value.request_id, command.as_ref().clone());
@@ -307,7 +324,7 @@ impl Authority {
             sequence: candidate.sequence,
             previous_hash: j.last_hash.clone(),
             time,
-            rules: Some(7),
+            rules: Some(8),
             transition,
         };
         let signed = self.trust.sign("WITNESS_EVENT_V1", event)?;
@@ -350,7 +367,7 @@ impl Authority {
             j.command_proofs
                 .insert(command.value.request_id, command.as_ref().clone());
         }
-        candidate.journal_rules = 7;
+        candidate.journal_rules = 8;
         j.last_hash = next_hash;
         j.state = candidate;
         Ok(())
@@ -426,8 +443,22 @@ impl Authority {
                     &self.trust.lifecycle,
                 )?;
             }
-            CommandAction::RegisterClaim { evidence } => {
+            CommandAction::RegisterClaim { evidence }
+            | CommandAction::RegisterRotationClaim { evidence, .. } => {
                 self.trust.claim_evidence(evidence)?;
+                if matches!(
+                    command.value.action,
+                    CommandAction::RegisterRotationClaim { .. }
+                ) && evidence.authority.is_none()
+                {
+                    let source = j
+                        .state
+                        .roots
+                        .get(&command.value.root_identity)
+                        .context("original source Root missing")?;
+                    self.trust
+                        .original_rotation_claim_evidence(evidence, &source.node_keys)?;
+                }
                 if !j
                     .state
                     .claims
@@ -508,8 +539,11 @@ impl Authority {
             _ => {}
         }
         let fingerprint = hash(&command.signing_message("WITNESS_COMMAND_V1")?);
+        if let CommandAction::RegisterRotationClaim { approvals, .. } = &command.value.action {
+            self.trust.rotation(approvals)?;
+        }
         let mut candidate = j.state.clone();
-        candidate.journal_rules = 7;
+        candidate.journal_rules = 8;
         if candidate.command_at(&command.value, time)? {
             self.commit(
                 &mut j,
@@ -558,7 +592,7 @@ impl Authority {
             time,
         )?;
         let mut candidate = j.state.clone();
-        candidate.journal_rules = 7;
+        candidate.journal_rules = 8;
         let permit = candidate.permit(&request.value, &request.key_id, time)?;
         let response = self.trust.sign("WITNESS_PERMIT_V1", permit)?;
         self.commit(
@@ -690,9 +724,28 @@ impl Authority {
             } else {
                 None
             };
+        let rotation_claim_registration = if let Some(rotation_id) = request.value.rotation_id {
+            ensure!(
+                !rotation_id.is_nil()
+                    && request.value.execution_id.is_none()
+                    && request.value.materialization_id.is_none(),
+                "exact public rotation provenance query required"
+            );
+            j.state.rotation_claim_registration_view(
+                &request.value.root_identity,
+                rotation_id,
+                request
+                    .value
+                    .claim_reservation_id
+                    .context("rotation provenance requires exact Claim selector")?,
+            )?
+        } else {
+            None
+        };
         self.trust.sign(
             "WITNESS_QUERY_REPLY_V1",
             QueryReply {
+                rotation_claim_registration,
                 inventory_materialization: request
                     .value
                     .materialization_id

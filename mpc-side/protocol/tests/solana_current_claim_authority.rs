@@ -153,6 +153,7 @@ fn malformed_or_cross_root_authority_cannot_define_current_receipt_roster() {
 fn live_custody_approval_ttl_is_separate_from_archival_roster_authority() {
     let (claim, authority) = sample();
     let request = CurrentClaimApproval {
+        rotation: None,
         statement: claim,
         authority,
         issued_at: 1000,
@@ -215,4 +216,276 @@ fn absent_authority_retains_original_evidence_bytes_and_root_validation_is_stric
             .collect(),
     };
     assert!(root_evidence.validate().is_err());
+}
+
+fn rotation_request() -> CurrentClaimApproval {
+    use wallet_mpc_protocol::{
+        solana_financial::SourceRole,
+        solana_intent::Generation,
+        solana_provisioning::{Asset, Root},
+        solana_rotation::{
+            inventory_fingerprint, FinancialPublication, MigrationSource, RotationApprovals,
+            RotationDestination, RotationPlan, SourceMembership,
+        },
+        witness::ClaimIssuance,
+    };
+    let (claim, authority) = sample();
+    let fixture: Value =
+        serde_json::from_str(include_str!("fixtures/solana-rotation-roots.json")).unwrap();
+    let mut target: Root = serde_json::from_value(fixture["target"]["root"].clone()).unwrap();
+    target.ownership_scope = claim.root.ownership_scope.clone();
+    target.genesis_hash = claim.root.genesis_hash.clone();
+    let destination = Claim {
+        root: target.clone(),
+        index: 0,
+        reservation_id: Uuid::new_v4(),
+        owner_ref: format!("p1:{}", Uuid::new_v4()),
+        idempotency_key: "target".into(),
+        asset: Asset::Native,
+    };
+    let source = MigrationSource {
+        claim: claim.clone(),
+        asset_key: "SOL".into(),
+        role: SourceRole::CustomerDeposit,
+        membership: SourceMembership::Unpublished {},
+        witness_evidence_fingerprint: None,
+    };
+    let plan = RotationPlan {
+        version: 1,
+        rotation_id: Uuid::new_v4(),
+        authorization_id: Uuid::new_v4(),
+        witness_anchor: authority.prepare.value.anchor_id,
+        source: claim.root.clone(),
+        source_generation: authority.generation().unwrap().clone(),
+        source_node_keys: authority.prepared().unwrap().1.clone(),
+        target: target.clone(),
+        target_generation: Generation {
+            epoch: 0,
+            ceremony_id: target.dkg.execution_id,
+            public_key_package_sha256: hash(&target.public_key_package),
+        },
+        target_node_keys: serde_json::from_value(fixture["target"]["node_keys"].clone()).unwrap(),
+        allocated_high_water: 1,
+        inventory_fingerprint: inventory_fingerprint(&claim.root, 1, &[source]).unwrap(),
+        destinations: vec![RotationDestination {
+            treasury: MigrationSource {
+                claim: destination.clone(),
+                asset_key: "SOL".into(),
+                role: SourceRole::TenantTreasury,
+                membership: SourceMembership::Financial {
+                    issuance: ClaimIssuance {
+                        reservation_id: destination.reservation_id,
+                        issuance_id: Uuid::new_v4(),
+                        command_id: Uuid::new_v4(),
+                        initialization_execution_id: None,
+                    },
+                    publication: FinancialPublication::Active,
+                },
+                witness_evidence_fingerprint: Some(hash(b"target proof")),
+            },
+        }],
+        max_fee_per_movement_lamports: 10000,
+        total_fee_budget_lamports: 20000,
+        retained_root_gas_lamports: 1000000,
+        retained_classic_rent_lamports: 0,
+        expires_at: 1100,
+    };
+    let approvals = RotationApprovals {
+        custody: Signed {
+            key_id: hash(b"custody"),
+            value: plan.clone(),
+            signature: "11".repeat(70),
+        },
+        policy: Signed {
+            key_id: hash(b"policy"),
+            value: plan,
+            signature: "22".repeat(70),
+        },
+        custody_certificate_chain_der_hex: vec!["01".into()],
+        policy_certificate_chain_der_hex: vec!["02".into()],
+    };
+    CurrentClaimApproval {
+        statement: claim,
+        authority,
+        issued_at: 1000,
+        expires_at: 1010,
+        custody_authorization: wallet_mpc_protocol::sign::CustodyAuthorization {
+            certificate_chain_der_hex: vec![],
+            signature_der_hex: String::new(),
+        },
+        rotation: Some(Box::new(approvals)),
+    }
+}
+
+#[test]
+fn rotation_claim_context_uses_distinct_custody_domain_and_keeps_ordinary_bytes() {
+    let request = rotation_request();
+    request.validate_live(1000).unwrap();
+    let message = request.message().unwrap();
+    assert!(message.starts_with(b"Wallet-MPC/CUSTODY_SOLANA_ROTATION_CLAIM_V1\0"));
+    let mut ordinary = request.clone();
+    ordinary.rotation = None;
+    assert_eq!(
+        ordinary.message().unwrap(),
+        authorization_message(&ordinary.authority, &ordinary.statement, 1000, 1010).unwrap()
+    );
+    assert!(serde_json::to_value(&ordinary)
+        .unwrap()
+        .get("rotation")
+        .is_none());
+    assert_ne!(message, ordinary.message().unwrap());
+    let mut changed = request.clone();
+    changed
+        .rotation
+        .as_mut()
+        .unwrap()
+        .custody
+        .value
+        .source_generation
+        .epoch += 1;
+    assert!(changed.message().is_err());
+    let mut backdated = request.clone();
+    backdated.issued_at = 799;
+    backdated.expires_at = 1050;
+    assert!(backdated.message().is_err()); // C/P must also be fresh at the original approval time.
+    let mut expired = request;
+    expired.expires_at = 1200;
+    assert!(expired.validate_live(1100).is_err()); // live C/P plan is still required.
+}
+
+#[test]
+fn frozen_rotation_claim_report_requires_exact_sealed_rotation_and_original_lease() {
+    use wallet_mpc_protocol::{
+        solana_claim_authority::ClaimQueryLease,
+        solana_rotation::{RotationStatus, RotationView},
+        witness::{ClaimAvailability, Phase, Query, QueryReply, RootView},
+    };
+    let mut approval = rotation_request();
+    approval.expires_at = 1050; // The original own15s lease expires before either approval.
+    let plan = approval.rotation.as_ref().unwrap().plan();
+    let party = PARTIES[0];
+    let query = Query {
+        anchor_id: plan.witness_anchor,
+        root_identity: plan.source.identity().unwrap(),
+        challenge: hash(b"own query"),
+        execution_id: None,
+        claim_reservation_id: Some(approval.statement.reservation_id),
+        candidate_claim: Some(Box::new(approval.statement.clone())),
+        materialization_id: None,
+        rotation_id: None,
+    };
+    let lease = ClaimQueryLease {
+        approval: approval.clone(),
+        query: Signed {
+            value: query.clone(),
+            key_id: approval.authority.prepared().unwrap().1[party].clone(),
+            signature: "11".repeat(70),
+        },
+        issued_at: 1000,
+        expires_at: 1015,
+    };
+    let reply = QueryReply {
+        query,
+        sequence: 5,
+        root: RootView {
+            original: approval.statement.root.clone(),
+            revision: 4,
+            phase: Phase::Frozen,
+            generation: approval.authority.generation().unwrap().clone(),
+            public_key_package: approval.authority.prepared().unwrap().0[0]
+                .value
+                .public_key_package
+                .clone(),
+            node_keys: approval.authority.prepared().unwrap().1.clone(),
+            prepared: None,
+            next_claim_index: 0,
+            financial_mode: None,
+            rotation: Some(RotationView {
+                rotation_id: plan.rotation_id,
+                source_identity: plan.source.identity().unwrap(),
+                target_identity: plan.target.identity().unwrap(),
+                business_fingerprint: plan.business_fingerprint().unwrap(),
+                status: RotationStatus::Sealed,
+                next_index: 1,
+                allocated_high_water: 1,
+                inventory_fingerprint: plan.inventory_fingerprint.clone(),
+            }),
+        },
+        execution: None,
+        abandoned: false,
+        claim: None,
+        lifecycle_key_id: Some(approval.authority.prepare.key_id.clone()),
+        claim_issuance: None,
+        replacement: None,
+        node_profiles: BTreeMap::new(),
+        refresh: None,
+        claim_availability: Some(ClaimAvailability {
+            reservation_id: approval.statement.reservation_id,
+            index: None,
+            owner: None,
+            retry: None,
+        }),
+        generation_authority: Some(approval.authority.prepare.clone()),
+        inventory_materialization: None,
+        rotation_claim_registration: None,
+    };
+    lease.validate_new_report(&reply, party, 1001).unwrap();
+    for fault in 0..6 {
+        let mut altered = reply.clone();
+        match fault {
+            0 => altered.root.phase = Phase::Active,
+            1 => altered.root.rotation.as_mut().unwrap().rotation_id = Uuid::new_v4(),
+            2 => altered.root.rotation.as_mut().unwrap().status = RotationStatus::Collecting,
+            3 => {
+                altered
+                    .root
+                    .rotation
+                    .as_mut()
+                    .unwrap()
+                    .inventory_fingerprint = hash(b"changed")
+            }
+            4 => altered.root.rotation.as_mut().unwrap().next_index = 0,
+            _ => altered.query.challenge = hash(b"another lease"),
+        }
+        assert!(
+            lease.validate_new_report(&altered, party, 1001).is_err(),
+            "fault{fault}"
+        );
+    }
+    assert!(lease.validate_new_report(&reply, party, 1015).is_err());
+    let mut ordinary = lease;
+    ordinary.approval.rotation = None;
+    assert!(ordinary.validate_new_report(&reply, party, 1001).is_err());
+}
+
+#[test]
+fn rotation_registration_command_accepts_current_evidence_shape_without_original_domain_rewrite() {
+    let request = rotation_request();
+    let evidence = wallet_mpc_protocol::solana_provisioning::Evidence {
+        statement: request.statement.clone(),
+        authority: Some(Box::new(request.authority.clone())),
+        participant_agreement: PARTIES
+            .iter()
+            .map(|party| wallet_mpc_protocol::solana_provisioning::Report {
+                statement: request.statement.clone(),
+                party_id: (*party).into(),
+                durable: true,
+                signer_signature: "11".repeat(70),
+            })
+            .collect(),
+    };
+    assert!(evidence.validate().is_err());
+    evidence.validate_claim().unwrap();
+    let command = Command {
+        anchor_id: request.authority.prepare.value.anchor_id,
+        root_identity: request.statement.root.identity().unwrap(),
+        request_id: Uuid::new_v4(),
+        expected_revision: 4,
+        expires_at: 1100,
+        action: CommandAction::RegisterRotationClaim {
+            approvals: request.rotation.unwrap(),
+            evidence: Box::new(evidence),
+        },
+    };
+    command.validate(1000).unwrap();
 }

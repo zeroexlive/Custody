@@ -324,6 +324,35 @@ impl Trust {
         }
         Ok(())
     }
+    /// Fresh rules8 Gen0 registration proves this exact source cohort. The
+    /// broader keyring verifier above remains archival/legacy authority only.
+    pub fn original_rotation_claim_evidence(
+        &self,
+        e: &Evidence<Claim>,
+        source_keys: &BTreeMap<String, String>,
+    ) -> Result<()> {
+        e.validate_claim()?;
+        ensure!(
+            e.authority.is_none(),
+            "original source receipt authority required"
+        );
+        let profile = self.profile(&e.statement.root.wallet_class)?;
+        for (report, party) in e.participant_agreement.iter().zip(PARTIES) {
+            let expected = source_keys
+                .get(party)
+                .context("original source party missing")?;
+            let pin = profile.receipts[party]
+                .get(expected)
+                .context("exact original source cohort receipt pin missing")?;
+            let message = receipt_message("claim", &e.statement, party)?;
+            pin.verify(
+                &message,
+                &decode_hex(&report.signer_signature).context("source receipt signature")?,
+            )
+            .context("receipt does not belong to the exact original source cohort")?;
+        }
+        Ok(())
+    }
     pub fn authorized(&self, a: &AuthorizedIntent, package: &[u8], now: u64) -> Result<()> {
         let p = self.profile(&a.intent.claim.root.wallet_class)?;
         a.validate_shape(package, now, &p.policy)?;

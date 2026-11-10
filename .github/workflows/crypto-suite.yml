@@ -246,6 +246,7 @@ jobs:
             work/crypto/fixtures/**/solana-public-finality-public-evidence.json
             work/crypto/fixtures/**/solana-public-finality-failure-public-evidence.json
             work/crypto/fixtures/**/solana-rotation-inventory-public-evidence.json
+            work/crypto/fixtures/**/solana-rotation-claim-public-evidence.json
             work/crypto/fixtures/**/solana-coordinator-routing-public-evidence.json
             work/crypto/fixtures/**/solana-routed-financial-public-evidence.json
             work/crypto/fixtures/**/solana-financial-signature-route_config_loss-public-evidence.json

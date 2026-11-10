@@ -1,4 +1,4 @@
-# Current project status — 2026-11-10
+# Current project status — 2026-11-11
 
 Verified `zeroexlive/Custody` main is **`587e0969a216102879d17cadb6ffeee8dfb8b6c6`**,
 merged [PR #1](https://github.com/zeroexlive/Custody/pull/1). Its parents are the
@@ -13,10 +13,11 @@ remain planned; production/mainnet/customer-fund activation remains unauthorized
 Verified preceding development checkpoint: `00e49a4` in Draft [PR #2](https://github.com/zeroexlive/Custody/pull/2)
 adds retained-inventory quarantine. Exact [Fast42848404456](https://github.com/zeroexlive/Custody/actions/runs/42848404456)
 passed four selected jobs, including1431 backend tests1001.70s; full crypto was
-unselected. The subsequent public historical-inventory materialization is under
-bounded independent validation complete:71 witness/39 protocol/14 contract
+unselected. The subsequent public historical-inventory materialization has completed
+bounded independent validation:71 witness/39 protocol/14 contract
 cases, Clippy and four genuine process cases175.174s pass with181 unchanged
-source/binary paths. Exact-source CI is pending. Root four process cases161.712s
+source/binary paths. Exact materialization Fast42854598058 passed4 selected
+jobs/1431 backend cases813.72s (full crypto unselected). Root four process cases161.712s
 also pass. Its1000-entry final replay is29.723s under the unchanged60s
 limit. [Scope and qualified failures](PHASE6GC_INVENTORY_MATERIALIZATION.md).
 
@@ -686,3 +687,13 @@ Claim/asset-key/role stay exact. Original0–6 replay unchanged. Root71 W cases1
 and workspaceClippy2.06s pass; four genuine cases161.712s pass; independent71 W/39 protocol/14 contracts/Clippy and4 genuine175.174s pass
 with181 unchanged paths and no bounded P0/P1/new P2 blocker. Exact-source CI pending.
 This grants no private movement/retirement or phase/production completion.
+
+
+Readonly source Claim registration is now an implementation draft under rules8;
+[scope and remaining gates](PHASE6GC_ROTATION_CLAIM_REGISTRATION.md). It preserves
+original sealed inventory/membership and uses separate public control provenance.
+Root75 state/seven shape cases/Clippy and qualified original4 plus genuine Gen1
+HOT/COLD2 process cases pass, including expiry/recovery. Corrected independent75 W/39 protocol/17 contracts/Clippy and six process cases
+323.592s pass with182 unchanged paths and no remaining scoped P0/P1/new P2 blocker.
+Exact-source Fast is pending. No private
+migration, financial adoption or ledger authority follows.

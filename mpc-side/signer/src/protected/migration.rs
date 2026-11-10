@@ -239,6 +239,7 @@ fn query_leases(
                 claim_reservation_id: None,
                 candidate_claim: None,
                 materialization_id: None,
+                rotation_id: None,
             },
         )?;
         let lease = super::journal::sign(

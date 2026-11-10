@@ -75,6 +75,9 @@ impl Policy {
                 )
             },
         )?;
+        if let Some(approvals) = &approval.rotation {
+            self.rotation_approvals(approvals, class, time, live)?;
+        }
         let message = approval.message()?;
         if live {
             proof(
@@ -92,6 +95,53 @@ impl Policy {
         }
     }
 
+    fn rotation_approvals(
+        &self,
+        approvals: &wallet_mpc_protocol::solana_rotation::RotationApprovals,
+        class: &str,
+        time: u64,
+        live: bool,
+    ) -> Result<()> {
+        use wallet_mpc_protocol::solana_rotation::PLAN_DOMAIN;
+        approvals.validate_shape()?;
+        approvals.plan().validate(time)?;
+        ensure!(
+            approvals.plan().source.wallet_class == class
+                && approvals.plan().source.genesis_hash == self.limits.genesis_hash
+                && approvals.custody.key_id == self.custody_key.key_id
+                && approvals.policy.key_id == self.operator_key.key_id,
+            "separate pinned Custody and class Policy rotation approval required"
+        );
+        for (pin, signed, verifier, certificates) in [
+            (
+                &self.custody_key,
+                &approvals.custody,
+                &self.custody,
+                &approvals.custody_certificate_chain_der_hex,
+            ),
+            (
+                &self.operator_key,
+                &approvals.policy,
+                &self.operator,
+                &approvals.policy_certificate_chain_der_hex,
+            ),
+        ] {
+            let message = signed.signing_message(PLAN_DOMAIN)?;
+            pin.verify(&message, &signed.signature_bytes()?)?;
+            if live {
+                proof(
+                    verifier,
+                    pin,
+                    &message,
+                    &CustodyAuthorization {
+                        certificate_chain_der_hex: certificates.clone(),
+                        signature_der_hex: signed.signature.clone(),
+                    },
+                )?;
+            }
+        }
+        Ok(())
+    }
     pub(super) fn migration_approvals(
         &self,
         approvals: &wallet_mpc_protocol::solana_profile_migration::MigrationApprovals,

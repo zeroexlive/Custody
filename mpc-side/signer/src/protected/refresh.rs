@@ -118,6 +118,7 @@ impl Service {
             claim_reservation_id: None,
             candidate_claim: None,
             materialization_id: None,
+            rotation_id: None,
         };
         let mut local = self.local.lock().await;
         let time = now()?;

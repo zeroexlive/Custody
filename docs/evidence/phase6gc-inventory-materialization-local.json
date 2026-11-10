@@ -157,5 +157,14 @@
     "backend_seconds": 1001.7,
     "predates_this_source": true,
     "all_crypto": false
+  },
+  "exact_checkpoint_fast_ci": {
+    "sha": "3acdd418f771fcbbc151c3f187ebdada9497da82",
+    "run": 42854598058,
+    "result": "SUCCESS",
+    "executed_jobs": 4,
+    "backend_passed": 1431,
+    "backend_seconds": 813.72,
+    "all_crypto": false
   }
 }

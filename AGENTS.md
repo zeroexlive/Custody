@@ -292,3 +292,26 @@ Claim/asset-key/role stay exact. Original0–6 replay unchanged. Root71 W cases1
 and workspaceClippy2.06s pass; four genuine cases161.712s pass; independent71 W/39 protocol/14 contracts/Clippy and4 genuine175.174s pass
 with181 unchanged paths and no bounded P0/P1/new P2 blocker. Exact-source CI pending.
 This grants no private movement/retirement or phase/production completion.
+
+
+2026-11-10 readonly rotation Claim registration WIP: read
+PHASE6GC_ROTATION_CLAIM_REGISTRATION.md. Rules8 draft preserves sealed unpublished
+entries and uses a separate exact rotation/Claim/sourceFP/registeredEvidence link.
+Only a resolved Sealed Frozen source can register, with fresh C/P/Life and actual
+all-three receipts, in contiguous original index order. No issuer/financial/private
+adoption. New current Claim optional rotation context uses distinct Custody domain
+and independent class Policy plan signatures; ordinary None remains Active-only.
+Own15s leases remain unchanged. Signed public provenance query is explicit and
+omitted from ordinary replies. Root75 state/seven shape cases/Clippy and qualified original4 plus Gen1 HOT/COLD2
+process cases pass. Corrected independent75 W/39 protocol/17 contracts/Clippy and six process cases
+323.592s pass with182 unchanged paths; exact-source Fast is pending;
+whole-phase acceptance remains pending.
+Never treat this WIP as migration execution or phase completion.
+
+Rules8 final review correction: fresh Gen0 rotation receipts bind the exact source
+Root node roster; retained class receipt keyrings remain archival authority only.
+Reopen checks new rules8 None registrations against the pre-event roster, rejecting
+invalid unreviewed draft8 records without changing original0–7 replay. Real other-
+cohort signatures reproduced200 beforefix; corrected33 regression passes15.44s and
+bad draft reopen rejects. Corrected182-path independent validation passes75 W/39 protocol/17 contracts,
+Clippy and six genuine cases323.592s with no remaining scoped P0/P1/new P2 blocker.

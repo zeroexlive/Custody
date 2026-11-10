@@ -72,6 +72,15 @@ def test_phase6gc_public_finality_current_nodes_original_signed_wire(tmp_path, c
     run_public_finality(tmp_path, custody_class)
 
 
+@pytest.mark.parametrize("custody_class", ["HOT", "COLD"])
+def test_phase6gc_frozen_rotation_claims_current_receipts_and_public_recovery(
+    tmp_path, custody_class
+):
+    from rotation_claim_acceptance import run_rotation_claim
+
+    run_rotation_claim(tmp_path, custody_class=custody_class)
+
+
 @pytest.mark.parametrize("financial", [False, True])
 def test_phase6gc_governed_rotation_inventory_two_actual_cohorts(tmp_path, financial):
     from rotation_inventory_acceptance import run_rotation_inventory

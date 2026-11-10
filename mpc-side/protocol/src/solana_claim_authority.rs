@@ -128,6 +128,8 @@ pub struct CurrentClaimApproval {
     pub issued_at: u64,
     pub expires_at: u64,
     pub custody_authorization: CustodyAuthorization,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub rotation: Option<Box<crate::solana_rotation::RotationApprovals>>,
 }
 
 #[derive(Clone, Debug, Serialize, Deserialize, PartialEq, Eq)]
@@ -176,6 +178,25 @@ impl ClaimQueryLease {
             .claim_availability
             .as_ref()
             .context("original alias occupancy proof required")?;
+        let phase_authorized = if let Some(approvals) = &self.approval.rotation {
+            let plan = approvals.plan();
+            let source_identity = plan.source.identity()?;
+            let target_identity = plan.target.identity()?;
+            let business_fingerprint = plan.business_fingerprint()?;
+            reply.root.phase == Phase::Frozen
+                && reply.root.rotation.as_ref().is_some_and(|view| {
+                    view.status == crate::solana_rotation::RotationStatus::Sealed
+                        && view.rotation_id == plan.rotation_id
+                        && view.source_identity == source_identity
+                        && view.target_identity == target_identity
+                        && view.business_fingerprint == business_fingerprint
+                        && view.allocated_high_water == plan.allocated_high_water
+                        && view.next_index == plan.allocated_high_water
+                        && view.inventory_fingerprint == plan.inventory_fingerprint
+                })
+        } else {
+            reply.root.phase == Phase::Active
+        };
         ensure!(
             self.issued_at <= now
                 && now < self.expires_at
@@ -184,7 +205,7 @@ impl ClaimQueryLease {
                 && reply.execution.is_none()
                 && !reply.abandoned
                 && reply.root.original == claim.root
-                && reply.root.phase == Phase::Active
+                && phase_authorized
                 && reply.root.prepared.is_none()
                 && reply.refresh.is_none()
                 && reply.replacement.is_none()
@@ -224,16 +245,39 @@ pub struct CurrentClaimGrant {
 
 impl CurrentClaimApproval {
     pub fn message(&self) -> Result<Vec<u8>> {
-        authorization_message(
+        let ordinary = authorization_message(
             &self.authority,
             &self.statement,
             self.issued_at,
             self.expires_at,
-        )
+        )?;
+        if let Some(approvals) = &self.rotation {
+            approvals.validate_shape()?;
+            let plan = approvals.plan();
+            plan.validate(self.issued_at)?; // Archived recovery uses this original time too.
+            let (_, keys) = self.authority.prepared()?;
+            ensure!(
+                plan.source == self.statement.root
+                    && plan.source_generation == *self.authority.generation()?
+                    && plan.source_node_keys == *keys
+                    && self.statement.index < plan.allocated_high_water,
+                "exact original source and current public rotation Claim authority required"
+            );
+            canonical_message(
+                b"Wallet-MPC/CUSTODY_SOLANA_ROTATION_CLAIM_V1\0",
+                serde_json::json!({"statement":self.statement,"authority":self.authority,
+                    "issued_at":self.issued_at,"expires_at":self.expires_at,"rotation":approvals}),
+            )
+        } else {
+            Ok(ordinary)
+        }
     }
 
     pub fn validate_live(&self, now: u64) -> Result<()> {
         self.message()?;
+        if let Some(approvals) = &self.rotation {
+            approvals.plan().validate(now)?;
+        }
         ensure!(
             self.issued_at <= now && now < self.expires_at,
             "current Claim Custody approval expired or not yet valid"

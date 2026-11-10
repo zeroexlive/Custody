@@ -159,6 +159,7 @@ impl Service {
                 claim_reservation_id: Some(approval.statement.reservation_id),
                 candidate_claim: Some(Box::new(approval.statement.clone())),
                 materialization_id: None,
+                rotation_id: None,
             },
         )?;
         let lease = ClaimQueryLease {

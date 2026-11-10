@@ -104,6 +104,8 @@ pub struct Snapshot {
     #[serde(default, skip_serializing_if = "BTreeMap::is_empty")]
     pub inventory_materializations:
         BTreeMap<Uuid, crate::materialization::InventoryMaterialization>,
+    #[serde(default, skip_serializing_if = "BTreeMap::is_empty")]
+    pub rotation_claim_registrations: BTreeMap<String, crate::rotation::RotationClaimRegistration>,
 }
 
 pub(crate) fn slot(party: &str, round: u16) -> String {
@@ -182,6 +184,7 @@ impl Snapshot {
             claim_candidates: BTreeMap::new(),
             finalities: BTreeMap::new(),
             inventory_materializations: BTreeMap::new(),
+            rotation_claim_registrations: BTreeMap::new(),
         })
     }
     fn advance(&mut self, root: &str) -> Result<()> {
@@ -232,6 +235,7 @@ impl Snapshot {
                     approvals.plan().activation_id == id
                 }
                 CommandAction::StageRotationInventory { approvals, .. }
+                | CommandAction::RegisterRotationClaim { approvals, .. }
                 | CommandAction::BeginRotation { approvals } => [
                     approvals.plan().rotation_id,
                     approvals.plan().authorization_id,
@@ -392,6 +396,7 @@ impl Snapshot {
                 ensure!(matches!(command.action,
                     CommandAction::StageRotationInventory { .. }
                     | CommandAction::MaterializeRotationInventory { .. }
+                    | CommandAction::RegisterRotationClaim { .. }
                     | CommandAction::BeginRotation { .. }
                     | CommandAction::AbandonRotationInventory { .. }
                     | CommandAction::AcknowledgeFinality { .. }),
@@ -410,6 +415,12 @@ impl Snapshot {
                     chunk,
                 } => {
                     self.materialize_inventory(command, *rotation_id, *materialization_id, chunk)?;
+                }
+                CommandAction::RegisterRotationClaim {
+                    approvals,
+                    evidence,
+                } => {
+                    self.register_rotation_claim(command, approvals, evidence, time)?;
                 }
                 CommandAction::BeginRotation { approvals } => {
                     self.begin_rotation(command, approvals, time)?;

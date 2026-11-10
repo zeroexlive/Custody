@@ -417,3 +417,27 @@ Optional `materialization_id` query selector returns signed compact
 alone does not attest successful binding recovery. Ordinary query encodings omit
 both new optional fields. No customer/private/ledger route is exposed. See
 [authority and conflict behavior](PHASE6GC_INVENTORY_MATERIALIZATION.md).
+
+
+### Readonly rotation Claim control (unmerged implementation draft)
+
+Life-only W transport adds `RegisterRotationClaim {approvals,evidence}`. The
+original resolved Sealed/Frozen rotation and fresh C/P plan must match; every
+source registers in contiguous original index order. It creates no issuer or
+financial publication. Optional query `rotation_id` plus `claim_reservation_id`
+returns signed `rotation_claim_registration` (original rotation/command/Claim IDs,
+source-entry FP and registered-Evidence FP). Cross-Root selection fails; ordinary
+None queries/replies preserve their old bytes.
+
+Protected `CurrentClaimApproval.rotation` is optional and uses the distinct
+Custody rotation-Claim domain plus independently pinned Custody/Policy plan
+signatures. It permits a current-generation public receipt only under the exact
+Sealed/Frozen W context and own original15s challenge; ordinary approvals remain
+Active-only. COLD keeps explicit courier proofs. The receipt domain and Evidence
+encoding are unchanged. [Scope and pending independent gates](PHASE6GC_ROTATION_CLAIM_REGISTRATION.md).
+
+Fresh Gen0 `RegisterRotationClaim` receipts bind the source Root's exact designated
+per-party receipt keys. Other retained class pins remain archival authority. New
+rules8 registration replay applies that same source-roster check at the original
+event; original rules0–7 replay is unchanged. Invalid unreviewed draft8 provenance
+is rejected rather than rewritten or promoted.

@@ -333,6 +333,10 @@ pub enum CommandAction {
         materialization_id: Uuid,
         chunk: Box<crate::solana_rotation::InventoryChunk>,
     },
+    RegisterRotationClaim {
+        approvals: Box<crate::solana_rotation::RotationApprovals>,
+        evidence: Box<Evidence<Claim>>,
+    },
     BeginRotation {
         approvals: Box<crate::solana_rotation::RotationApprovals>,
     },
@@ -429,6 +433,14 @@ impl Command {
                     "bounded original historical data recovery identity required"
                 );
             }
+            CommandAction::RegisterRotationClaim {
+                approvals,
+                evidence,
+            } => {
+                approvals.validate_shape()?;
+                approvals.plan().validate(now)?;
+                evidence.validate_claim()?;
+            }
             CommandAction::BeginRotation { approvals } => {
                 approvals.validate_shape()?;
                 approvals.plan().validate(now)?;
@@ -464,6 +476,8 @@ pub struct Query {
     pub candidate_claim: Option<Box<Claim>>,
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub materialization_id: Option<Uuid>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub rotation_id: Option<Uuid>,
 }
 
 #[derive(Clone, Debug, Serialize, Deserialize, PartialEq, Eq)]
@@ -551,6 +565,8 @@ pub struct QueryReply {
     pub generation_authority: Option<Box<Signed<Command>>>,
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub inventory_materialization: Option<crate::solana_rotation::InventoryMaterializationView>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub rotation_claim_registration: Option<crate::solana_rotation::RotationClaimRegistrationView>,
 }
 
 /// Durable permission to publish one already registered native deposit claim.

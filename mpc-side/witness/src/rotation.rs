@@ -27,6 +27,16 @@ pub struct RotationReservation {
     pub begin_command_id: Option<Uuid>,
     pub abandon_command_id: Option<Uuid>,
 }
+/// Separate public provenance; the original sealed entry stays unchanged.
+#[derive(Clone, Debug, Serialize, Deserialize, PartialEq, Eq)]
+#[serde(deny_unknown_fields)]
+pub struct RotationClaimRegistration {
+    pub command_id: Uuid,
+    pub source_fingerprint: String,
+    pub evidence: wallet_mpc_protocol::solana_provisioning::Evidence<
+        wallet_mpc_protocol::solana_provisioning::Claim,
+    >,
+}
 impl Snapshot {
     pub(crate) fn unresolved_rotation_commitment(&self, root: &str) -> Result<bool> {
         if self.journal_rules >= 7 {
@@ -246,6 +256,13 @@ impl Snapshot {
         Ok(())
     }
     pub(crate) fn check_rotation_entry(&self, entry: &MigrationSource) -> Result<()> {
+        self.check_rotation_entry_for_rotation(entry, None)
+    }
+    fn check_rotation_entry_for_rotation(
+        &self,
+        entry: &MigrationSource,
+        rotation_id: Option<Uuid>,
+    ) -> Result<()> {
         entry.validate_shape()?;
         self.check_candidate_binding(&entry.claim)?;
         let root = entry.claim.root.identity()?;
@@ -253,11 +270,20 @@ impl Snapshot {
         if let Some(registered) = self.claims.get(&entry.claim.reservation_id) {
             ensure!(
                 registered.statement == entry.claim
-                    && entry.witness_evidence_fingerprint.as_deref()
+                    && (entry.witness_evidence_fingerprint.as_deref()
                         == Some(&fingerprint(
                             "SOLANA_ROTATION_CLAIM_EVIDENCE_V1",
                             registered
-                        )?),
+                        )?)
+                        || (self.journal_rules >= 8
+                            && entry.witness_evidence_fingerprint.is_none()
+                            && rotation_id.is_some_and(|id| self
+                                .rotation_claim_registrations
+                                .get(&format!("{id}:{}", entry.claim.reservation_id))
+                                .is_some_and(|proof| proof.evidence == *registered
+                                    && entry
+                                        .identity()
+                                        .is_ok_and(|fp| proof.source_fingerprint == fp))))),
                 "original registered source evidence cannot be omitted or substituted"
             );
         } else {
@@ -385,7 +411,7 @@ impl Snapshot {
                 self.journal_rules < 7 || entry.claim.reservation_id != command.request_id,
                 "proposed Claim identity cannot equal its lifecycle command"
             );
-            self.check_rotation_entry(entry)?;
+            self.check_rotation_entry_for_rotation(entry, Some(plan.rotation_id))?;
         }
         let old = &self.rotations[&plan.rotation_id];
         let identity = chunk.identity(plan)?;
@@ -478,7 +504,7 @@ impl Snapshot {
                     }
                 }
                 for entry in &complete_entries {
-                    self.check_rotation_entry(entry)?;
+                    self.check_rotation_entry_for_rotation(entry, Some(plan.rotation_id))?;
                 }
             }
             // Every source W Claim is mandatory, even when never published.
@@ -518,6 +544,144 @@ impl Snapshot {
         }
         Ok(())
     }
+    pub(crate) fn rotation_claim_registration_view(
+        &self,
+        root: &str,
+        rotation_id: Uuid,
+        claim_id: Uuid,
+    ) -> Result<Option<wallet_mpc_protocol::solana_rotation::RotationClaimRegistrationView>> {
+        let Some(rotation) = self.rotations.get(&rotation_id) else {
+            return Ok(None);
+        };
+        ensure!(
+            rotation.source_identity == root,
+            "rotation provenance belongs to another original Root"
+        );
+        self.rotation_claim_registrations
+            .get(&format!("{rotation_id}:{claim_id}"))
+            .map(|proof| {
+                ensure!(
+                    self.claims.get(&claim_id) == Some(&proof.evidence),
+                    "registered rotation evidence link changed"
+                );
+                Ok(
+                    wallet_mpc_protocol::solana_rotation::RotationClaimRegistrationView {
+                        rotation_id,
+                        command_id: proof.command_id,
+                        reservation_id: claim_id,
+                        source_fingerprint: proof.source_fingerprint.clone(),
+                        evidence_fingerprint: fingerprint(
+                            "SOLANA_ROTATION_CLAIM_EVIDENCE_V1",
+                            &proof.evidence,
+                        )?,
+                    },
+                )
+            })
+            .transpose()
+    }
+    pub(crate) fn register_rotation_claim(
+        &mut self,
+        command: &Command,
+        approvals: &RotationApprovals,
+        evidence: &wallet_mpc_protocol::solana_provisioning::Evidence<
+            wallet_mpc_protocol::solana_provisioning::Claim,
+        >,
+        time: Option<u64>,
+    ) -> Result<()> {
+        ensure!(
+            self.journal_rules >= 8,
+            "rotation Claim registration requires rules8"
+        );
+        self.rotation_context(command, approvals, time)?;
+        let plan = approvals.plan();
+        let original = self
+            .rotations
+            .get(&plan.rotation_id)
+            .context("original sealed rotation required")?;
+        ensure!(
+            original.status == RotationStatus::Sealed
+                && original.business_fingerprint == plan.business_fingerprint()?
+                && !self.unresolved_rotation_commitment(&command.root_identity)?,
+            "complete resolved sealed source required before public registration"
+        );
+        evidence.validate_claim()?;
+        let claim = &evidence.statement;
+        let entry = original
+            .entries
+            .get(usize::try_from(claim.index)?)
+            .context("original sealed source index required")?
+            .clone();
+        ensure!(
+            entry.claim == *claim
+                && entry.witness_evidence_fingerprint.is_none()
+                && matches!(
+                    entry.membership,
+                    SourceMembership::Unpublished {}
+                        | SourceMembership::LegacyControl { issuance: None }
+                ),
+            "only exact originally unregistered sealed source may gain readonly public provenance"
+        );
+        let slot = format!("{}:{}", plan.rotation_id, claim.reservation_id);
+        let source_fingerprint = entry.identity()?;
+        self.add_rotation_authorization(plan.rotation_id, approvals)?;
+        if let Some(registered) = self.claims.get(&claim.reservation_id) {
+            ensure!(
+                registered == evidence
+                    && self
+                        .rotation_claim_registrations
+                        .get(&slot)
+                        .is_some_and(|proof| proof.evidence == *evidence
+                            && proof.source_fingerprint == source_fingerprint),
+                "original rotation Claim provenance cannot change or adopt existing registration"
+            );
+            return Ok(());
+        }
+        self.check_rotation_entry(&entry)?;
+        let root = &self.roots[&command.root_identity];
+        if let Some(authority) = &evidence.authority {
+            let (_, keys) = authority.prepared()?;
+            ensure!(
+                authority.generation()? == &root.generation
+                    && keys == &root.node_keys
+                    && self.commands.get(&authority.prepare.value.request_id)
+                        == Some(&authority.prepare.value),
+                "exact current original Prepare and receipt authority required"
+            );
+        } else {
+            ensure!(
+                root.generation.epoch == 0,
+                "post-maintenance registration requires current receipt authority"
+            );
+        }
+        let index = format!("{}:{}", command.root_identity, claim.index);
+        let owner = claim.owner_slot()?;
+        let retry = claim.retry_slot()?;
+        ensure!(claim.index == root.next_claim_index && !self.claim_indices.contains_key(&index)
+            && !self.claim_owners.contains_key(&owner) && !self.claim_retries.contains_key(&retry)
+            && !self.claim_issuances.contains_key(&claim.reservation_id),
+            "public registration preserves the original contiguous registered prefix and unissued state");
+        self.index_claim_recipient(claim)?;
+        self.rotation_claim_registrations.insert(
+            slot,
+            RotationClaimRegistration {
+                command_id: command.request_id,
+                source_fingerprint,
+                evidence: evidence.clone(),
+            },
+        );
+        self.claims.insert(claim.reservation_id, evidence.clone());
+        self.claim_indices.insert(index, claim.reservation_id);
+        self.claim_owners.insert(owner, claim.reservation_id);
+        self.claim_retries.insert(retry, claim.reservation_id);
+        self.roots
+            .get_mut(&command.root_identity)
+            .unwrap()
+            .next_claim_index = claim
+            .index
+            .checked_add(1)
+            .context("claim counter exhausted")?;
+        Ok(())
+    }
     pub(crate) fn begin_rotation(
         &mut self,
         command: &Command,
@@ -536,7 +700,7 @@ impl Snapshot {
             "sealed exact original inventory required before migration preparation"
         );
         for entry in &old.entries {
-            self.check_rotation_entry(entry)?;
+            self.check_rotation_entry_for_rotation(entry, Some(plan.rotation_id))?;
         }
         // Only an independently acknowledged terminal wire can resolve a
         // SignedPending blocker; the original status/signature is preserved.

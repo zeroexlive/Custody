@@ -12,6 +12,8 @@ import time
 import uuid
 from contextlib import contextmanager
 
+from cryptography.hazmat.primitives import hashes, serialization
+from cryptography.hazmat.primitives.asymmetric import ec
 from custody.mpc_request_auth import _canonical
 from environment import private_file
 from profile_migration_acceptance import chain
@@ -401,6 +403,92 @@ def run_rotation_inventory(root_path, *, financial=False, count=33):
                 sealed["rotation"]["next_index"] == count
                 and sealed["rotation"]["status"] == "Sealed"
             )
+            registration_views = {}
+
+            def source_registration_view(claim_id):
+                request = {
+                    "anchor_id": w.config["anchor_id"],
+                    "root_identity": fingerprint("SOLANA_SEEDED_ROOT_V1", source),
+                    "challenge": hashlib.sha256(uuid.uuid4().bytes).hexdigest(),
+                    "execution_id": None,
+                    "claim_reservation_id": claim_id,
+                    "rotation_id": plan["rotation_id"],
+                }
+                code, result = w.request("query", sign(w.life, "WITNESS_QUERY_V1", request))
+                assert code == 200, (code, result)
+                reply = verify(w.identity, "WITNESS_QUERY_REPLY_V1", result)
+                assert reply["query"] == request
+                return reply.get("rotation_claim_registration")
+
+            # Public source control evidence is independent of publication.
+            # Register only a bounded prefix here; the remaining entries retain
+            # their original unpublished allocation status. No W issuer grant.
+            for entry in entries[1:3]:
+                source_reports = []
+                for party in PARTIES:
+                    code, report = call(a, party, "approve", approval(a, "claim", entry["claim"]))
+                    assert code == 200, (code, report)
+                    source_reports.append(report)
+                source_evidence = {
+                    "statement": entry["claim"],
+                    "participant_agreement": source_reports,
+                }
+                source_action = {
+                    "kind": "RegisterRotationClaim",
+                    "approvals": approvals,
+                    "evidence": source_evidence,
+                }
+                foreign_reports = []
+                for party in PARTIES:
+                    foreign_key = serialization.load_pem_private_key(
+                        (b_nodes[party] / "tls.key").read_bytes(), None
+                    )
+                    foreign_message = b"Wallet-MPC/SIGNER_SOLANA_CLAIM_V1\0" + _canonical(
+                        {"statement": entry["claim"], "party_id": party, "durable": True}
+                    )
+                    foreign_reports.append(
+                        {
+                            "statement": entry["claim"],
+                            "party_id": party,
+                            "durable": True,
+                            "signer_signature": foreign_key.sign(
+                                foreign_message, ec.ECDSA(hashes.SHA256())
+                            ).hex(),
+                        }
+                    )
+                foreign_source = copy.deepcopy(source_action)
+                foreign_source["evidence"]["participant_agreement"] = foreign_reports
+                before_prefix = query(w, source)["root"]["next_claim_index"]
+                command(w, source, foreign_source, expected=409)
+                assert query(w, source)["root"]["next_claim_index"] == before_prefix
+                wrong = copy.deepcopy(source_action)
+                wrong["approvals"]["policy"]["signature"] = "00" * 70
+                before_prefix = query(w, source)["root"]["next_claim_index"]
+                command(w, source, wrong, expected=409)
+                assert query(w, source)["root"]["next_claim_index"] == before_prefix
+                command(
+                    w, source, {"kind": "RegisterClaim", "evidence": source_evidence}, expected=409
+                )
+                original_registration = command(w, source, source_action)
+                assert w.request("command", original_registration)[0] == 200
+                registered_source = query(w, source, entry["claim"]["reservation_id"])
+                assert registered_source["claim"] == source_evidence
+                assert "claim_issuance" not in registered_source
+                assert entry.get("witness_evidence_fingerprint") is None
+                assert entry["membership"] == {"kind": "Unpublished"}
+                assert "rotation_claim_registration" not in registered_source
+                view = source_registration_view(entry["claim"]["reservation_id"])
+                assert view == {
+                    "rotation_id": plan["rotation_id"],
+                    "command_id": original_registration["value"]["request_id"],
+                    "reservation_id": entry["claim"]["reservation_id"],
+                    "source_fingerprint": fingerprint("SOLANA_ROTATION_SOURCE_V1", entry),
+                    "evidence_fingerprint": fingerprint(
+                        "SOLANA_ROTATION_CLAIM_EVIDENCE_V1", source_evidence
+                    ),
+                }
+                registration_views[entry["claim"]["reservation_id"]] = view
+            assert query(w, source)["root"]["next_claim_index"] == 3
             binding = w.binding(first["claim"], reports)
             if financial:
                 i = binding["authorized"]["intent"]
@@ -437,11 +525,11 @@ def run_rotation_inventory(root_path, *, financial=False, count=33):
                 plan,
                 rotation_id=str(uuid.uuid4()),
                 authorization_id=str(uuid.uuid4()),
-                allocated_high_water=1,
+                allocated_high_water=3,
                 expires_at=int(time.time()) + 120,
                 inventory_fingerprint=fingerprint(
                     "SOLANA_ROTATION_INVENTORY_V1",
-                    [fingerprint("SOLANA_SEEDED_ROOT_V1", source), 1, entries[:1]],
+                    [fingerprint("SOLANA_SEEDED_ROOT_V1", source), 3, entries[:3]],
                 ),
             )
             command(
@@ -453,7 +541,7 @@ def run_rotation_inventory(root_path, *, financial=False, count=33):
                     "chunk": {
                         "business_fingerprint": business(reduced),
                         "start_index": 0,
-                        "entries": entries[:1],
+                        "entries": entries[:3],
                     },
                 },
                 expected=409,
@@ -479,13 +567,16 @@ def run_rotation_inventory(root_path, *, financial=False, count=33):
             replay_seconds = time.monotonic() - replay_started
             assert query(w, source)["root"]["phase"] == "Frozen"
             command(w, target, foreign_action, expected=409)
-            assert query(w, source)["root"]["next_claim_index"] == 1
-            assert query(w, source, entries[1]["claim"]["reservation_id"])["claim"] is None
+            assert query(w, source)["root"]["next_claim_index"] == 3
+            for claim_id, original_view in registration_views.items():
+                assert source_registration_view(claim_id) == original_view
+            assert query(w, source, entries[1]["claim"]["reservation_id"])["claim"] is not None
+            assert "claim_issuance" not in query(w, source, entries[1]["claim"]["reservation_id"])
             events = [
                 json.loads(p.read_text())["value"]
                 for p in sorted((w.directory / "journal/events").glob("*.json"))
             ]
-            assert all(e["rules"] == 7 for e in events)
+            assert all(e["rules"] == 8 for e in events)
             assert all(e["transition"]["kind"] != "Permit" for e in events)
             assert [
                 encrypted_files(net, root["dkg"]) for net, root in ((a, source), (b, target))
@@ -498,7 +589,11 @@ def run_rotation_inventory(root_path, *, financial=False, count=33):
                         "scope": "W manifest only; no chain movement or DB membership acceptance",
                         "source_financial_mode": financial,
                         "manifest_entries": count,
-                        "actual_registered_source_claims": 1,
+                        "actual_registered_source_claims": 3,
+                        "readonly_rotation_claim_registrations": 2,
+                        "other_trusted_cohort_receipts_cannot_register_source": True,
+                        "rotation_claim_original_unpublished_membership_preserved": True,
+                        "rotation_claim_exact_signed_provenance_survives_restart_abandonment": True,
                         "actual_two_frost_cohorts": True,
                         "independent_three_authorities_verified": True,
                         "restart_and_exact_retry_and_sticky_source_pause": True,
@@ -514,7 +609,7 @@ def run_rotation_inventory(root_path, *, financial=False, count=33):
                         "materialization_wrong_whole_hash_rollback": True,
                         "pending_to_active_metadata_evolution_is_declaration_only": financial,
                         "partial_life_proposal_does_not_bind_owner": True,
-                        "staged_candidate_has_no_registered_evidence_or_issuance": True,
+                        "remaining_staged_candidates_have_no_registered_evidence_or_issuance": True,
                         "head_write_failure_poisoned_then_recovered": not financial,
                         "private_permits": 0,
                         "six_original_encrypted_shares_unchanged": True,

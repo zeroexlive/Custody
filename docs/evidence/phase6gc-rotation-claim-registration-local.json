@@ -1,0 +1,207 @@
+{
+  "date": "2026-11-11",
+  "status": "UNMERGED_CORRECTED_INDEPENDENT_VALIDATION_PASS_EXACT_SOURCE_CI_PENDING",
+  "source_parent": "3acdd418f771fcbbc151c3f187ebdada9497da82",
+  "forward_journal_rules": 8,
+  "scope": "Readonly public control registration, not financial publication/private movement/retirement",
+  "root_witness": {
+    "passed": 75,
+    "failed": 0,
+    "ignored": 0,
+    "seconds": 1.67
+  },
+  "root_current_claim_contracts": {
+    "passed": 7,
+    "failed": 0,
+    "seconds": 0.14
+  },
+  "root_workspace_alltargets_clippy": {
+    "result": "PASS",
+    "seconds": 3.07
+  },
+  "qualified_root_runs": {
+    "rotation-claim-runtime-original": {
+      "tests": 4,
+      "failures": 2,
+      "errors": 0,
+      "skipped": 0,
+      "seconds": 192.16
+    },
+    "rotation-claim-runtime-original-retry": {
+      "tests": 4,
+      "failures": 0,
+      "errors": 0,
+      "skipped": 0,
+      "seconds": 187.549
+    },
+    "rotation-claim-runtime-gen1-hot": {
+      "tests": 1,
+      "failures": 0,
+      "errors": 0,
+      "skipped": 0,
+      "seconds": 74.468
+    },
+    "rotation-claim-runtime-gen1-cold": {
+      "tests": 1,
+      "failures": 1,
+      "errors": 0,
+      "skipped": 0,
+      "seconds": 33.937
+    }
+  },
+  "saved_failed_journal_replay": {
+    "listened": true,
+    "seconds": 44.285680795,
+    "cpu_seconds": 44.169972,
+    "deadline_unchanged": true
+  },
+  "final_class_pair": {
+    "tests": 2,
+    "failures": 0,
+    "errors": 0,
+    "skipped": 0,
+    "seconds": 143.88,
+    "cases": [
+      {
+        "name": "test_phase6gc_frozen_rotation_claims_current_receipts_and_public_recovery[HOT]",
+        "seconds": 72.624
+      },
+      {
+        "name": "test_phase6gc_frozen_rotation_claims_current_receipts_and_public_recovery[COLD]",
+        "seconds": 70.935
+      }
+    ]
+  },
+  "independent": {
+    "status": "PASS",
+    "frozen_paths": 182,
+    "source_helper_fixture_workflow_manifests": 178,
+    "runtime_binaries": 4,
+    "initial_candidate_changes": [
+      "mpc-side/witness/src/trust.rs",
+      "mpc-side/witness/src/authority.rs",
+      "mpc-side/integration/rotation_inventory_acceptance.py",
+      "mpc-side/target/debug/wallet-mpc-witness"
+    ],
+    "initial_witness_passed": 75,
+    "initial_witness_seconds": 1.5,
+    "initial_protocol_passed": 39,
+    "initial_protocol_seconds": 78.18,
+    "corrected_witness_passed": 75,
+    "corrected_witness_seconds": 1.64,
+    "corrected_protocol_passed": 39,
+    "corrected_protocol_seconds": 82.17,
+    "corrected_external_contracts": [
+      {
+        "passed": 7,
+        "seconds": 0.13
+      },
+      {
+        "passed": 9,
+        "seconds": 0.17
+      },
+      {
+        "passed": 1,
+        "seconds": 0.15
+      }
+    ],
+    "corrected_clippy": {
+      "result": "PASS",
+      "seconds": 0.53
+    },
+    "corrected_bad_draft_copy_reopen": {
+      "result": "REJECTED",
+      "exit_code": 1,
+      "seconds": 1.52
+    },
+    "corrected_hash_changes_after_cargo": [],
+    "six_case_run": {
+      "tests": 6,
+      "failures": 0,
+      "errors": 0,
+      "skipped": 0,
+      "seconds": 323.592,
+      "cases": [
+        {
+          "name": "test_phase6gc_governed_rotation_inventory_two_actual_cohorts[False]",
+          "seconds": 13.818
+        },
+        {
+          "name": "test_phase6gc_governed_rotation_inventory_two_actual_cohorts[True]",
+          "seconds": 154.123
+        },
+        {
+          "name": "test_phase6gc_witness_replacement_reservation_and_original_signed_store_upgrade",
+          "seconds": 0.715
+        },
+        {
+          "name": "test_phase6gc_witness_journal_restart_corruption_and_concurrency",
+          "seconds": 1.936
+        },
+        {
+          "name": "test_phase6gc_frozen_rotation_claims_current_receipts_and_public_recovery[HOT]",
+          "seconds": 78.099
+        },
+        {
+          "name": "test_phase6gc_frozen_rotation_claims_current_receipts_and_public_recovery[COLD]",
+          "seconds": 74.583
+        }
+      ]
+    },
+    "final_hash_handback": {
+      "result": "PASS",
+      "paths": 182,
+      "source_helper_fixture_workflow_manifests": 178,
+      "runtime_binaries": 4,
+      "changes": []
+    },
+    "source_findings": {
+      "remaining_P0": [],
+      "remaining_P1": [],
+      "new_blocking_P2": [],
+      "corrected_requirement": "Exact source-cohort receipt provenance for new Gen0 registration"
+    },
+    "candidate_failures_or_retries": 0
+  },
+  "original_signed_rules_0_to_7_preserved": true,
+  "generic_missing_evidence_exception_added": false,
+  "claim_issuance_or_financial_membership_added": false,
+  "private_movement_enabled": false,
+  "whole_phase_complete": false,
+  "production_activated": false,
+  "parent_exact_fast": {
+    "run": 42854598058,
+    "result": "SUCCESS",
+    "jobs": 4,
+    "backend_tests": 1431,
+    "backend_seconds": 813.72,
+    "predates_this_source": true,
+    "all_crypto": false
+  },
+  "post_pair_test_only_delta": "One cross-Root helper assertion plus one state case for root-bound provenance and later-rotation missing/positive Evidence. Production and runtime artifacts unchanged; final independent six-case rerun required.",
+  "all_integration_pytest_collection": {
+    "collected": 317,
+    "seconds": 0.92,
+    "execution": false
+  },
+  "source_cohort_correction": {
+    "finding": "Inherited archival class receipt-key fallback was too broad for new live Gen0 source registration",
+    "before": {
+      "expected_status": 409,
+      "actual_status": 200,
+      "seconds": 7.97
+    },
+    "after": {
+      "case": "33-entry actual two-cohort regression including three foreign-cohort real P256 receipts",
+      "result": "PASS",
+      "seconds": 15.44
+    },
+    "bad_unreviewed_draft8_reopen": {
+      "result": "REJECTED",
+      "exit_code": 1,
+      "seconds": 16.503
+    },
+    "scope": "Exact source roster for new Gen0 command and rules8 registration replay; generic archival verification and original signed rules0\u20137 unchanged",
+    "issuer_owner_ledger_rewrite": false
+  }
+}

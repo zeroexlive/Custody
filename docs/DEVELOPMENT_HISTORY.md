@@ -1,3 +1,17 @@
+## 2026-11-11 — readonly rotation Claim registration draft
+
+Rules8 registers only the exact resolved sealed source under fresh C/P/Life and
+all-three original/current control receipts. Original Unpublished membership and
+sealed entries stay unchanged; separate command/source/Evidence provenance has an
+explicit signed read query. Ordinary None encodings and rules0–7 replay remain.
+Root75 W state cases1.87s/seven contracts0.14s/Clippy2.19s pass; qualified root four
+original-generation cases187.57s and two genuine Gen1 HOT/COLD cases143.880s pass.
+Initial startup/DKG and COLD-class fixture failures are retained and qualified in
+[scope](PHASE6GC_ROTATION_CLAIM_REGISTRATION.md). Corrected independent75 W/39 protocol/17 contracts/Clippy and six process cases
+323.592s pass with182 unchanged source/binary paths; exact-source Fast is pending. No issuer, financial membership, private movement or ledger authority
+is added. Backend movement parents/fees, retirement/watch/rescue and whole-phase
+gates remain unfinished.
+
 ## 2026-11-10 — public historical inventory recovery draft
 
 Forwardrules7 separates original commitment proof from current publication
@@ -1033,3 +1047,14 @@ frontend and Rust audit; Clippy rejected return-type complexity. A separately
 reviewed identical tuple alias and rules1–3 range pattern pass full local
 workspace/all-targets Clippy4.69s, with no exemptions or behavioral change. New-head
 CI is required. Original runtime evidence remains explicitly tied to008bb48.
+
+
+2026-11-11 rules8 source-cohort correction: independent review reproduced other
+trusted-cohort receipts being accepted by the inherited archival fallback for new
+Gen0 registration. Live admission and rules8 replay now require the exact source
+roster; original0–7 signed semantics and archival verifier remain unchanged.
+Real negative fails before7.97s/passes after15.44s; invalid unreviewed draft journal
+reopen rejects16.503s. Root75/Clippy pass; corrected independent75 W/39 protocol/17 contracts/Clippy
+and six process cases323.592s pass with182 unchanged paths and no remaining scoped
+P0/P1/new P2 blocker.
+No financial/owner/history rewrite or private movement grant is introduced.

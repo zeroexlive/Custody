@@ -392,3 +392,15 @@ result contains the original pause/keyset IDs and local frontier, and records th
 no W freeze/private work was performed. It does not attest W liveness. Exact retries
 survive entry disable; persisted fences always apply. No release/delete endpoint.
 See [concurrency and recovery boundaries](PHASE6GC_ALLOCATION_PAUSE.md).
+
+
+### Paused source inventory (unmerged development, under review)
+
+Privileged `solana_rotation_inventory {begin,query,accept,export}` keeps a stable
+snapshot UUID under the original pause/tenant. New entry is default-disabled.
+ROOT, ENTRY and SEAL allocate separate durable original15-second nonce leases;
+accept consumes only its exact signed reply before commit expiry. Historical
+proofs, publication state and allocation aliases are immutable. Export returns
+contiguous source data capped at32 entries/128KiB, reducing count to fit; it sends
+no W command and grants no private or ledger authority. See
+[full data/recovery boundary](PHASE6GC_BACKEND_INVENTORY.md).

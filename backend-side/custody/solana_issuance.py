@@ -43,6 +43,7 @@ from .solana_provisioning import (
     _runtime,
     _validate_root,
     _verify,
+    historical_asset_statement,
 )
 from .solana_seeded import account_address
 
@@ -97,12 +98,16 @@ def _query(row):
     }
 
 
-def _claim(claim, tenant_id, *, historical=False):
+def _claim(claim, tenant_id, *, historical=False, readonly_assets=False):
     root = claim.root
     _validate_root(root)
     _verify("root", root.statement, root.evidence)
     _claim_evidence(claim)
-    asset, namespace = _asset_statement(claim.asset)
+    asset, namespace = (
+        historical_asset_statement(claim.asset)
+        if readonly_assets
+        else _asset_statement(claim.asset)
+    )
     expected = {
         "root": root.statement,
         "reservation_id": str(claim.pk),

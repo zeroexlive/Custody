@@ -107,6 +107,20 @@ def test_phase6gc_local_allocation_pause_preserves_actual_cohort_receipts(tmp_pa
     run_receipt_pin_cohorts(tmp_path, pause_source=True)
 
 
+@pytest.mark.django_db(transaction=True)
+def test_phase6gc_complete_backend_inventory_preserves_pending_and_unpublished_claims(tmp_path):
+    from rotation_backend_inventory_acceptance import run_backend_inventory
+
+    run_backend_inventory(tmp_path)
+
+
+@pytest.mark.django_db(transaction=True)
+def test_phase6gc_repaired_active_native_spl_inventory_keeps_original_provenance(tmp_path):
+    from rotation_backend_inventory_acceptance import run_repaired_active_inventory
+
+    run_repaired_active_inventory(tmp_path)
+
+
 def test_phase6gc_witness_replacement_reservation_and_original_signed_store_upgrade(tmp_path):
     from replacement_acceptance import run_reserved_upgrade
 

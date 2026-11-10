@@ -145,11 +145,14 @@ def publish(g, tenant, claim):
     return complete_financial_wallet(**args, evidence=proof)
 
 
-def run_current_claim_financial(root_path):
-    run_financial_wallets(root_path, after_wallets=flow, freeze_before_completion=False)
+def run_current_claim_financial(root_path, *, after_flow=None):
+    def complete(g, root_path, tenant, original_wallets):
+        flow(g, root_path, tenant, original_wallets, after_flow=after_flow)
+
+    run_financial_wallets(root_path, after_wallets=complete, freeze_before_completion=False)
 
 
-def flow(g, root_path, tenant, original_wallets):
+def flow(g, root_path, tenant, original_wallets, *, after_flow=None):
     _, treasury_native = original_wallets
     base = treasury_native.claim.root.base_address
     original_ciphertexts = {
@@ -403,3 +406,5 @@ def flow(g, root_path, tenant, original_wallets):
                     sort_keys=True,
                 ).encode(),
             )
+            if after_flow is not None:
+                after_flow(g, root_path, tenant, original_wallets)

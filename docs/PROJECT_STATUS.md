@@ -623,3 +623,18 @@ independent618 backend cases948.157s and4 genuine cases307.541s pass with174
 unchanged source/bin paths and no bounded P0/P1. Read [scope](PHASE6GC_ALLOCATION_PAUSE.md). Parent473d86a Fast42704314910
 passes4 jobs/1364 backend cases807.77s; not ALL. Actual MIGRATION/RESCUE execution,
 fee accounting, retirement and final whole-phase gates remain unfinished.
+
+
+The0050 backend inventory checkpoint preserves every paused reservation and
+separate local publication/W grant state. Own15s query leases, commit expiry,
+role locks and archival provenance protect collection/sealing and bounded data
+export. Independent168 backend cases381.863s and2 actual cases354.981s pass with
+180 unchanged final-baseline paths and no bounded P0/P1. The earlier one-file
+format delta is qualified and AST-equivalent. Actual1000 DB allocations include
+one registered PENDING-financial source and999unpublished; repaired5-Claim case
+coversACTIVE native/SPL without changing original receipts/shares/ledger. See
+[scope](PHASE6GC_BACKEND_INVENTORY.md). Exact-source CI remains pending. Mandatory
+W coverage of retained candidates/prior staged frontiers must precede movement/
+retirement; restored local/registered frontiers alone are insufficient. Actual
+MIGRATION/RESCUE permissions, fees, retirement/watch and final phase gates remain
+open. Parent87b8abf Fast42761045014 passes4 jobs/1399 backend cases844.20s; not ALL.

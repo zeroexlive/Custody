@@ -332,6 +332,95 @@ class MpcSolanaAllocationPause(models.Model):
         ]
 
 
+class MpcSolanaRotationInventory(models.Model):
+    """Read-only source snapshot; W staging and private authority remain separate."""
+
+    snapshot_id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
+    pause = models.ForeignKey(MpcSolanaAllocationPause, on_delete=models.PROTECT)
+    root_identity = models.CharField(max_length=64)
+    witness_anchor_id = models.UUIDField()
+    witness_key_id = models.CharField(max_length=64)
+    roles = models.JSONField()
+    local_mode = models.JSONField(default=dict)
+    status = models.CharField(max_length=16, default="COLLECTING")
+    header_query = models.OneToOneField(
+        "MpcSolanaRotationInventoryQuery", null=True, on_delete=models.PROTECT, related_name="+"
+    )
+    seal_query = models.OneToOneField(
+        "MpcSolanaRotationInventoryQuery", null=True, on_delete=models.PROTECT, related_name="+"
+    )
+    inventory_fingerprint = models.CharField(max_length=64, default="", blank=True)
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        constraints = [
+            models.CheckConstraint(
+                condition=Q(status="COLLECTING", seal_query__isnull=True, inventory_fingerprint="")
+                | (
+                    Q(status="SEALED", header_query__isnull=False, seal_query__isnull=False)
+                    & ~Q(inventory_fingerprint="")
+                ),
+                name="sol_rot_inventory_state",
+            ),
+        ]
+
+
+class MpcSolanaRotationInventoryEntry(models.Model):
+    """Every original reserved index, including unpublished and pending records."""
+
+    snapshot = models.ForeignKey(MpcSolanaRotationInventory, on_delete=models.PROTECT)
+    claim = models.ForeignKey("MpcSolanaClaim", on_delete=models.PROTECT)
+    ordinal = models.PositiveBigIntegerField()
+    declared_role = models.CharField(max_length=24)
+    original_record = models.JSONField()
+    source = models.JSONField(default=dict)
+    query = models.OneToOneField(
+        "MpcSolanaRotationInventoryQuery", null=True, on_delete=models.PROTECT, related_name="+"
+    )
+
+    class Meta:
+        constraints = [
+            models.UniqueConstraint(fields=["snapshot", "ordinal"], name="uq_sol_rot_inv_index"),
+            models.UniqueConstraint(fields=["snapshot", "claim"], name="uq_sol_rot_inv_claim"),
+            models.CheckConstraint(
+                condition=Q(declared_role__in=["CUSTOMER_DEPOSIT", "TENANT_TREASURY"]),
+                name="sol_rot_inv_source_role",
+            ),
+            models.CheckConstraint(
+                condition=Q(query__isnull=True, source={})
+                | (Q(query__isnull=False) & ~Q(source={})),
+                name="sol_rot_inv_entry_proof",
+            ),
+        ]
+
+
+class MpcSolanaRotationInventoryQuery(models.Model):
+    """One committed challenge and original deadline; no lease renewal."""
+
+    challenge = models.CharField(max_length=64, primary_key=True)
+    snapshot = models.ForeignKey(MpcSolanaRotationInventory, on_delete=models.PROTECT)
+    entry = models.ForeignKey(MpcSolanaRotationInventoryEntry, null=True, on_delete=models.PROTECT)
+    purpose = models.CharField(max_length=8)
+    expires_at = models.DateTimeField()
+    status = models.CharField(max_length=16, default="PENDING")
+    evidence = models.JSONField(default=dict)
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        constraints = [
+            models.CheckConstraint(
+                condition=Q(purpose="ENTRY", entry__isnull=False)
+                | Q(purpose__in=["ROOT", "SEAL"], entry__isnull=True),
+                name="sol_rot_inv_query_subject",
+            ),
+            models.CheckConstraint(
+                condition=Q(status="PENDING", evidence={})
+                | (Q(status="VERIFIED") & ~Q(evidence={})),
+                name="sol_rot_inv_query_state",
+            ),
+        ]
+
+
 class MpcSolanaReceiptPins(models.Model):
     """Immutable installed public identities for this original Root's receipts."""
 

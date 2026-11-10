@@ -229,6 +229,32 @@ def _asset_statement(asset):
     return {"kind": "ClassicToken", "mint": mint, "decimals": asset.decimals}, mint
 
 
+def historical_asset_statement(asset):
+    """Immutable identity for archival validation; never new-spend admission."""
+    from .token_metadata import metadata_fingerprint
+
+    if asset.chain_id != "SOL":
+        raise MpcBindingError("original SOL asset required")
+    if asset.is_native:
+        if asset.decimals != 9 or asset.token_standard or asset.contract_address:
+            raise MpcBindingError("original native SOL identity required")
+        return {"kind": "Native"}, "SOL"
+    try:
+        mint = str(Pubkey.from_string(asset.contract_address))
+        if (
+            asset.token_standard != "SPL"
+            or not 0 <= asset.decimals <= 18
+            or mint != asset.contract_address
+            or bytes(Pubkey.from_string(mint)) == bytes(32)
+            or asset.metadata_verified_at is None
+            or asset.metadata_fingerprint != metadata_fingerprint(asset)
+        ):
+            raise ValueError
+    except (ValueError, TypeError):
+        raise MpcBindingError("original verified classic SPL identity required") from None
+    return {"kind": "ClassicToken", "mint": mint, "decimals": asset.decimals}, mint
+
+
 def reserve_claim(*, keyset_id, tenant_id, principal_id, asset_key, idempotency_key, operator_ref):
     """Allocate once across all owners/assets; no remote side effects or issuance."""
     _standalone()

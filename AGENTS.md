@@ -249,3 +249,21 @@ one pre-lock-hardening two-cohort case15.00s pass. Final independent618 backend
 cases948.157s and4 genuine cases307.541s pass with174 unchanged paths and no
 bounded P0/P1. Exact-source CI remains pending. Parent473d86a Fast42704314910 passes4 jobs/1364 backend cases807.77s;
 not ALL or whole-phase acceptance. Do not enable production or merge partial phase.
+
+
+2026-11-10 backend inventory checkpoint: read docs/PHASE6GC_BACKEND_INVENTORY.md.
+0050 is source data only over an immutable0049 pause, never private/ledger grant.
+Own ROOT/ENTRY/SEAL15s leases, exact Frozen context, complete registered prefix/
+aliases, principal role-birth locks and archival native/SPL provenance protect the
+handoff. PENDING and mode-off issuance never become synthetic financial ACTIVE.
+Normal private validation retains its original enabled-asset path. Independent168
+backend cases381.863s and2 genuine cases354.981s pass, zero failures/errors/skips.
+Final180-path baseline (176source/helper/test/workflow/manifests+4bins) is stable;
+only an earlier helper-format delta is qualified/AST-equivalent. No bounded P0/P1.
+Root32 cases52.94s and1000/Repaired actual runs157.82s/176.38s retain their original
+qualifications. Exact-source CI is pending. BEFORE any movement/retirement add W
+coverage of ALL retained same-Root candidates/prior staged frontiers, evenabandoned
+history, under new forward rules preserving exact original0–5 replay. Local DB
+frontier/registered W frontier alone cannot prove restored-history completeness.
+Do not merge partial phase or activate production. Parent87b8abf Fast42761045014
+passes4 jobs/1399 backend cases844.20s; not ALL.

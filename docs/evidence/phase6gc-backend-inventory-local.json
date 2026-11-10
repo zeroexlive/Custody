@@ -1,0 +1,156 @@
+{
+  "date": "2026-11-10",
+  "status": "BOUNDED_UNMERGED_DEVELOPMENT_INDEPENDENTLY_VALIDATED",
+  "source_parent": "87b8abfa262c3e5477019a3b3e21d90130fc09da",
+  "scope": "Complete paused backend source inventory data only; no private movement, ledger, retirement or phase acceptance",
+  "root_focused": {
+    "tests": 164,
+    "failures": 0,
+    "errors": 0,
+    "skipped": 0,
+    "seconds": 456.155
+  },
+  "root_actual_1000_inventory": {
+    "tests": 1,
+    "failures": 0,
+    "errors": 0,
+    "skipped": 0,
+    "seconds": 157.802
+  },
+  "qualification": "Actual1000backendallocations:1registeredpending-financial source,999unpublished; no1000publication or movement claim",
+  "repaired_active_runtime": "PASS",
+  "independent": {
+    "scope": "Independent bounded0050 backend source inventory/history validation; not W staging, movement, retirement, financial activation, whole-phase or merge approval",
+    "parent_head": "87b8abfa262c3e5477019a3b3e21d90130fc09da",
+    "frozen_paths": 180,
+    "source_count": 176,
+    "runtime_binary_count": 4,
+    "hash_changes_since_runtime_baseline": [],
+    "qualified_initial_delta": [
+      "mpc-side/integration/rotation_backend_inventory_acceptance.py"
+    ],
+    "helper_format_ast_equivalent": true,
+    "backend": {
+      "counts": {
+        "tests": 168,
+        "failures": 0,
+        "errors": 0,
+        "skipped": 0
+      },
+      "seconds": 381.863,
+      "module_counts": {
+        "backend-side.custody.tests.test_solana_financial_wallet": 39,
+        "backend-side.custody.tests.test_solana_issuance": 33,
+        "backend-side.custody.tests.test_solana_rotation_inventory": 32,
+        "backend-side.custody.tests.test_solana_token_provisioning": 64
+      }
+    },
+    "genuine": {
+      "counts": {
+        "tests": 2,
+        "failures": 0,
+        "errors": 0,
+        "skipped": 0
+      },
+      "seconds": 354.981,
+      "cases": [
+        {
+          "name": "test_phase6gc_complete_backend_inventory_preserves_pending_and_unpublished_claims",
+          "seconds": 185.009
+        },
+        {
+          "name": "test_phase6gc_repaired_active_native_spl_inventory_keeps_original_provenance",
+          "seconds": 169.632
+        }
+      ]
+    },
+    "lint": {
+      "ruff": "PASS",
+      "format": "Initial one-helper formatting failure retained; final9file check PASS after coordinated formatting-only change",
+      "diff": "PASS"
+    },
+    "public_report_sha256": {
+      "genuine/test_phase6gc_complete_backend0/solana-backend-inventory-public-evidence.json": "597fe9fb3bf200caa20f885cc17b69cf369e5a8ccd8d4b2d1ba7c0546a16ee4d",
+      "genuine/test_phase6gc_repaired_active_0/solana-repaired-active-inventory-public-evidence.json": "03c06e8564c8406b88c20ca4eac79c2c627051ad73e2913ee3ac7fe78727f6c4"
+    },
+    "public_report_facts": {
+      "genuine/test_phase6gc_complete_backend0/solana-backend-inventory-public-evidence.json": {
+        "allocated_claims": 1000,
+        "backend_connection_and_witness_restart": true,
+        "entry_disable_does_not_discard_existing_snapshot": true,
+        "fresh_original_own_nonce_per_header_entry_seal": true,
+        "movement_or_retirement_acceptance": false,
+        "original_shares_receipts_and_ledger_unchanged": true,
+        "other_allocations_remain_explicitly_unpublished": true,
+        "pending_financial_membership_preserved": true,
+        "registered_claims": 1,
+        "scope": "actual backend inventory with real FROST receipts and pinned Rust W",
+        "source_slices": 32,
+        "witness_commands_during_inventory_observation": 0
+      },
+      "genuine/test_phase6gc_repaired_active_0/solana-repaired-active-inventory-public-evidence.json": {
+        "active_native_and_classic_sources": true,
+        "allocated_claims": 5,
+        "movement_or_retirement_acceptance": false,
+        "original_claim_and_publication_proofs_reverified": true,
+        "original_claim_status_receipts_shares_and_ledger_unchanged": true,
+        "scope": "actual repaired native/SPL provenance plus frozen backend inventory"
+      }
+    },
+    "current_findings": {
+      "P0": [],
+      "P1": [],
+      "blocking_P2": []
+    },
+    "mandatory_future_gate": "Before any movement/retirement, W forward admission must enforce coverage of every retained same-Root candidate and authoritative staged allocation frontier, including abandoned history. A restored backend frontier below that witness-known history must quarantine/reconcile; current registered next_claim_index alone does not prove that completeness. Current0050 is local read-only data and grants no private movement.",
+    "limitations": [
+      "Existing snapshot proves backend allocated frontier plus registered-W prefix, not final cross-history retirement completeness",
+      "Current role/liveness/budgets/source-target membership must be rechecked before future movement",
+      "32-entry/128KiB exports revalidate archived page proofs; SEAL computed the complete stored fingerprint",
+      "Synthetic PG P256 tests are distinguished from genuine real-DKG/Rust-W/chain cases"
+    ],
+    "independent_failures": "No pytest failures/errors/skips/retries. Initial Ruff formatting failure and exact one-file AST-equivalent correction are retained separately.",
+    "status": "PASS"
+  },
+  "retained_failure_history": [
+    "Native enabled=false makes runtime/network identity unavailable; test corrected to disabled deposit capability, with native runtime guard retained",
+    "Two successive negative SPL tests expected internal error text masked by existing publication verifier; assert binding rejection plus corrupted-effect read instead; no validation weakened",
+    "Initial repaired extension203.04s completed original financial flow then failed helper Group.root attribute; corrected to immutable original-wallet Root FK, no production change",
+    "Pre-resume prefix run left a defunct process and zero-byte log; not counted; resumed final32-case run passed52.94s",
+    "Independent format check caught a formatting-only helper delta after Root-FK fix; corrected before actual runtime, original format.log and exact delta retained;168backend calls unaffected"
+  ],
+  "parent_fast_ci": {
+    "head": "87b8abfa262c3e5477019a3b3e21d90130fc09da",
+    "run": 42761045014,
+    "result": "SUCCESS",
+    "jobs": 4,
+    "backend_passed": 1399,
+    "backend_seconds": 844.2,
+    "predates_this_source": true,
+    "all_crypto": false
+  },
+  "new_exact_source_ci": "PENDING_AFTER_COMMIT",
+  "whole_phase_complete": false,
+  "production_activated": false,
+  "root_final_inventory": {
+    "tests": 32,
+    "failures": 0,
+    "errors": 0,
+    "skipped": 0,
+    "seconds": 52.914
+  },
+  "root_repaired_active_runtime": {
+    "tests": 1,
+    "failures": 0,
+    "errors": 0,
+    "skipped": 0,
+    "seconds": 176.366
+  },
+  "crypto_inventory_collection_only": {
+    "collected": 307,
+    "all_execution_performed": false
+  },
+  "mandatory_before_movement_retirement": [
+    "W manifests must cover retained same-Root unregistered candidates/prior staged frontiers even after abandonment; alias protection alone does not prove completeness; restored backend history must reconcile; preserve original old-rule replay"
+  ]
+}

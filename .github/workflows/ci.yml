@@ -100,6 +100,8 @@ jobs:
       - run: ruff check custody/solana_coordinator.py custody/mpc_transport.py custody/management/commands/solana_coordinator.py custody/migrations/0048_solana_coordinator_binding.py
       - run: ruff format --check custody/solana_allocation_pause.py custody/management/commands/solana_allocation_pause.py custody/migrations/0049_solana_allocation_pause.py ../mpc-side/integration/allocation_pause_acceptance.py
       - run: ruff check custody/solana_allocation_pause.py custody/management/commands/solana_allocation_pause.py custody/migrations/0049_solana_allocation_pause.py ../mpc-side/integration/allocation_pause_acceptance.py
+      - run: ruff format --check custody/solana_rotation_inventory.py custody/management/commands/solana_rotation_inventory.py custody/migrations/0050_solana_rotation_inventory_snapshot.py ../mpc-side/integration/rotation_backend_inventory_acceptance.py
+      - run: ruff check custody/solana_rotation_inventory.py custody/management/commands/solana_rotation_inventory.py custody/migrations/0050_solana_rotation_inventory_snapshot.py ../mpc-side/integration/rotation_backend_inventory_acceptance.py
       - run: ruff format --check custody/solana_receipt_pins.py custody/migrations/0047_solana_root_receipt_pins.py
       - run: ruff check custody/solana_receipt_pins.py custody/migrations/0047_solana_root_receipt_pins.py
       - run: ruff format --check custody/solana_witness_client.py

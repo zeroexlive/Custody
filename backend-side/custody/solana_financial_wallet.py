@@ -31,8 +31,8 @@ from .solana_provisioning import VERSION, _audit, _runtime
 ROLES = {"CUSTOMER": "CUSTOMER_DEPOSIT", "TREASURY": "TENANT_TREASURY"}
 
 
-def _membership(claim, *, historical=False):
-    _claim(claim, claim.root.tenant_id, historical=historical)
+def _membership(claim, *, historical=False, readonly_assets=False):
+    _claim(claim, claim.root.tenant_id, historical=historical, readonly_assets=readonly_assets)
     try:
         mode = MpcSolanaFinancialRoot.objects.select_related("root").get(
             root_id=claim.root_id, status="VERIFIED"
@@ -139,6 +139,15 @@ def financial_wallet_request(*, reservation_id, tenant_id, operator_ref):
 
 
 def validate_financial_wallet(row):
+    return _validate_financial_wallet(row, readonly_assets=False)
+
+
+def validate_financial_wallet_history(row):
+    """Read-only original provenance even for disabled assets; no spend grant."""
+    return _validate_financial_wallet(row, readonly_assets=True)
+
+
+def _validate_financial_wallet(row, *, readonly_assets):
     """Verify stored original ownership; no fresh Active/spending or ledger grant.
 
     Always reload the authoritative row and linked public proofs. New spend
@@ -152,7 +161,7 @@ def validate_financial_wallet(row):
         "mode__root",
         "issuance__claim__root",
     ).get(pk=row.pk)
-    mode, role = _membership(row.claim, historical=True)
+    mode, role = _membership(row.claim, historical=True, readonly_assets=readonly_assets)
     issuance = row.issuance
     if (
         row.status != "ACTIVE"

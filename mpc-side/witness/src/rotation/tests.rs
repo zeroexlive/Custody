@@ -817,3 +817,133 @@ fn staged_candidate_ids_cannot_become_commands_ceremonies_or_private_sessions() 
     let c = stage(&s, &approvals(plan), &entries, 0);
     assert!(apply(&mut s, &c).is_err());
 }
+
+fn replanned(a: &RotationApprovals, entries: &[MigrationSource]) -> RotationApprovals {
+    let mut p = a.plan().clone();
+    p.rotation_id = Uuid::new_v4();
+    p.authorization_id = Uuid::new_v4();
+    p.allocated_high_water = u64::try_from(entries.len()).unwrap();
+    p.inventory_fingerprint =
+        inventory_fingerprint(&p.source, p.allocated_high_water, entries).unwrap();
+    approvals(p)
+}
+fn abandon(s: &mut Snapshot, a: &RotationApprovals) {
+    act(
+        s,
+        &a.plan().source,
+        CommandAction::AbandonRotationInventory {
+            rotation_id: a.plan().rotation_id,
+        },
+    );
+}
+#[test]
+fn rules6_cannot_omit_an_abandoned_unpublished_candidate() {
+    let (mut s, a, entries) = setup(2, false);
+    s.journal_rules = 6;
+    let c = stage(&s, &a, &entries, 0);
+    apply(&mut s, &c).unwrap();
+    abandon(&mut s, &a);
+    let smaller = replanned(&a, &entries[..1]);
+    let c = stage(&s, &smaller, &entries[..1], 0);
+    assert!(apply(&mut s, &c).is_err());
+    assert_eq!(s.rotations.len(), 1);
+}
+#[test]
+fn rules6_retains_declared_frontier_even_before_all_chunks_arrived() {
+    let (mut s, a, entries) = setup(2, false);
+    s.journal_rules = 6;
+    let c = stage(&s, &a, &entries[..1], 0);
+    apply(&mut s, &c).unwrap();
+    abandon(&mut s, &a);
+    let smaller = replanned(&a, &entries[..1]);
+    let c = stage(&s, &smaller, &entries[..1], 0);
+    assert!(apply(&mut s, &c).is_err());
+    assert_eq!(s.rotations[&a.plan().rotation_id].entries.len(), 1);
+}
+#[test]
+fn rules6_unknown_old_tuples_cannot_be_invented_at_the_same_frontier() {
+    let (mut s, a, mut entries) = setup(2, false);
+    s.journal_rules = 6;
+    let c = stage(&s, &a, &entries[..1], 0);
+    apply(&mut s, &c).unwrap();
+    abandon(&mut s, &a);
+    entries[1].claim.reservation_id = Uuid::new_v4();
+    entries[1].claim.owner_ref = format!("p1:{}", Uuid::new_v4());
+    entries[1].claim.idempotency_key = format!("new:{}", Uuid::new_v4());
+    let changed = replanned(&a, &entries);
+    let c = stage(&s, &changed, &entries, 0);
+    assert!(apply(&mut s, &c).is_err());
+    assert_eq!(s.rotations.len(), 1);
+}
+#[test]
+fn rules6_preserves_the_exact_old_commitment_and_rules5_replay_semantics() {
+    for rules in [5, 6] {
+        let (mut s, a, entries) = setup(2, false);
+        s.journal_rules = rules;
+        let c = stage(&s, &a, &entries[..1], 0);
+        apply(&mut s, &c).unwrap();
+        abandon(&mut s, &a);
+        let retry = replanned(&a, &entries);
+        let c = stage(&s, &retry, &entries, 0);
+        apply(&mut s, &c).unwrap();
+        assert_eq!(
+            s.rotations[&retry.plan().rotation_id].status,
+            RotationStatus::Sealed
+        );
+    }
+    let (mut s, a, entries) = setup(2, false);
+    s.journal_rules = 5;
+    let c = stage(&s, &a, &entries[..1], 0);
+    apply(&mut s, &c).unwrap();
+    abandon(&mut s, &a);
+    let historical = replanned(&a, &entries[..1]);
+    let c = stage(&s, &historical, &entries[..1], 0);
+    apply(&mut s, &c).unwrap(); // exact original rules5 admission, never retroactive rules6
+}
+
+#[test]
+fn rules6_unresolved_history_fences_new_ownership_and_can_be_proved_by_exact_data() {
+    let (mut s, a, entries) = setup(2, false);
+    s.journal_rules = 5;
+    let c = stage(&s, &a, &entries[..1], 0);
+    apply(&mut s, &c).unwrap();
+    abandon(&mut s, &a);
+    let source = a.plan().source.identity().unwrap();
+    assert!(s.unresolved_rotation_commitment(&source).unwrap());
+    // Model an exact historical rules5 state that had already returned Active;
+    // upgrading admission must not permit that to erase the unknown allocation.
+    s.roots.get_mut(&source).unwrap().phase = Phase::Active;
+    s.journal_rules = 6;
+    let c = command(
+        &s,
+        &a.plan().source,
+        CommandAction::RegisterClaim {
+            evidence: Box::new(evidence(entries[1].claim.clone())),
+        },
+    );
+    assert!(apply(&mut s, &c).is_err());
+    act(&mut s, &a.plan().source, CommandAction::Freeze);
+    let retry = replanned(&a, &entries);
+    let c = stage(&s, &retry, &entries, 0);
+    apply(&mut s, &c).unwrap();
+    assert!(!s.unresolved_rotation_commitment(&source).unwrap());
+}
+
+#[test]
+fn rules6_conservative_commitment_gate_does_not_silently_evolve_publication() {
+    let (mut s, a, mut entries) = setup(1, true);
+    s.journal_rules = 6;
+    let c = stage(&s, &a, &entries, 0);
+    apply(&mut s, &c).unwrap();
+    abandon(&mut s, &a);
+    if let SourceMembership::Financial { publication, .. } = &mut entries[0].membership {
+        *publication = FinancialPublication::Active;
+    } else {
+        panic!("financial fixture required");
+    }
+    let evolved = replanned(&a, &entries);
+    let c = stage(&s, &evolved, &entries, 0);
+    assert!(apply(&mut s, &c).is_err());
+    // Public historical materialization is still required before allowing this
+    // legitimate metadata evolution; refusing is safer than losing old tuples.
+}

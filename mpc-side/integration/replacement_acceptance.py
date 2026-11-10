@@ -147,7 +147,7 @@ def run_reserved_upgrade(root_path):
             new_event = paths[len(originals)]
             original_new_bytes = new_event.read_bytes()
             tampered = json.loads(original_new_bytes)
-            assert tampered["value"]["rules"] == 5
+            assert tampered["value"]["rules"] == 6
             del tampered["value"]["rules"]  # Keep the real original signature.
             try:
                 private_file(new_event, canonical(tampered))

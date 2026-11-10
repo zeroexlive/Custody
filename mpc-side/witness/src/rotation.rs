@@ -8,8 +8,8 @@ use uuid::Uuid;
 use wallet_mpc_protocol::{
     hd::fingerprint,
     solana_rotation::{
-        InventoryChunk, MigrationSource, RotationApprovals, RotationStatus, RotationView,
-        SourceMembership,
+        inventory_fingerprint, InventoryChunk, MigrationSource, RotationApprovals, RotationStatus,
+        RotationView, SourceMembership,
     },
     witness::{Command, ExecutionStatus, Phase},
 };
@@ -28,6 +28,39 @@ pub struct RotationReservation {
     pub abandon_command_id: Option<Uuid>,
 }
 impl Snapshot {
+    pub(crate) fn unresolved_rotation_commitment(&self, root: &str) -> Result<bool> {
+        for old in self
+            .rotations
+            .values()
+            .filter(|r| r.source_identity == root)
+        {
+            for authorization in old.authorizations.values() {
+                let plan = authorization.plan();
+                let count = usize::try_from(plan.allocated_high_water)?;
+                let mut proved = false;
+                for available in self
+                    .rotations
+                    .values()
+                    .filter(|r| r.source_identity == root)
+                {
+                    if available.entries.len() >= count
+                        && inventory_fingerprint(
+                            &plan.source,
+                            plan.allocated_high_water,
+                            &available.entries[..count],
+                        )? == plan.inventory_fingerprint
+                    {
+                        proved = true;
+                        break;
+                    }
+                }
+                if !proved {
+                    return Ok(true);
+                }
+            }
+        }
+        Ok(false)
+    }
     pub(crate) fn rotation_view(&self, root: &str) -> Result<Option<RotationView>> {
         self.rotations
             .iter()
@@ -119,6 +152,20 @@ impl Snapshot {
                     .any(|e| e.root_identity == source_id && e.status == ExecutionStatus::Open),
             "exact independently frozen source and active governed target context required"
         );
+        if self.journal_rules >= 6 {
+            ensure!(
+                self.claim_candidates
+                    .values()
+                    .filter(|c| c.root == plan.source)
+                    .all(|c| c.index < plan.allocated_high_water)
+                    && self.rotations.values().filter(|r| r.source_identity == source_id).all(|r| {
+                        r.authorizations.values().all(|a| {
+                            a.plan().allocated_high_water <= plan.allocated_high_water
+                        })
+                    }),
+                "manifest must cover all retained candidates and prior declared allocation frontiers"
+            );
+        }
         // A renewal may refer to a newly repaired/refreshed target. Freshness
         // must hold against BOTH complete histories on every admission, not
         // only the rosters at the first chunk.
@@ -332,7 +379,33 @@ impl Snapshot {
         mutable.entries.extend_from_slice(&chunk.entries);
         mutable.chunks.insert(chunk.start_index, identity);
         if u64::try_from(mutable.entries.len())? == plan.allocated_high_water {
-            plan.validate_inventory(&mutable.entries)?;
+            let complete_entries = mutable.entries.clone();
+            plan.validate_inventory(&complete_entries)?;
+            if self.journal_rules >= 6 {
+                // An old partial plan commits even the tuples whose chunks W
+                // never received. A mere high-water floor cannot authenticate
+                // those missing owners/aliases. Until explicit historical
+                // materialization exists, require every original full-source
+                // commitment as an exact prefix, preserving old metadata too.
+                for prior in self
+                    .rotations
+                    .values()
+                    .filter(|r| r.source_identity == source)
+                {
+                    for approval in prior.authorizations.values() {
+                        let original = approval.plan();
+                        let length = usize::try_from(original.allocated_high_water)?;
+                        ensure!(
+                            inventory_fingerprint(
+                                &original.source,
+                                original.allocated_high_water,
+                                &complete_entries[..length]
+                            )? == original.inventory_fingerprint,
+                            "original historical inventory commitment must be recovered exactly"
+                        );
+                    }
+                }
+            }
             // Every source W Claim is mandatory, even when never published.
             for registered in self
                 .claims
@@ -341,14 +414,13 @@ impl Snapshot {
             {
                 let index = usize::try_from(registered.statement.index)?;
                 ensure!(
-                    mutable
-                        .entries
+                    complete_entries
                         .get(index)
                         .is_some_and(|e| e.claim == registered.statement),
                     "source inventory omits an original W Claim"
                 );
             }
-            mutable.status = RotationStatus::Sealed;
+            self.rotations.get_mut(&plan.rotation_id).unwrap().status = RotationStatus::Sealed;
         }
         for entry in &chunk.entries {
             if !self.claims.contains_key(&entry.claim.reservation_id) {

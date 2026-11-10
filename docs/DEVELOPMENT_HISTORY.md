@@ -1,3 +1,15 @@
+## 2026-11-10 — retained inventory interim admission quarantine
+
+Forwardrules6 protects old full C/P commitments and prior allocated high-waters,
+including abandoned partial history. Unknown tuples cannot be invented merely by
+keeping the same N. Unresolved sources cannot register/issue or return to ordinary
+private use; public freeze/recovery/exact data remain allowed. Original0–5 signed
+replay is preserved. Root64 W cases1.97s/4 actual cases116.20s pass. Independent64 W cases1.38s,
+final Clippy2.38s/4 actual cases120.085s pass with180 unchanged paths; the only subsequent delta is three reviewed
+test-only negatives; production source and runtime binaries stayed unchanged. This is conservative quarantine, not complete historic
+materialization, migration, retirement or phase acceptance. See
+[scope/limitations](PHASE6GC_RETAINED_INVENTORY.md).
+
 ## 2026-11-10 — paused backend source inventory (unmerged development)
 
 0050 implements complete local source data with own-lease W facts, role-birth

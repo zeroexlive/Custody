@@ -340,6 +340,14 @@ impl Snapshot {
                 r.revision == command.expected_revision,
                 "stale lifecycle CAS revision"
             );
+            if self.journal_rules >= 6 && self.unresolved_rotation_commitment(id)? {
+                ensure!(!matches!(command.action,
+                    CommandAction::Prepare { .. } | CommandAction::Activate
+                    | CommandAction::ReserveReplacement { .. } | CommandAction::ReserveRefresh { .. }
+                    | CommandAction::EnableFinancialMode { .. } | CommandAction::RegisterClaim { .. }
+                    | CommandAction::IssueNativeClaim { .. } | CommandAction::IssueClassicClaim { .. }),
+                    "unresolved committed inventory quarantines new ownership and ordinary activation");
+            }
             if matches!(
                 command.action,
                 CommandAction::Prepare { .. }
@@ -455,6 +463,15 @@ impl Snapshot {
                     );
                     fence.value.validate_shape()?;
                     let p = fence.value.approvals.plan();
+                    if self.journal_rules >= 6 {
+                        for cohort in &p.cohort {
+                            ensure!(
+                                !self
+                                    .unresolved_rotation_commitment(&cohort.original.identity()?)?,
+                                "unresolved inventory cannot migrate through another cohort Root"
+                            );
+                        }
+                    }
                     ensure!(
                         self.journal_rules < 4
                             || p.cohort.iter().all(|c| c
@@ -1057,6 +1074,10 @@ impl Snapshot {
             "replacement identities cannot become private signing executions or sessions"
         );
         let root = i.claim.root.identity()?;
+        ensure!(
+            self.journal_rules < 6 || !self.unresolved_rotation_commitment(&root)?,
+            "unresolved committed inventory cannot receive private signing permission"
+        );
         let r = self
             .roots
             .get(&root)

@@ -355,6 +355,31 @@ def run_rotation_inventory(root_path, *, financial=False, count=33):
             )
             assert query(w, source)["root"]["phase"] == "Frozen"
             command(w, source, action(0, entries[:32]), expected=409)
+            reduced = dict(
+                plan,
+                rotation_id=str(uuid.uuid4()),
+                authorization_id=str(uuid.uuid4()),
+                allocated_high_water=1,
+                expires_at=int(time.time()) + 120,
+                inventory_fingerprint=fingerprint(
+                    "SOLANA_ROTATION_INVENTORY_V1",
+                    [fingerprint("SOLANA_SEEDED_ROOT_V1", source), 1, entries[:1]],
+                ),
+            )
+            command(
+                w,
+                source,
+                {
+                    "kind": "StageRotationInventory",
+                    "approvals": approved(w, reduced, domain),
+                    "chunk": {
+                        "business_fingerprint": business(reduced),
+                        "start_index": 0,
+                        "entries": entries[:1],
+                    },
+                },
+                expected=409,
+            )
             # An authenticated current event cannot downgrade the journal even
             # when the signed head/hash chain is coherently recomputed.
             w.stop()
@@ -382,7 +407,7 @@ def run_rotation_inventory(root_path, *, financial=False, count=33):
                 json.loads(p.read_text())["value"]
                 for p in sorted((w.directory / "journal/events").glob("*.json"))
             ]
-            assert all(e["rules"] == 5 for e in events)
+            assert all(e["rules"] == 6 for e in events)
             assert all(e["transition"]["kind"] != "Permit" for e in events)
             assert [
                 encrypted_files(net, root["dkg"]) for net, root in ((a, source), (b, target))
@@ -405,6 +430,7 @@ def run_rotation_inventory(root_path, *, financial=False, count=33):
                         "startup_wait_seconds": 60,
                         "authenticated_rules_downgrade_rejected": True,
                         "foreign_three_node_receipts_rejected_after_restart_abandonment": True,
+                        "retained_allocation_frontier_cannot_shrink_after_abandonment": True,
                         "staged_candidate_has_no_registered_evidence_or_issuance": True,
                         "head_write_failure_poisoned_then_recovered": not financial,
                         "private_permits": 0,

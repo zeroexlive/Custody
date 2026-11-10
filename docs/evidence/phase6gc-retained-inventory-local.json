@@ -1,0 +1,68 @@
+{
+  "date": "2026-11-10",
+  "status": "INTERIM_UNMERGED_QUARANTINE",
+  "source_parent": "31d46f61d6daf853ef23a1b3ee00e42707bc43f6",
+  "forward_journal_rules": 6,
+  "scope": "Conservative retained-allocation admission quarantine; not historical materialization, movement, retirement, phase or production acceptance",
+  "root_witness_unit": {
+    "passed": 64,
+    "failed": 0,
+    "ignored": 0,
+    "seconds": 1.97
+  },
+  "root_workspace_all_targets_clippy": {
+    "result": "PASS",
+    "seconds": 2.13
+  },
+  "root_genuine": {
+    "tests": 4,
+    "failures": 0,
+    "errors": 0,
+    "skipped": 0,
+    "seconds": 116.181
+  },
+  "original_rules_0_to_5_replay_preserved": true,
+  "writer_helper_assertions_only": "5 to6; historical assertions unchanged",
+  "required_before_movement": [
+    "Public historical materialization against original accepted full C/P commitments",
+    "Prove immutable Claim and asset_key identity before permitting metadata evolution",
+    "Explicit audited handling of unsealed provisional poisoned tuples without silently overriding registered/consumed/proven history"
+  ],
+  "availability_limit": "Exact old full-prefix metadata commitments can quarantine legitimate publication/evidence evolution until materialization exists",
+  "parent_fast_ci": {
+    "run": 42804193288,
+    "result": "SUCCESS",
+    "jobs": 4,
+    "backend_passed": 1431,
+    "backend_seconds": 899.34,
+    "predates_this_source": true,
+    "all_crypto": false
+  },
+  "independent": {
+    "scope": "Interim rules6 quarantine; not whole-phase acceptance",
+    "witness": {
+      "passed": 64,
+      "failed": 0,
+      "ignored": 0,
+      "seconds": 1.38
+    },
+    "workspace_alltargets_clippy": {
+      "result": "PASS",
+      "seconds": 2.38
+    },
+    "genuine": {
+      "tests": 4,
+      "failures": 0,
+      "errors": 0,
+      "skipped": 0,
+      "seconds": 120.085
+    },
+    "frozen_paths": 180,
+    "runtime_hash_changes": [],
+    "final_test_only_delta": "Only state/tests.rs changed after4genuine runtime: three requested state negatives; final independent64PASS1.38s. Production source and four runtime binaries unchanged."
+  },
+  "whole_phase_complete": false,
+  "private_movement_enabled": false,
+  "production_activated": false,
+  "test_fixture_failures_retained": "Initial E0502 compile and mismatched genesis / stale detached claim evidence in new test controls; test-only fixes, no production changes"
+}

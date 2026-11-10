@@ -2624,3 +2624,209 @@ fn incoming_index_is_genesis_scoped_and_public_results_remain_recoverable() {
     assert_eq!(req.round, 1);
     s.record(&report).unwrap();
 }
+
+// Synthetic archived commitment isolates forward admission on a source that was
+// already Active in old history. These state-only fixtures establish no Trust
+// acceptance; each negative below has an otherwise-valid unquarantined control.
+fn unresolved_inventory(s: &mut Snapshot, b: &Binding) {
+    use crate::rotation::RotationReservation;
+    use wallet_mpc_protocol::solana_rotation::{RotationApprovals, RotationPlan, RotationStatus};
+    let fixture: Value = serde_json::from_str(include_str!(
+        "../../../protocol/tests/fixtures/solana-rotation-roots.json"
+    ))
+    .unwrap();
+    let source = b.authorized.intent.claim.root.clone();
+    let source_id = source.identity().unwrap();
+    let mut target: Root = serde_json::from_value(fixture["target"]["root"].clone()).unwrap();
+    target.ownership_scope = source.ownership_scope.clone();
+    target.genesis_hash = source.genesis_hash.clone();
+    target.chain_id = source.chain_id.clone();
+    target.wallet_class = source.wallet_class.clone();
+    let target_generation = Generation {
+        epoch: 0,
+        ceremony_id: target.dkg.execution_id,
+        public_key_package_sha256: hash(&target.public_key_package),
+    };
+    let treasury_claim = Claim {
+        root: target.clone(),
+        index: 0,
+        reservation_id: Uuid::new_v4(),
+        owner_ref: format!("p1:{}", Uuid::new_v4()),
+        idempotency_key: "archived-treasury".into(),
+        asset: wallet_mpc_protocol::solana_provisioning::Asset::Native,
+    };
+    let plan = RotationPlan {
+        version: 1,
+        rotation_id: Uuid::new_v4(),
+        authorization_id: Uuid::new_v4(),
+        witness_anchor: s.anchor_id,
+        source: source.clone(),
+        source_generation: s.roots[&source_id].generation.clone(),
+        source_node_keys: s.roots[&source_id].node_keys.clone(),
+        target: target.clone(),
+        target_generation,
+        target_node_keys: serde_json::from_value(fixture["target"]["node_keys"].clone()).unwrap(),
+        allocated_high_water: 2,
+        inventory_fingerprint: hash(b"archived complete vector whose data is unavailable"),
+        destinations: vec![wallet_mpc_protocol::solana_rotation::RotationDestination {
+            treasury: wallet_mpc_protocol::solana_rotation::MigrationSource {
+                witness_evidence_fingerprint: Some(hash(b"archived target evidence")),
+                membership: wallet_mpc_protocol::solana_rotation::SourceMembership::Financial {
+                    issuance: wallet_mpc_protocol::witness::ClaimIssuance {
+                        reservation_id: treasury_claim.reservation_id,
+                        issuance_id: Uuid::new_v4(),
+                        command_id: Uuid::new_v4(),
+                        initialization_execution_id: None,
+                    },
+                    publication: wallet_mpc_protocol::solana_rotation::FinancialPublication::Active,
+                },
+                claim: treasury_claim,
+                asset_key: "SOL".into(),
+                role: wallet_mpc_protocol::solana_financial::SourceRole::TenantTreasury,
+            },
+        }],
+        max_fee_per_movement_lamports: 1000,
+        total_fee_budget_lamports: 2000,
+        retained_root_gas_lamports: 10000,
+        retained_classic_rent_lamports: 0,
+        expires_at: 1010,
+    };
+    plan.validate_shape().unwrap();
+    let approvals = RotationApprovals {
+        custody: signed(PARTIES[0], plan.clone()),
+        policy: signed(PARTIES[1], plan.clone()),
+        custody_certificate_chain_der_hex: vec!["01".into()],
+        policy_certificate_chain_der_hex: vec!["02".into()],
+    };
+    s.rotations.insert(
+        plan.rotation_id,
+        RotationReservation {
+            source_identity: source_id.clone(),
+            target_identity: target.identity().unwrap(),
+            business_fingerprint: plan.business_fingerprint().unwrap(),
+            authorizations: BTreeMap::from([(plan.authorization_id, approvals)]),
+            entries: vec![],
+            chunks: BTreeMap::new(),
+            status: RotationStatus::Abandoned,
+            begin_command_id: None,
+            abandon_command_id: Some(Uuid::new_v4()),
+        },
+    );
+    s.journal_rules = 6;
+    assert!(s.unresolved_rotation_commitment(&source_id).unwrap());
+}
+
+#[test]
+fn unresolved_active_history_rejects_otherwise_valid_r1_without_mutation() {
+    let (mut s, b) = setup();
+    s.journal_rules = 6;
+    let req = request(&s, &b, PARTIES[0], 1);
+    s.clone()
+        .permit(&req, &node_keys()[PARTIES[0]], 1000)
+        .unwrap();
+    unresolved_inventory(&mut s, &b);
+    let before = s.clone();
+    let error = s.permit(&req, &node_keys()[PARTIES[0]], 1000).unwrap_err();
+    assert!(error.to_string().contains("unresolved committed inventory"));
+    assert_eq!(s, before);
+}
+
+#[test]
+fn unresolved_active_history_rejects_valid_inflight_r2_without_mutation() {
+    let (keys, public) = keys();
+    let mut b = binding();
+    b.authorized.intent.claim.root.group_public_key =
+        hex(&public.verifying_key().serialize().unwrap());
+    b.authorized.intent.claim.root.public_key_package = public.serialize().unwrap();
+    b.authorized.intent.generation.public_key_package_sha256 = hash(&public.serialize().unwrap());
+    b.authorized.claim_evidence = evidence(b.authorized.intent.claim.clone());
+    let mut s = Snapshot::empty(Uuid::new_v4()).unwrap();
+    s.command(&command(
+        &s,
+        &b,
+        CommandAction::Enroll {
+            evidence: Box::new(evidence(b.authorized.intent.claim.root.clone())),
+            node_keys: node_keys(),
+        },
+    ))
+    .unwrap();
+    register(&mut s, &b);
+    let mut commitments = BTreeMap::new();
+    for party in &b.selected_signers {
+        grant(&mut s, &b, party);
+        let id = identifier(party).unwrap();
+        let (_, commitment) =
+            frost::round1::commit(keys[&id].signing_share(), &mut rand_core::OsRng);
+        s.record(&signed(
+            party,
+            PublicRound {
+                anchor_id: s.anchor_id,
+                execution_id: b.authorized.intent.crypto_execution_id,
+                binding_fingerprint: b.identity().unwrap(),
+                party_id: party.clone(),
+                round: 1,
+                commitments: Some(commitment.serialize().unwrap()),
+                signature_share: None,
+                signing_package: None,
+            },
+        ))
+        .unwrap();
+        commitments.insert(id, commitment);
+    }
+    let package =
+        frost::SigningPackage::new(commitments, &decode_hex(&b.authorized.payload_hex).unwrap());
+    s.journal_rules = 6;
+    let mut req = request(&s, &b, PARTIES[0], 2);
+    req.signing_package = Some(package.serialize().unwrap());
+    s.clone()
+        .permit(&req, &node_keys()[PARTIES[0]], 1000)
+        .unwrap();
+    unresolved_inventory(&mut s, &b);
+    let before = s.clone();
+    let error = s.permit(&req, &node_keys()[PARTIES[0]], 1000).unwrap_err();
+    assert!(error.to_string().contains("unresolved committed inventory"));
+    assert_eq!(s, before);
+}
+
+#[test]
+fn unresolved_noncommand_cohort_root_blocks_profile_migration_without_mutation() {
+    let (mut s, b) = setup();
+    let (_, public) = keys();
+    let mut other = b.clone();
+    let root = &mut other.authorized.intent.claim.root;
+    root.dkg.keyset_id = Uuid::new_v4();
+    root.dkg.execution_id = Uuid::new_v4();
+    root.dkg.session_id = Uuid::new_v4();
+    root.group_public_key = hex(&public.verifying_key().serialize().unwrap());
+    root.public_key_package = public.serialize().unwrap();
+    let enrolled = root.clone();
+    s.command(&command(
+        &s,
+        &other,
+        CommandAction::Enroll {
+            evidence: Box::new(evidence(enrolled)),
+            node_keys: node_keys(),
+        },
+    ))
+    .unwrap();
+    for binding in [&b, &other] {
+        s.command(&command(&s, binding, CommandAction::Freeze))
+            .unwrap();
+    }
+    s.journal_rules = 6;
+    let fence = migration_fence(&s, &[b.clone(), other.clone()]);
+    let c = command(
+        &s,
+        &b,
+        CommandAction::InstallNodeProfile {
+            fence: Box::new(fence),
+            renewal: None,
+        },
+    );
+    s.clone().command_at(&c, 1000).unwrap();
+    unresolved_inventory(&mut s, &other);
+    let before = s.clone();
+    let error = s.command_at(&c, 1000).unwrap_err();
+    assert!(error.to_string().contains("through another cohort Root"));
+    assert_eq!(s, before);
+}

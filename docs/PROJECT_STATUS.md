@@ -638,3 +638,15 @@ W coverage of retained candidates/prior staged frontiers must precede movement/
 retirement; restored local/registered frontiers alone are insufficient. Actual
 MIGRATION/RESCUE permissions, fees, retirement/watch and final phase gates remain
 open. Parent87b8abf Fast42761045014 passes4 jobs/1399 backend cases844.20s; not ALL.
+
+
+2026-11-10 retained-inventory INTERIM quarantine draft: read
+PHASE6GC_RETAINED_INVENTORY.md. Rules6 fences shrunken known/prior declared
+frontiers, requires exact historical full-FP prefixes at seal, and blocks new
+ownership/ordinary activation/private permits across unresolved commitments.
+Original0–5 replay stays unchanged. Root64 W cases1.97s and4 genuine cases116.20s pass. Independent64 W cases1.38s,
+final Clippy2.38s and4 genuine cases120.085s pass with180 unchanged paths. The only post-runtime delta is three reviewed test-only negatives; production
+source and runtime binaries stayed unchanged. This deliberately blocks legitimate
+metadata evolution; full historical materialization and explicit provisional
+poison reconciliation remain mandatory before movement/retirement. No new
+MIGRATION/RESCUE, financial or phase authority follows.

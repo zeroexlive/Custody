@@ -30,6 +30,18 @@ Remaining before Phase6G-C completion:
 - Final exact-SHA Fast+ALL, original3d32 six-case encrypted-store compatibility,
   independent whole-phase review, repository rules, merge and main verification.
 
+Latest committed `fff0acc` passes exact
+[Fast42917404514](https://github.com/zeroexlive/Custody/actions/runs/42917404514):
+4 executed jobs/1431 backend cases590.12s; full crypto unselected. Independent
+bounded witness/source-receipt validation is recorded in
+[rotation Claim registration](PHASE6GC_ROTATION_CLAIM_REGISTRATION.md).
+The subsequent unmerged0051 backend consumer adds own-nonce public source
+proof archives without changing Claim status, financial membership or ledger.
+Root190 PG/P256 contracts pass221.04s. Actual Gen1/33 passes23.291s; its
+Gen0/1000 companion hits the helper10s restart wait191.091s. A bounded helper
+readiness/public-query recovery correction is awaiting final independent reruns.
+See [backend source proof scope](PHASE6GC_BACKEND_ROTATION_SOURCES.md).
+
 Sources with conflicting historical bindings remain quarantined for explicit
 recovery; materialization never silently overrides them. The following paragraphs
 retain earlier development checkpoints and their original evidence qualifications.

@@ -242,6 +242,7 @@ jobs:
             work/crypto/fixtures/**/solana-current-claim-financial-public-evidence.json
             work/crypto/fixtures/**/solana-receipt-pin-cohorts-public-evidence.json
             work/crypto/fixtures/**/solana-backend-inventory-public-evidence.json
+            work/crypto/fixtures/**/solana-backend-source-control-public-evidence.json
             work/crypto/fixtures/**/solana-repaired-active-inventory-public-evidence.json
             work/crypto/fixtures/**/solana-public-finality-public-evidence.json
             work/crypto/fixtures/**/solana-public-finality-failure-public-evidence.json

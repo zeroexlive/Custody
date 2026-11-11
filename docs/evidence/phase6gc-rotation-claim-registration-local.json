@@ -1,6 +1,6 @@
 {
   "date": "2026-11-11",
-  "status": "UNMERGED_CORRECTED_INDEPENDENT_VALIDATION_PASS_EXACT_SOURCE_CI_PENDING",
+  "status": "UNMERGED_CORRECTED_INDEPENDENT_VALIDATION_AND_EXACT_FAST_PASS",
   "source_parent": "3acdd418f771fcbbc151c3f187ebdada9497da82",
   "forward_journal_rules": 8,
   "scope": "Readonly public control registration, not financial publication/private movement/retirement",
@@ -203,5 +203,14 @@
     },
     "scope": "Exact source roster for new Gen0 command and rules8 registration replay; generic archival verification and original signed rules0\u20137 unchanged",
     "issuer_owner_ledger_rewrite": false
+  },
+  "exact_fast": {
+    "sha": "fff0acc209924085849062a8a5dc54c4a66340a7",
+    "run_id": 42917404514,
+    "conclusion": "success",
+    "executed_jobs": 4,
+    "backend_passed": 1431,
+    "backend_seconds": 590.12,
+    "full_crypto_selected": false
   }
 }

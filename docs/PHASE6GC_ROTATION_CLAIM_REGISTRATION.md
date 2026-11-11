@@ -26,7 +26,8 @@ Optional query `rotation_id` plus the original Claim selector returns signed
 `rotation_claim_registration` provenance with original rotation/command/Claim IDs,
 source fingerprint and Evidence fingerprint. It remains readable after abandonment
 and restart. Cross-Root selection fails; ordinary queries omit both optional
-fields and retain their original encodings. Backend consumption is not implemented.
+fields and retain their original encodings. The subsequent unmerged backend
+consumer is documented in [backend source proofs](PHASE6GC_BACKEND_ROTATION_SOURCES.md).
 
 Current-generation public approvals gain optional `rotation` context with a
 distinct Custody authorization domain. Source nodes separately verify the pinned
@@ -52,7 +53,10 @@ expiry and signed provenance recovery pass in the two-case143.880s run. Correcte
 contracts and workspace/all-target Clippy0.53s pass. Six process cases323.592s
 pass together, with no failures/errors/skips/reviewer retries and182 unchanged
 paths (178 source/helper/fixture/workflow/manifests plus4 binaries). No remaining
-bounded P0/P1 or new P2 blocker was found. Exact-source Fast CI is pending. Actual MIGRATION/RESCUE execution, cumulative
+bounded P0/P1 or new P2 blocker was found. Exact `fff0acc`
+[Fast42917404514](https://github.com/zeroexlive/Custody/actions/runs/42917404514)
+passes4 executed jobs, including1431 backend cases590.12s; full crypto was
+unselected. This predates the backend source-proof consumer. Actual MIGRATION/RESCUE execution, cumulative
 fee exposure, retirement/watch/rescue and final whole-phase gates remain open.
 
 The four original-generation process cases pass on a fresh fixture in187.57s.
@@ -65,7 +69,8 @@ now creates the target DKG with COLD from inception; the production class bindin
 was preserved. The final class-pair run passes both cases and includes wrong Policy pin and
 stale-generation contexts. One later cross-Root helper assertion and one state
 case are the only test deltas; production/binaries remain unchanged. Independent
-validation will rerun all six process cases on that final source. All failed logs remain available, and no single combined six-case run is
+validation subsequently reran all six process cases on the corrected final source
+as recorded above. All failed logs remain available, and no single combined six-case run is
 claimed from these qualified root runs.
 
 Independent review then reproduced a live Gen0 provenance gap: the inherited

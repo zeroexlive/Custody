@@ -124,6 +124,16 @@ def test_phase6gc_complete_backend_inventory_preserves_pending_and_unpublished_c
 
 
 @pytest.mark.django_db(transaction=True)
+@pytest.mark.parametrize("refreshed", [False, True])
+def test_phase6gc_backend_rotation_source_proofs_preserve_unpublished_membership(
+    tmp_path, refreshed
+):
+    from rotation_source_backend_acceptance import run_backend_source_control
+
+    run_backend_source_control(tmp_path, refreshed=refreshed, count=33 if refreshed else 1000)
+
+
+@pytest.mark.django_db(transaction=True)
 def test_phase6gc_repaired_active_native_spl_inventory_keeps_original_provenance(tmp_path):
     from rotation_backend_inventory_acceptance import run_repaired_active_inventory
 

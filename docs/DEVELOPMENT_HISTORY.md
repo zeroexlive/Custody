@@ -1058,3 +1058,20 @@ reopen rejects16.503s. Root75/Clippy pass; corrected independent75 W/39 protocol
 and six process cases323.592s pass with182 unchanged paths and no remaining scoped
 P0/P1/new P2 blocker.
 No financial/owner/history rewrite or private movement grant is introduced.
+
+2026-11-11 unmerged0051 backend continuation: own durable15-second source queries
+verify sealed inventory/rotation provenance and original/current receipts without
+promoting Claim status or financial membership. Original positive Evidence stays
+archival across refreshes; exact new public registration remains bound to current
+source identities. Immutable SQL/deferred-expiry guards and privileged public
+query/accept/archive handoff are included. Independent design review corrected
+the missing candidate selector and an overstrict archival/current comparison;
+source review also strengthened SQL equality to the captured original receipt.
+Root190 final contracts pass221.04s. Actual Gen1/33 passes23.291s; Gen0/1000
+hits the helper10s readiness wait191.091s. The helper now uses the accepted60s
+scale readiness bound and one fresh public nonce after restart, preserving its
+original pending row and15s leases; independent reruns remain pending. A runtime attempt
+interrupted without a completion report is not accepted evidence. Parentfff0acc
+exactFast42917404514 passes4 selected jobs/1431 backend tests590.12s; full crypto
+unselected. Read PHASE6GC_BACKEND_ROTATION_SOURCES.md. Movement, fee exposure,
+retirement/rescue and final whole-phase gates remain unfinished.

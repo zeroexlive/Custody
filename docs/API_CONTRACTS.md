@@ -441,3 +441,17 @@ per-party receipt keys. Other retained class pins remain archival authority. New
 rules8 registration replay applies that same source-roster check at the original
 event; original rules0–7 replay is unchanged. Invalid unreviewed draft8 provenance
 is rejected rather than rewritten or promoted.
+
+### Backend source proof handoff (unmerged0051)
+
+Privileged command `solana_rotation_source query|accept|archive` selects the exact
+tenant/snapshot and original source ordinal. `query` additionally requires the
+original rotation UUID and commits a nonce with the existing15-second deadline.
+Its public query includes exact `candidate_claim`, `claim_reservation_id` and
+`rotation_id`; no signing key is accepted. `accept` verifies the installed W
+signature, original query/sealed manifest and original/current source receipts.
+An originally unpublished source additionally requires the exact signed readonly
+registration provenance. It creates no Claim approval, issuer, financial wallet,
+private session or ledger entry. `archive` re-verifies historical data; it grants
+no current/private authority, including after rotation abandonment. Cross-snapshot
+challenge adoption fails. [Schema, expiry and scope](PHASE6GC_BACKEND_ROTATION_SOURCES.md).

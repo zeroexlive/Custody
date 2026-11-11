@@ -1,5 +1,12 @@
 # Wallet-MPC — standing instructions for AI coding agents and contributors
 
+Latest unmerged0051 backend source-query consumer: read
+docs/PHASE6GC_BACKEND_ROTATION_SOURCES.md. Keep own15-second nonce/deadline,
+exact sealed inventory and rotation provenance, immutable original Claim and
+membership, and separate archival receipts from current Root liveness. Archive
+reads never authorize private movement or replenish fees. Actual movement,
+retirement/rescue and final whole-phase gates remain unfinished.
+
 This file defines the mandatory read-before-code workflow. It is guidance for work in the repository, not a bypass of human approvals or security gates.
 
 ## Required orientation (every new chat/session/feature branch)

@@ -421,6 +421,27 @@ class MpcSolanaRotationInventoryQuery(models.Model):
         ]
 
 
+class MpcSolanaRotationSourceQuery(models.Model):
+    """Public control proof over an immutable inventory entry; no publication."""
+
+    challenge = models.CharField(max_length=64, primary_key=True)
+    entry = models.ForeignKey(MpcSolanaRotationInventoryEntry, on_delete=models.PROTECT)
+    rotation_id = models.UUIDField()
+    expires_at = models.DateTimeField()
+    status = models.CharField(max_length=16, default="PENDING")
+    evidence = models.JSONField(default=dict)
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        constraints = [
+            models.CheckConstraint(
+                condition=Q(status="PENDING", evidence={})
+                | (Q(status="VERIFIED") & ~Q(evidence={})),
+                name="sol_rot_source_query_state",
+            ),
+        ]
+
+
 class MpcSolanaReceiptPins(models.Model):
     """Immutable installed public identities for this original Root's receipts."""
 

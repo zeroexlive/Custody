@@ -34,7 +34,7 @@ from test_dkg import encrypted_files
 from witness_acceptance import fingerprint, sign, verify
 
 
-def run_backend_inventory(root_path, *, count=1000):
+def run_backend_inventory(root_path, *, count=1000, before_inventory=None, after_inventory=None):
     def collect(g, root_path, tenant, first_claim, arguments):
         assert count > 0
         shares = encrypted_files(g.net, g.dkg_binding)
@@ -63,6 +63,8 @@ def run_backend_inventory(root_path, *, count=1000):
             )
             assert reserved.index == index and reserved.status == "PENDING"
         assert MpcSolanaClaim.objects.filter(root=root).count() == count
+        if before_inventory is not None:
+            before_inventory(g)
         with override_settings(
             MPC_SOLANA_ALLOCATION_PAUSE_ENABLED=True, MPC_SOLANA_ROTATION_INVENTORY_ENABLED=True
         ):
@@ -163,6 +165,8 @@ def run_backend_inventory(root_path, *, count=1000):
                 sort_keys=True,
             ).encode(),
         )
+        if after_inventory is not None:
+            after_inventory(g, root_path, tenant, completed, entries)
 
     run_financial_mode_import(root_path, after_mode=collect)
 

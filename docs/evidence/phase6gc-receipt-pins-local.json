@@ -1,0 +1,57 @@
+{
+  "date": "2026-11-03",
+  "status": "BOUNDED_UNMERGED_DEVELOPMENT_ACCEPTANCE",
+  "scope": "Original per-Root receipt trust prerequisite for independent fresh-DKG cohorts; excludes coordinator routing/fund migration/retirement/rescue",
+  "source_parent": "f58d219b82cf18c4a19ef1c01eff10ea53a4cbed",
+  "root_validation": {
+    "new_pg_p256_cases": 40,
+    "new_seconds": 19.96,
+    "affected_legacy_cases": 149,
+    "affected_seconds": 117.48,
+    "genuine_two_cohort_cases": 1,
+    "genuine_seconds": 8.44
+  },
+  "independent_validation": {
+    "backend_pg_cases": 189,
+    "backend_pg_seconds": 135.216,
+    "genuine_cases": 2,
+    "genuine_seconds": 158.945,
+    "genuine_breakdown": {
+      "two_cohort_original_receipts_seconds": 7.888,
+      "repaired_current_claim_native_spl_financial_seconds": 150.858
+    },
+    "failures": 0,
+    "errors": 0,
+    "skips": 0
+  },
+  "manifest": {
+    "paths": 124,
+    "source_fixture_workflow_paths": 120,
+    "runtime_binaries": 4,
+    "before_after_unchanged": true,
+    "sha256": "422b5fdceddf0c73e49fa0cdb1225d265d102e562fe3c4ee496d3b62aaa6a586"
+  },
+  "independent_review": "No remaining identified bounded P0/P1 or concrete P2 gap after reservation/import/approval/pre-RPC validation fixes. This is not an external audit.",
+  "exact_source_fast": {
+    "head": "f9f4445d30eadae5fad2ef1359e13f98e5b1241c",
+    "run_id": 41696076316,
+    "url": "https://github.com/zeroexlive/Custody/actions/runs/41696076316",
+    "result": "SUCCESS",
+    "executed_jobs": 4,
+    "backend_tests": 1323,
+    "backend_seconds": 798.12,
+    "unselected_crypto_jobs": 10,
+    "scope_limit": "Predates0048 coordinator routing. Not whole-phase ALL or original-store compatibility."
+  },
+  "whole_phase_all_original_3d32_compatibility": "PENDING",
+  "algorithm_changes": false,
+  "scanner_exemptions": false,
+  "activation_flags_relaxed": false,
+  "production_activation": false,
+  "limitations": [
+    "Unconfigured legacy no-row Roots retain original global-pin behavior; explicit verified archive import is required before changing those pins.",
+    "Initial certificate keys must be installed independently; no trust learned from coordinator evidence.",
+    "Current-Claim authority remains independently Life-authorized.",
+    "Root-bound coordinator transport, actual fund migration, retirement and late-address rescue remain unfinished."
+  ]
+}

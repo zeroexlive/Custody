@@ -8,6 +8,10 @@ pub const ALGORITHM: &str = "FROST_ED25519";
 #[derive(Clone, Debug, Serialize, Deserialize, PartialEq, Eq)]
 #[serde(deny_unknown_fields)]
 pub struct DkgRequest {
+    /// Immutable birth classification for protected custody deployments. None
+    /// preserves historical canonical requests and can never become WARM/COLD.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub custody_class: Option<String>,
     pub session_id: Uuid,
     pub execution_id: Uuid,
     pub keyset_id: Uuid,
@@ -29,6 +33,11 @@ impl DkgRequest {
             && self.threshold == 2
             && self.party_count == 3
             && self.participants == PARTIES
+            && self
+                .custody_class
+                .as_deref()
+                .is_none_or(|v| ["HOT", "WARM", "COLD"].contains(&v))
+            && (self.custody_class.is_none() || self.scope == "SOLANA")
             && !self.session_id.is_nil()
             && !self.execution_id.is_nil()
             && !self.keyset_id.is_nil()

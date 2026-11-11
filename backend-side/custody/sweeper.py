@@ -168,6 +168,8 @@ def trigger_sweep(
       - A new sweep round is only started once the previous round is
         CONFIRMED or FAILED.
     """
+    if UserWallet.objects.filter(pk=user_wallet.pk, solana_claim__isnull=False).exists():
+        return (False, None, "custody sweep requires explicit treasury and signing approval")
     cfg = get_chain(user_wallet.chain_id)
     asset = validate_chain_asset(user_wallet.chain_id, user_wallet.asset_key, "sweep")
     threshold = effective_deposit_threshold(asset, cfg)

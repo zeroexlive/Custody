@@ -12,7 +12,16 @@ from django.db import transaction
 from solders.pubkey import Pubkey
 
 from .identity_registry import _standalone, _text, _uuid, resolve_principal
-from .models import AdminActionLog, Asset, CustodyTenant, MpcKeyset, MpcSolanaClaim, MpcSolanaRoot
+from .models import (
+    AdminActionLog,
+    Asset,
+    CustodyPrincipalRole,
+    CustodyTenant,
+    MpcKeyset,
+    MpcSolanaClaim,
+    MpcSolanaFinancialRoot,
+    MpcSolanaRoot,
+)
 from .mpc_binding import MpcBindingError, _freeze_root_network, verify_coordinator_keyset
 from .mpc_receipts import verify_receipts
 from .mpc_solana_network import (
@@ -21,7 +30,13 @@ from .mpc_solana_network import (
     verify_solana_rpc_endpoints,
 )
 from .native_tx import RequestsTransport
-from .signer_adapter import SelfHostedMpcAdapter, assert_mpc_backend_runtime_safe
+from .signer_adapter import assert_mpc_backend_runtime_safe
+from .solana_coordinator import solana_adapter
+from .solana_receipt_pins import (
+    capture_new_root,
+    certificates_for_statement,
+    configured_cohorts,
+)
 from .solana_seeded import MAX_SEED_INDEX, account_address
 from .token_metadata import assert_verified_token
 
@@ -31,7 +46,9 @@ VERSION = "solana_seeded_v1"
 def _runtime():
     if settings.MPC_SIGNER_BACKEND != "self_hosted_mpc":
         raise MpcBindingError("seeded provisioning requires genuine self-hosted MPC")
-    assert_mpc_backend_runtime_safe("SOL")
+    # Each actual coordinator or W request validates its own pinned transport.
+    # Public W recovery must not depend on an unrelated global coordinator URL.
+    assert_mpc_backend_runtime_safe("SOL", validate_coordinator_transport=False)
 
 
 def _audit(action, row, operator_ref):
@@ -47,7 +64,12 @@ def _audit(action, row, operator_ref):
 def _root_statement(keyset, tenant_id, network):
     metadata = keyset.dkg_public_evidence
     verify_coordinator_keyset(keyset, metadata)
-    if keyset.scope != "SOLANA" or not keyset.dkg_execution_id or keyset.active_for_new_wallets:
+    if (
+        keyset.scope != "SOLANA"
+        or not keyset.dkg_execution_id
+        or keyset.active_for_new_wallets
+        or metadata.get("custody_class") not in (None, "HOT")
+    ):
         raise MpcBindingError("original inactive-for-auto-issuance SOLANA root required")
     report = metadata["participant_agreement"][0]
     if len(report["public_key_package"]) > 4096 or bytes(
@@ -97,9 +119,21 @@ def _verify(kind, statement, evidence):
             or evidence["statement"] != statement
         ):
             raise ValueError
-        verify_receipts(f"solana_{kind}", statement, evidence["participant_agreement"])
+        verify_receipts(
+            f"solana_{kind}",
+            statement,
+            evidence["participant_agreement"],
+            certificates=certificates_for_statement(kind, statement),
+        )
     except (TypeError, KeyError, ValueError) as exc:
         raise MpcBindingError("unverifiable original seeded approval") from exc
+
+
+def _claim_evidence(claim):
+    """Resolve immutable W registration without rewriting original approval."""
+    from .solana_claim_registration import effective_claim_evidence
+
+    return effective_claim_evidence(claim)
 
 
 def register_root(*, keyset_id, tenant_id, operator_ref, client=None, transport=None):
@@ -112,7 +146,7 @@ def register_root(*, keyset_id, tenant_id, operator_ref, client=None, transport=
     _runtime()
     keyset_id, tenant_id = _uuid(keyset_id), _uuid(tenant_id)
     operator_ref = _text(operator_ref, "operator audit reference")
-    client = client or SelfHostedMpcAdapter()
+    client = client or solana_adapter(keyset_id)
     transport = transport or RequestsTransport()
     spec = authorize_solana_network("SOL")
     network = network_identity("SOL")
@@ -127,6 +161,17 @@ def register_root(*, keyset_id, tenant_id, operator_ref, client=None, transport=
             if root.tenant_id != tenant_id or root.network_identity != network:
                 raise MpcBindingError("original tenant/network cannot be replaced")
             _validate_root(root)
+            if root.status == "PENDING":
+                # Validate reserved archival trust before retrying any remote
+                # dedication, including after configuration removal or restore.
+                certificates_for_statement("root", root.statement)
+            if root.status == "PENDING" and str(keyset_id) in configured_cohorts():
+                from .models import MpcSolanaReceiptPins
+
+                if not MpcSolanaReceiptPins.objects.filter(root=root).exists():
+                    raise MpcBindingError(
+                        "cannot adopt unknown pending Root into a new receipt cohort"
+                    )
         else:
             if keyset.status != "ACTIVE" or not CustodyTenant.objects.filter(pk=tenant_id).exists():
                 raise MpcBindingError("active root and registered tenant required")
@@ -140,7 +185,9 @@ def register_root(*, keyset_id, tenant_id, operator_ref, client=None, transport=
                 network_identity=network,
                 dkg_public_evidence=metadata,
                 base_address=str(Pubkey.from_bytes(bytes.fromhex(keyset.public_key))),
+                receipt_pins_reserved=str(keyset_id) in configured_cohorts(),
             )
+            capture_new_root(root)
             _audit("SOLANA_ROOT_RESERVE", root, operator_ref)
         if root.status == "APPROVED":
             _verify("root", root.statement, root.evidence)
@@ -182,6 +229,32 @@ def _asset_statement(asset):
     return {"kind": "ClassicToken", "mint": mint, "decimals": asset.decimals}, mint
 
 
+def historical_asset_statement(asset):
+    """Immutable identity for archival validation; never new-spend admission."""
+    from .token_metadata import metadata_fingerprint
+
+    if asset.chain_id != "SOL":
+        raise MpcBindingError("original SOL asset required")
+    if asset.is_native:
+        if asset.decimals != 9 or asset.token_standard or asset.contract_address:
+            raise MpcBindingError("original native SOL identity required")
+        return {"kind": "Native"}, "SOL"
+    try:
+        mint = str(Pubkey.from_string(asset.contract_address))
+        if (
+            asset.token_standard != "SPL"
+            or not 0 <= asset.decimals <= 18
+            or mint != asset.contract_address
+            or bytes(Pubkey.from_string(mint)) == bytes(32)
+            or asset.metadata_verified_at is None
+            or asset.metadata_fingerprint != metadata_fingerprint(asset)
+        ):
+            raise ValueError
+    except (ValueError, TypeError):
+        raise MpcBindingError("original verified classic SPL identity required") from None
+    return {"kind": "ClassicToken", "mint": mint, "decimals": asset.decimals}, mint
+
+
 def reserve_claim(*, keyset_id, tenant_id, principal_id, asset_key, idempotency_key, operator_ref):
     """Allocate once across all owners/assets; no remote side effects or issuance."""
     _standalone()
@@ -205,12 +278,26 @@ def reserve_claim(*, keyset_id, tenant_id, principal_id, asset_key, idempotency_
         if root.status != "APPROVED":
             raise MpcBindingError("root has not obtained three independent approvals")
         _verify("root", root.statement, root.evidence)
+        mode = MpcSolanaFinancialRoot.objects.filter(root=root).first()
+        if mode is not None:
+            if mode.status != "VERIFIED":
+                raise MpcBindingError("financial Root mode import must finish before any Claim")
+            from .solana_financial_root import verify_financial_mode
+
+            verify_financial_mode(mode)
+            if not CustodyPrincipalRole.objects.filter(principal=principal).exists():
+                raise MpcBindingError("financial Root Claim requires explicit principal role")
+        elif CustodyPrincipalRole.objects.filter(principal=principal, role="TREASURY").exists():
+            raise MpcBindingError("treasury Claim requires independently verified financial Root")
         asset = Asset.objects.select_for_update().get(asset_key=asset_key)
         original = MpcSolanaClaim.objects.filter(root=root, idempotency_key=idempotency_key).first()
         if original:
             if original.principal_id != principal.pk or original.asset_id != asset.pk:
                 raise MpcBindingError("retry conflicts with original owner/asset")
             return original
+        from .solana_allocation_pause import require_allocation_open
+
+        require_allocation_open(root.pk)
         statement_asset, namespace = _asset_statement(asset)
         if MpcSolanaClaim.objects.filter(
             root=root, principal=principal, asset_namespace=namespace
@@ -293,13 +380,17 @@ def approve_claim(*, reservation_id, tenant_id, operator_ref, client=None, trans
     ):
         raise MpcBindingError("recover earlier pending reservations before later approval")
     verify_solana_rpc_endpoints("SOL", transport or RequestsTransport())
-    evidence = (client or SelfHostedMpcAdapter()).approve_solana_claim(
+    evidence = (client or solana_adapter(root.keyset.keyset_id)).approve_solana_claim(
         str(root.keyset.keyset_id), claim.statement
     )
     _verify("claim", claim.statement, evidence)
     with transaction.atomic():
         claim = MpcSolanaClaim.objects.select_for_update().get(pk=reservation_id)
         if claim.status == "PENDING":
+            # Archival pin import locks this Claim too. Consume the response
+            # under the final row lock so a concurrent import cannot change
+            # its receipt authority between verification and approval commit.
+            _verify("claim", claim.statement, evidence)
             claim.status, claim.evidence = "APPROVED", evidence
             claim.save(update_fields=["status", "evidence"])
             _audit("SOLANA_CLAIM_APPROVE", claim, operator_ref)

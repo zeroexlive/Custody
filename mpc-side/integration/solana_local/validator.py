@@ -131,7 +131,15 @@ class Validator:
             )["value"][0]
             if status and status.get("confirmationStatus") == "finalized":
                 response = self.rpc(
-                    "getTransaction", [signature, {"encoding": "base64", "commitment": "finalized"}]
+                    "getTransaction",
+                    [
+                        signature,
+                        {
+                            "encoding": "base64",
+                            "commitment": "finalized",
+                            "maxSupportedTransactionVersion": 0,
+                        },
+                    ],
                 )
                 assert response
                 return status, response

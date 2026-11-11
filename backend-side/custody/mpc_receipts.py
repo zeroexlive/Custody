@@ -33,14 +33,20 @@ def receipt_message(kind, statement):
     )
 
 
-def verify_receipts(kind, identity, reports):
+def verify_receipts(kind, identity, reports, *, certificates=None):
     try:
-        pins = settings.MPC_HD_SIGNER_CERTIFICATES
+        pins = settings.MPC_HD_SIGNER_CERTIFICATES if certificates is None else certificates
         if set(pins) != set(PARTICIPANTS) or len(reports) != 3:
             raise ValueError("three independent signer pins required")
+        if certificates is not None and kind not in {"solana_root", "solana_claim"}:
+            raise ValueError("archival Root pins are Solana-specific")
         keys = {}
         for party in PARTICIPANTS:
-            cert = x509.load_pem_x509_certificate(Path(pins[party]).read_bytes())
+            cert = (
+                x509.load_pem_x509_certificate(Path(pins[party]).read_bytes())
+                if certificates is None
+                else x509.load_der_x509_certificate(certificates[party])
+            )
             uris = cert.extensions.get_extension_for_class(
                 x509.SubjectAlternativeName
             ).value.get_values_for_type(x509.UniformResourceIdentifier)

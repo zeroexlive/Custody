@@ -8,6 +8,7 @@ from django.core.management.base import BaseCommand, CommandError
 from django.db import DatabaseError
 
 from custody.solana_provisioning import approve_claim, register_root, reserve_claim
+from custody.solana_receipt_pins import import_root_receipt_pins
 
 
 class Command(BaseCommand):
@@ -15,7 +16,7 @@ class Command(BaseCommand):
 
     def add_arguments(self, parser):
         actions = parser.add_subparsers(dest="action", required=True)
-        for name in ("root", "reserve", "approve"):
+        for name in ("root", "reserve", "approve", "archive-pins"):
             action = actions.add_parser(name)
             action.add_argument("--tenant-id", required=True)
             action.add_argument("--operator-ref", required=True)
@@ -36,7 +37,7 @@ class Command(BaseCommand):
             function = approve_claim
         else:
             payload["keyset_id"] = options["keyset_id"]
-            function = register_root
+            function = import_root_receipt_pins if action == "archive-pins" else register_root
             if action == "reserve":
                 payload.update(
                     {key: options[key] for key in ("principal_id", "asset_key", "idempotency_key")}
@@ -54,7 +55,12 @@ class Command(BaseCommand):
             raise CommandError(
                 "Solana provisioning failed; preserve original IDs and retry after investigation"
             ) from exc
+        if action == "archive-pins":
+            self.stdout.write(
+                json.dumps({"id": str(row.pk), "source": row.source, "issued": False})
+            )
+            return
         result = {"id": str(row.pk), "status": row.status, "issued": False}
-        if action != "root":
+        if action not in ("root", "archive-pins"):
             result.update({"index": row.index, "address": row.address})
         self.stdout.write(json.dumps(result))

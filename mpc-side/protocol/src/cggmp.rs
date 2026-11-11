@@ -89,7 +89,8 @@ pub fn verify_aux_receipts(request: &AuxRequest, reports: &[AuxReport]) -> Resul
 
 impl DkgRequest {
     pub fn is_cggmp(&self) -> bool {
-        self.algorithm == ALGORITHM
+        self.custody_class.is_none()
+            && self.algorithm == ALGORITHM
             && self.curve == "secp256k1"
             && ["EVM", "TRON"].contains(&self.scope.as_str())
             && self.derivation_version == "cggmp_hd_v1"

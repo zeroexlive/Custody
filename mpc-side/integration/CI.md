@@ -120,3 +120,18 @@ Phase 6F-D adds `--crypto-suite=integrated` to the complete inventory and requir
 aggregate. See [PHASE6F-D.md](../../PHASE6F-D.md) for trust boundaries, public
 evidence, fresh-root cost and the final-head review gate. No individual suite is
 removed or invoked a second time from within the integrated suite.
+
+
+## Phase6G-C native issuance additions
+
+The current continuation collects251 integration scenarios, with34 in the selected
+Solana suite. Two new PostgreSQL-backed genuine cases actually publish native
+wallets through three protected signers and the independent witness. The expanded
+three-wallet case covers unissued/collision refusals, witness restart and exact
+retries, hot-cache history faults, all3 signer restarts and finalized all-pair
+spending. The separate1000 case counts actual published/WITNESSED database rows,
+not address derivation. Local1000 issuance took627.149s (whole case737.59s).
+These local results do not satisfy remote final-head gates. The public report
+basename is explicitly allowlisted; private signer stores and logs stay local.
+No existing scenario or timeout is removed or relaxed. Final phase acceptance
+still requires ALL, original-store compatibility and exact final independent review.

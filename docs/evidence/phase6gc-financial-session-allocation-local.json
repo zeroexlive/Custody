@@ -1,0 +1,110 @@
+{
+  "corrected_failures": [
+    "Initial uncommitted migration SQL CASE parse error corrected before PG acceptance.",
+    "Fixture fee policy and mutable negative-test query alias corrected.",
+    "Full backend interrupted after68.15s:31failures/152errors exposed generic-session SQL row/table alias ambiguity; corrected without disabling guards and added four legacy positive cases.",
+    "Real SQLite smoke reproduced PostgreSQL-only SHOW syntax regression; restricted isolation branch to PG, preserved all-vendor protected rejection, added actual SQLite test."
+  ],
+  "current_source_ci": "pending",
+  "date": "2026-11-02 Asia/Tehran",
+  "full_backend": {
+    "cases": 946,
+    "failures": 0,
+    "pytest_seconds": 428.52,
+    "skips": 0,
+    "source_note": "post-SQL-alias correction, before minimal SQLite-only vendor guard; PG branch unchanged. Exact committed source Fast remains required.",
+    "xml_seconds": 428.507
+  },
+  "independent_actual_witness": {
+    "cases": 1,
+    "failures": 0,
+    "skips": 0,
+    "xml_seconds": 7.989
+  },
+  "independent_bounded_verdict": "stale-snapshot and late ledger-release races corrected; no remaining identified P0/P1 in unprepared-only boundary",
+  "independent_hashes": {
+    "backend-side/custody/ledger.py": "c0bcb3f5a9c4162c7250544f604bb2dedada6c458e603861f08bdf172e3b92e9",
+    "backend-side/custody/migrations/0039_solana_financial_sessions.py": "1c450c1f4429c482666e4d45a09bf93583050ab29fac50c90411272adc8a1642",
+    "backend-side/custody/models.py": "deacfd97d5a3061908cf14ba7185b511f5c1c82495da3110a38beb0202af8439",
+    "backend-side/custody/outbound.py": "e3522ff26a11c08df02ab0963ca3b9a27e77b39e07f87addc4cb66da2e5b1fa9",
+    "backend-side/custody/reconciliation.py": "2db2591fa49233abd6f901be5a73458f87fefd3d1f924f6c1f53e39a8889a06c",
+    "backend-side/custody/solana_financial_sessions.py": "43614d00add8336b8ef29e77c3e21c84faebfdcc0d8a1fa8315f1d2ac101d2a9",
+    "backend-side/custody/tests/sqlite_financial_compatibility.py": "b72143c0d22ec9efa9eab35fb11810fd23f5cc51ef96dfe3d8205128b7809c81",
+    "backend-side/custody/tests/test_solana_financial_sessions.py": "e82ae4c0c6f3668b7392941924bff3e97d627aa6e46011c092b8763ae00d3704",
+    "mpc-side/integration/financial_session_acceptance.py": "73d1862eafe89bf1986ed71c8f72eb1e8ec378aeff4976ed410bf1d1e9e01e1a",
+    "mpc-side/integration/financial_wallet_acceptance.py": "b5bd416ab4577d0d54617c3a59635d08e89294f3da3b8bb1d3d4fea49f31f611",
+    "mpc-side/integration/test_solana.py": "2a18208732e1af558c9b614590eb45a73b23462151382606938abd2bd51623aa",
+    "mpc-side/target/debug/wallet-mpc-coordinator": "6d080c3e8d6678cb4820098c0876c9f43c153879ffede79e579dbbf3224fac7e",
+    "mpc-side/target/debug/wallet-mpc-protected-signer": "7cc150ee2d08f6d24c54ded34c6877eb2227f51e1178d720afdd8baaaaf39007",
+    "mpc-side/target/debug/wallet-mpc-witness": "ed7bd7118bc6e56c4073e400060f4b957c39ed05631b0bf2d146ebb79e3ddc4b"
+  },
+  "independent_hashes_unchanged": true,
+  "independent_rust_binaries": 3,
+  "independent_source_files": 11,
+  "independent_targeted": {
+    "cases": 59,
+    "failures": 0,
+    "includes": "actual disposable SQLite fullmigration and reserve/release/settle plus PG-only protected denial",
+    "skips": 0,
+    "xml_seconds": 57.528
+  },
+  "initial_actual_witness": {
+    "cases": 1,
+    "failures": 0,
+    "pytest_seconds": 8.69,
+    "skips": 0,
+    "source_note": "before generic-session alias regression fix; superseded"
+  },
+  "initial_protected_tests": {
+    "cases": 54,
+    "failures": 0,
+    "pytest_seconds": 52.06,
+    "skips": 0,
+    "source_note": "before generic-session alias regression fix; superseded"
+  },
+  "local_final_targeted": {
+    "cases": 59,
+    "failures": 0,
+    "pytest_seconds": 57.56,
+    "skips": 0
+  },
+  "local_legacy_positive_addition": {
+    "cases": 4,
+    "failures": 0,
+    "pytest_seconds": 6.35,
+    "scopes": [
+      "EVM",
+      "TRON",
+      "SOLANA",
+      "TON"
+    ],
+    "skips": 0
+  },
+  "local_regression_batch": {
+    "cases": 117,
+    "failures": 0,
+    "pytest_seconds": 77.96,
+    "scope": "protected plus existing EVM/Solana regression files after alias fix",
+    "skips": 0
+  },
+  "migration_empty_reverse_reapply_and_django_checks": "passed; populated downgrade remains denied",
+  "phase_complete": false,
+  "prepared_private_signing_broadcast_settlement_credit_enabled": false,
+  "production_authorized": false,
+  "report": {
+    "absence_without_permanent_abandonment_cannot_authorize_retry": true,
+    "after_remote_abandonment_db_audit_failure_retained_pending_ids": true,
+    "all_attempt_ids_committed_before_query_or_lifecycle_action": true,
+    "business_hold_retained": true,
+    "distinct_crypto_attempts_reused_one_original_business_reservation": true,
+    "frozen_original_root_terminal_proof_accepted": true,
+    "independent_lifecycle_abandonment_survived_witness_restart": true,
+    "ledger_journals_created": 0,
+    "original_command_replay_preserved_digest_and_witness_sequence": true,
+    "original_three_dkg_ciphertexts_unchanged": true,
+    "private_signing_or_broadcast_performed": false,
+    "scope": "actual PG/Rust W unprepared allocation/abandonment only; synthetic sweep snapshot, no signing/settlement"
+  },
+  "scope": "unprepared business/session allocation, fixed leases and permanent abandoned-ID recovery only; no prepared signing/settlement acceptance",
+  "source_base_sha": "2077eea07b4714e2a2d719748b248090a8669601"
+}

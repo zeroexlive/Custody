@@ -48,6 +48,14 @@ Persist: request -> policy/risk check -> financial reservation -> required appro
 
 ## Signer security
 
+The next 6G-C branch supplies a pure typed seeded intent/wire library. It separates
+financial source from base fee/rent authority and binds operation/session/execution,
+original claim, action and generation reference into canonical machine-proof input.
+It is not connected to a signer route. Actual original proof/local claim checks,
+independent live witness and protected deployment profile must precede nonce work;
+canonical IDs/package references alone establish no authority or freshness. See
+[contract scope](PHASE6GC_SOLANA_SPENDING.md).
+
 Coordinator stores public/session metadata; signer nodes retain encrypted private shares and nonce/execution tombstones. FROST or CGGMP creates threshold signatures; no complete custody private key is assembled in the backend. Human approval is not signer quorum. Independent signer-side authorization must resist a compromised Django app minting arbitrary transactions; see SECURITY_MODEL.md. Never imply one PostgreSQL DB, one network operator or current CI fixture provides a production trust boundary.
 
 ## Chain-specific adapters
@@ -154,3 +162,14 @@ from the original FROST authority/fee payer; settlement must bind and verify eac
 separately. Custody integration of signer-local ownership/index/mint claims and
 enrollment, generation grants and ledger integration remain required. There is no
 Ed25519 child-private-key derivation or new local signing fallback.
+
+## Phase6G-C classic SPL financial continuation (unmerged development)
+
+TokenProvision and TokenPublication extend the existing protected operation,
+session, query, finality and immutable ownership graph. They add no second ledger
+or signing algorithm. Source token units remain separate from Root lamports used
+for fees/rent; pending accounts have no UserWallet until owned initialization,
+independent issuance and current account proof commit with audit. Dedicated token
+incoming normalization/attribution extends original Deposit provenance, including
+immutable source-owner history, and posts the same customer/clearing journals.
+See PHASE6GC_SPL_FINANCIAL.md; bounded independent runtime passes; new helper exact-head CI remains pending.

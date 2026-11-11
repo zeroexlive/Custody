@@ -31,10 +31,25 @@ from django.utils import timezone
 from .audit import AuditAction, write_audit_log
 from .config import ensure_hot_wallet, native_asset_key, validate_chain_asset
 from .ledger import release_withdrawal, reserve_withdrawal
-from .models import Asset, HotWallet, WithdrawalRequest
+from .models import AdminActionLog, Asset, HotWallet, WithdrawalRequest
 from .mpc_signer import SignPolicy, UnsignedTx, get_signer
 
 logger = logging.getLogger("custody.withdrawals")
+
+
+def _approval_audit(admin_id, action, req, metadata):
+    from .solana_financial_routing import financial_customer
+
+    if financial_customer(req.user_id, req.chain_id, req.asset_key):
+        AdminActionLog.objects.create(
+            actor_id=admin_id,
+            action_type=action.value,
+            entity_type="WithdrawalRequest",
+            entity_id=str(req.pk),
+            metadata=metadata,
+        )
+    else:
+        write_audit_log(admin_id, action, "WithdrawalRequest", str(req.pk), metadata)
 
 
 def create_request(
@@ -97,11 +112,10 @@ def approve(admin_id: str, req_id: int, notes: str | None = None) -> WithdrawalR
         req.status = "APPROVED"
         req.admin_notes = notes
         req.save(update_fields=["status", "admin_notes", "updated_at"])
-        write_audit_log(
+        _approval_audit(
             admin_id,
             AuditAction.WITHDRAWAL_APPROVE,
-            "WithdrawalRequest",
-            str(req.id),
+            req,
             {"to": req.to_address, "amount": str(req.amount)},
         )
     return req
@@ -115,17 +129,17 @@ def deny(admin_id: str, req_id: int, notes: str | None = None) -> WithdrawalRequ
             return req
         if req.status != "PENDING_APPROVAL":
             raise ValueError(f"cannot deny in state {req.status}")
-        release_withdrawal(req)
+        from .solana_financial_routing import financial_customer
+
+        financial = financial_customer(req.user_id, req.chain_id, req.asset_key)
+        if not financial:
+            release_withdrawal(req)
         req.status = "DENIED"
         req.admin_notes = notes
         req.save(update_fields=["status", "admin_notes", "updated_at"])
-        write_audit_log(
-            admin_id,
-            AuditAction.WITHDRAWAL_DENY,
-            "WithdrawalRequest",
-            str(req.id),
-            {"notes": notes},
-        )
+        if financial:
+            release_withdrawal(req)
+        _approval_audit(admin_id, AuditAction.WITHDRAWAL_DENY, req, {"notes": notes})
     return req
 
 
@@ -135,6 +149,10 @@ def process_withdrawal(admin_id: str, req_id: int) -> WithdrawalRequest:
     MUST only run for APPROVED requests. Idempotent on status transition.
     """
     req = WithdrawalRequest.objects.get(id=req_id)
+    from .solana_financial_routing import reject_generic_private
+
+    if req.status not in {"CONFIRMED", "FAILED", "DENIED"}:
+        reject_generic_private("WITHDRAWAL", req.pk)
     if settings.MPC_SIGNER_BACKEND == "self_hosted_mpc" and req.status in {
         "PROCESSING",
         "RECONCILIATION_REQUIRED",

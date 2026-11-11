@@ -1,0 +1,149 @@
+{
+  "date": "2026-11-09",
+  "status": "BOUNDED_UNMERGED_DEVELOPMENT_VALIDATION",
+  "source_parent": "8a9c796420203f5abd1be7c6bc6bc4dcb27ddd72",
+  "scope": "Independent bounded source/runtime review of public original-wire finality; not phase, ledger settlement, movement or production acceptance",
+  "independent": {
+    "protocol": {
+      "passed": 39,
+      "failed": 0,
+      "ignored": 0,
+      "seconds": 99.68
+    },
+    "witness": {
+      "passed": 55,
+      "failed": 0,
+      "ignored": 0,
+      "seconds": 1.3
+    },
+    "workspace_all_targets_clippy": {
+      "result": "PASS",
+      "seconds": 0.35
+    },
+    "genuine": {
+      "tests": 9,
+      "failures": 0,
+      "errors": 0,
+      "skipped": 0,
+      "seconds": 356.041,
+      "cases": [
+        {
+          "name": "test_phase6gc_failed_public_finality_preserves_signed_aliases_after_refresh",
+          "seconds": 139.485
+        },
+        {
+          "name": "test_phase6gc_public_finality_current_nodes_original_signed_wire[HOT]",
+          "seconds": 75.448
+        },
+        {
+          "name": "test_phase6gc_public_finality_current_nodes_original_signed_wire[COLD]",
+          "seconds": 43.861
+        },
+        {
+          "name": "test_phase6gc_governed_rotation_inventory_two_actual_cohorts[False]",
+          "seconds": 8.159
+        },
+        {
+          "name": "test_phase6gc_governed_rotation_inventory_two_actual_cohorts[True]",
+          "seconds": 80.914
+        },
+        {
+          "name": "test_phase6gc_witness_replacement_reservation_and_original_signed_store_upgrade",
+          "seconds": 0.7
+        },
+        {
+          "name": "test_phase6gc_witness_independent_authorization_and_round_replay",
+          "seconds": 1.877
+        },
+        {
+          "name": "test_phase6gc_witness_journal_restart_corruption_and_concurrency",
+          "seconds": 1.935
+        },
+        {
+          "name": "test_phase6gc_witness_claim_owner_survives_all_three_old_backups",
+          "seconds": 3.268
+        }
+      ]
+    }
+  },
+  "manifest": {
+    "paths": 167,
+    "source_fixture_manifests_workflows_helpers": 163,
+    "runtime_binaries": 4,
+    "unchanged": true,
+    "sha256": "842bff8571ef4c4099a20a012aa6d54ad14e88798ae8cf43639ac73d2e16638e"
+  },
+  "public_report_sha256": {
+    "genuine/test_phase6gc_public_finality_0/solana-public-finality-public-evidence.json": "a4da5277ae446489223cd089a8efa42df137eaa87cb252411e8af4593d7ea55c",
+    "genuine/test_phase6gc_public_finality_1/solana-public-finality-public-evidence.json": "f4e9b8ff49f77c8800165153886694d1f2be36265c32b65582d9ce9c439eec29",
+    "genuine/test_phase6gc_failed_public_fi0/solana-public-finality-failure-public-evidence.json": "2c15a299f644a8540a32ff0c0ef79654d13e87a8435805a22422596c65a55496",
+    "genuine/test_phase6gc_governed_rotatio0/solana-rotation-inventory-public-evidence.json": "907066b7e4f7efcb0542543596979564bcc2fccbc6c37f4abd35bc26fad12183",
+    "genuine/test_phase6gc_governed_rotatio1/solana-rotation-inventory-public-evidence.json": "8f7766be794c5a1fd81a7ae6fe94e39be08b129675eee26e24d918fab9b4a88f"
+  },
+  "review_findings": {
+    "P0": [],
+    "P1": [],
+    "documented_availability": "Exact-revision acknowledgements are serial; 1000-entry declared inventory does not establish 1000 finality ACK throughput."
+  },
+  "limitations": [
+    "Trusted pinned RPC model, not consensus/SPV proof",
+    "Finality fact is distinct from full financial effect validation/settlement",
+    "Current three source observers required, no arbitrary cross-Root observer cohort",
+    "No whole-phase acceptance or merge approval; exact-head CI remains required"
+  ],
+  "properties": [
+    "All three current source nodes and exact original SignedPending binding/signature/package",
+    "Original signing generation distinct from current observing generation",
+    "Both own nonce-bound W queries, pinned W proofs, Life authorization and current-party Ready signatures verified",
+    "Original15second lease retained through RPC/courier and locked W admission",
+    "Actual native/SPL original wires observed after genuine same-keyGen1, explicit COLD courier",
+    "Actual failed finalized wire/fee retained; original logical retry denied after refresh/refunding",
+    "All three old DKG artifacts made unavailable during actual public observation, without relaxing generic startup",
+    "Immutable fact and signature/status/aliases survive node restart and W head publication failure",
+    "Rules5 forward-only; old signed history, original receipts and encrypted DKG data retained"
+  ],
+  "root_validation": {
+    "new_protocol_tests": 11,
+    "new_protocol_seconds": 0.05,
+    "whole_witness_tests": 55,
+    "whole_witness_seconds": 1.31,
+    "earlier_genuine_success_cases": 2,
+    "earlier_genuine_success_seconds": 124.57,
+    "earlier_failed_wire_case_seconds": 77.74,
+    "qualification": "Earlier runtime predated stricter metadata/envelope checks; final independent9-case run supersedes it."
+  },
+  "retained_intermediate_failure": {
+    "seconds": 73.6,
+    "cause": "Test read outer signed journal object instead of value.change; helper only corrected."
+  },
+  "static_review_fixes": [
+    "Synthetic random account keys now canonically reorder/remap every message key and instruction index",
+    "Failed wire metadata now rolls back all principal/rent except payer fee; native deltas and account counts checked",
+    "Only fresh observation UUID constrained against old identities; previously admitted historical UUID overlap preserved",
+    "Pending profile-cohort migration checked authoritatively in W; public enrollment avoids old private share loading"
+  ],
+  "synthetic_fixture_scope": "Synthetic public dealer signature and SDK wire only; no real DKG/authority/RPC/ledger acceptance",
+  "production_dependency_versions_changed": false,
+  "additional_protocol_dependency": "Already locked base64=0.13.1; no version or primitive change",
+  "private_movement_authorized": false,
+  "financial_hold_release_or_ledger_settlement": false,
+  "activation_flags_relaxed": false,
+  "production_activation": false,
+  "parent_exact_fast": {
+    "run_id": 42651565984,
+    "head": "8a9c796420203f5abd1be7c6bc6bc4dcb27ddd72",
+    "executed_jobs": 4,
+    "backend_cases": 1364,
+    "backend_seconds": 774.17,
+    "full_crypto_selected": false
+  },
+  "exact_current_source_fast": "PENDING",
+  "whole_phase_all_original_3d32_six_case_store_gate": "PENDING",
+  "remaining": [
+    "Durable backend allocation pause and original frontier/hold rechecks",
+    "Explicit MIGRATION/RESCUE private authority, cumulative in-flight fee exposure and maintenance liveness",
+    "Actual fresh-DKG native/SPL customer+treasury movement through original operation/effect/ledger/finality",
+    "Retirement readiness, continued old-address watching and late-deposit rescue",
+    "Exact-final-SHA Fast/ALL/original3d32 store compatibility, whole-phase independent review, conditional merge/main verification"
+  ]
+}

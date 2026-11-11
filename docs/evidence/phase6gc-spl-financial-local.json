@@ -1,0 +1,132 @@
+{
+  "algorithm_changes": false,
+  "bounded_independent_review": "No remaining identified P0/P1 in this bounded component; phase completion not implied.",
+  "exact_source_ci": {
+    "backend_seconds": 485.46,
+    "backend_tests": 1201,
+    "executed_jobs": 4,
+    "head": "7ff1e56340a000e9eeefb02ee6f199340062ee85",
+    "result": "SUCCESS",
+    "run_id": 41536746241,
+    "scope_limit": "Includes accepted public-only query retry helper; Fast only, not whole-phase ALL/compatibility.",
+    "unselected_crypto_jobs": 10,
+    "url": "https://github.com/zeroexlive/Custody/actions/runs/41536746241"
+  },
+  "genuine_scope_limit": "Independent final SPL rerun includes owner-history race correction and observed B-zero assertions; bounded development evidence only, not whole-phase acceptance.",
+  "helper_correction": "At most3 actual query-expiry public retries under original Claim/issuance/initializer/grant; original15s deadline retained; no private or Life-command retry.",
+  "independent_final_hashes": {
+    "after_sha256": "67da6ee790e1b43ac26211970fe733faa7b5dd873f20a1f3e63d60db02dc0ea6",
+    "before_sha256": "67da6ee790e1b43ac26211970fe733faa7b5dd873f20a1f3e63d60db02dc0ea6",
+    "freeze3_sha256": "67da6ee790e1b43ac26211970fe733faa7b5dd873f20a1f3e63d60db02dc0ea6",
+    "paths": 82,
+    "production_and_runtime_bin_changes_during_review": 0
+  },
+  "independent_preserved_failed_attempts": {
+    "initial_actual_publication_query_expiry": {
+      "errors": 0,
+      "failures": 1,
+      "seconds": 67.033,
+      "skipped": 0,
+      "tests": 1,
+      "xml_sha256": "eb5b126937c98cfcc4b4f4c88dfa4929795471abea95bf99f1577f4dbce19029"
+    },
+    "initial_setup_nowait": {
+      "errors": 1,
+      "failures": 0,
+      "seconds": 16.885,
+      "skipped": 0,
+      "tests": 16,
+      "xml_sha256": "f34f8d497b5f78924d20a2b2108bc58e8d7b0f587fbe58135ce87f78d89a81b0"
+    }
+  },
+  "independent_revised_pg_and_genuine": {
+    "combined": {
+      "errors": 0,
+      "failures": 0,
+      "seconds": 302.898,
+      "skipped": 0,
+      "tests": 313,
+      "xml_sha256": "cbed5cceba9b398ba6a466ae0ad01fa40a814ef430b32709092591efb55c2c97"
+    },
+    "genuine_native_legacy_v0_pda": {
+      "errors": 0,
+      "failures": 0,
+      "seconds": 331.088,
+      "skipped": 0,
+      "tests": 3,
+      "xml_sha256": "581e6cdafaaf91be1a35dee139afbbe8944b1688241143bb4d15275fd26ddde9"
+    },
+    "genuine_spl": {
+      "errors": 0,
+      "failures": 0,
+      "seconds": 176.216,
+      "skipped": 0,
+      "tests": 1,
+      "xml_sha256": "9b32424efb5bd59525d9cfb3da026b5485c30dcac889a963f01794adc018b99a"
+    }
+  },
+  "independent_source_findings_corrected": [
+    "P1 valid atomic forwarding rejected by redundant source net debit check",
+    "P1 historical owner lost between observation and locked classification/credit",
+    "P2 witness classic issuance financial mode/binding consistency",
+    "P2 SQL publication raw mint and required rent fields"
+  ],
+  "interrupted_full_backend": {
+    "errors": 0,
+    "failures": 0,
+    "seconds": 217.873,
+    "skipped": 0,
+    "tests": 617,
+    "xml_sha256": "0df2cad5f8d396f0d92efebe8b0f64a58a788ba57fb0a740f6fc5f1919b28b72"
+  },
+  "interrupted_full_backend_limit": "Intentionally SIGINT interrupted for owner-history fix after617 passes; not full-suite acceptance.",
+  "merge_claimed": false,
+  "phase": "6G-C",
+  "phase_status": "IN PROGRESS",
+  "production_flags_enabled": false,
+  "recorded_at": "2026-11-02T21:47:11.022277+03:30",
+  "remaining_phase_work": [
+    "repaired-identity new Claim progression",
+    "fresh DKG migration/drain/retirement",
+    "old-address late-deposit rescue",
+    "final whole-phase independent review/Fast/ALL/fixed3d32 compatibility/merge/main verification"
+  ],
+  "review_record_date": "2026-11-03 Asia/Tehran",
+  "root_combined": {
+    "errors": 0,
+    "failures": 0,
+    "seconds": 130.405,
+    "skipped": 0,
+    "tests": 103,
+    "xml_sha256": "aa959509bbe552469b8ec297d2d357f12abe2eeed3adeb2a127d8135adb0c1cf"
+  },
+  "root_genuine_pre_history_fix": {
+    "errors": 0,
+    "failures": 0,
+    "seconds": 166.581,
+    "skipped": 0,
+    "tests": 1,
+    "xml_sha256": "6b031610319264539cbb7c7cae31ea46793a9ee44c417316ce06634951b40a4a"
+  },
+  "root_hardening": {
+    "errors": 0,
+    "failures": 0,
+    "seconds": 37.702,
+    "skipped": 0,
+    "tests": 20,
+    "xml_sha256": "48ec0e00d782e569a43fa07963b3086fc57890863bff33ecd0fbda0dd02734f2"
+  },
+  "root_pure": {
+    "errors": 0,
+    "failures": 0,
+    "seconds": 0.189,
+    "skipped": 0,
+    "tests": 21,
+    "xml_sha256": "07e46d1472e1c31b910ab5d93296429a524e844fde5f4adcc50d878ab849d782"
+  },
+  "scope": "unmerged default-off classic SPL financial continuation; isolated development only",
+  "source_freeze_v2": {
+    "manifest_sha256": "895aecb58eccfc352d5207a9f9efde286b33a5e07ba9bce964b8f78ae8d1c9c3",
+    "paths": 82
+  }
+}

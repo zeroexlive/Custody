@@ -1,0 +1,136 @@
+{
+  "date": "2026-11-01 Asia/Tehran",
+  "failures": 0,
+  "final_head_ci": "not run for this uncommitted source",
+  "independent_runtime": {
+    "all_pairs_seconds": 71.99,
+    "before_w_record_seconds": 42.571,
+    "binary_hashes_unchanged": true,
+    "bounded_review": "no demonstrated P0/P1; no whole-phase/financial acceptance",
+    "cases": 3,
+    "invalid_share_seconds": 42.837,
+    "xml_seconds": 157.614
+  },
+  "pytest_wall_seconds": 362.45,
+  "reports": {
+    "solana-protected-coordinator-before_record-public-evidence.json": {
+      "coordinator_completed_is_signature_only": true,
+      "fault": "before_record",
+      "first_package_present_before_r2_rpc": true,
+      "recovery_dispatched_no_private_work": true,
+      "round1_reports": 2,
+      "round2_reports": 2,
+      "scope": "genuine crypto fault acceptance; synthetic refs/no DB ledger",
+      "status": "COMPLETED",
+      "transaction_ids": [
+        "NUs5xPLEkRj6gzSLx9yovmpvKwNqG84EevyYZGPNe1Ny15RKgkfs86exgS8Fegc2qEFtH2dBtJQ5eyrTWDyeuMk"
+      ]
+    },
+    "solana-protected-coordinator-client_disconnect-public-evidence.json": {
+      "coordinator_completed_is_signature_only": true,
+      "fault": "client_disconnect",
+      "first_package_present_before_r2_rpc": true,
+      "recovery_dispatched_no_private_work": true,
+      "round1_reports": 2,
+      "round2_reports": 2,
+      "scope": "genuine crypto fault acceptance; synthetic refs/no DB ledger",
+      "status": "COMPLETED",
+      "transaction_ids": [
+        "pGzydT4wgdPWeorBCFnijzQhKDTfvGLcnv1PNMRfETujYC3G6xZzxe5ivo4T4MGdBu9u2NMYJ5pRZPnU86sXxK7"
+      ]
+    },
+    "solana-protected-coordinator-coordinator_restart-public-evidence.json": {
+      "coordinator_completed_is_signature_only": true,
+      "fault": "coordinator_restart",
+      "first_package_present_before_r2_rpc": true,
+      "recovery_dispatched_no_private_work": true,
+      "round1_reports": 2,
+      "round2_reports": 1,
+      "scope": "genuine crypto fault acceptance; synthetic refs/no DB ledger",
+      "status": "RECONCILIATION_REQUIRED",
+      "transaction_ids": []
+    },
+    "solana-protected-coordinator-first_r2-public-evidence.json": {
+      "coordinator_completed_is_signature_only": true,
+      "fault": "first_r2",
+      "first_package_present_before_r2_rpc": true,
+      "recovery_dispatched_no_private_work": true,
+      "round1_reports": 2,
+      "round2_reports": 1,
+      "scope": "genuine crypto fault acceptance; synthetic refs/no DB ledger",
+      "status": "RECONCILIATION_REQUIRED",
+      "transaction_ids": []
+    },
+    "solana-protected-coordinator-invalid_share-public-evidence.json": {
+      "coordinator_completed_is_signature_only": true,
+      "fault": "invalid_share",
+      "first_package_present_before_r2_rpc": true,
+      "recovery_dispatched_no_private_work": true,
+      "round1_reports": 2,
+      "round2_reports": 2,
+      "scope": "genuine crypto fault acceptance; synthetic refs/no DB ledger",
+      "status": "COMPLETED",
+      "transaction_ids": [
+        "3XQNePh5C6fTvD1joxs5PshHtwCjesqCsBDHpAfoZ5gEFh6MXV669VqCMf13LtHz8K9jFro2BdbU6FHC2RWAPcVj"
+      ]
+    },
+    "solana-protected-coordinator-last_r2-public-evidence.json": {
+      "coordinator_completed_is_signature_only": true,
+      "fault": "last_r2",
+      "first_package_present_before_r2_rpc": true,
+      "recovery_dispatched_no_private_work": true,
+      "round1_reports": 2,
+      "round2_reports": 2,
+      "scope": "genuine crypto fault acceptance; synthetic refs/no DB ledger",
+      "status": "COMPLETED",
+      "transaction_ids": [
+        "fwms2VhhM4Lf7xig9oYqCzRG8tuy8wMGX8ysoV8fVhXDwXb7Ke6Sr6W3YCZwrbxZYbio1fUGxvQ3mtsh6Pt7NgV"
+      ]
+    },
+    "solana-protected-coordinator-public-evidence.json": {
+      "all_three_fixed_pairs_finalized": 3,
+      "backend_ledger_or_financial_wallet_activation_executed": false,
+      "completed_public_signature_recovery_after_coordinator_restart": true,
+      "conflicting_logical_operation_and_attempt_rejected_before_dispatch": true,
+      "immutable_original_request_reports_and_first_r2_package": true,
+      "original_three_dkg_ciphertexts_unchanged": true,
+      "public_store_directory_is_separate": true,
+      "scope": "typed durable coordinator, genuine MPC and finalized transfers; synthetic refs/no ledger",
+      "stale_active_view_cannot_bypass_live_frozen_witness": true,
+      "transaction_ids": [
+        "4ZpSbdvL7jk1CPVdfjNTmSeQQAUBqUmYAjJfcznSFpDFe6Vxbt2wg1GsNWtgBK9CsJ2JUpaEdiypP2S3e8rUvBD9",
+        "3LfgTBzpMM1wE8wdcWNQCwFYUTem9ZDM774tkKTCtjMH219wmqPabn8gWxRpbAEWbuYaz7DGXz5dd1rJDkKvKNqH",
+        "BTBEbSwYEDXkKWQKsmNRPs2dAyVndN4P3UHZRTLjYaE6CKZCHYs8X32TF9DQYJeBvfLKYNtNwBu3JTsMSp3Tpow"
+      ],
+      "unconfigured_typed_routes_absent": true
+    },
+    "solana-protected-coordinator-round1-public-evidence.json": {
+      "coordinator_completed_is_signature_only": true,
+      "fault": "round1",
+      "first_package_present_before_r2_rpc": false,
+      "recovery_dispatched_no_private_work": true,
+      "round1_reports": 0,
+      "round2_reports": 0,
+      "scope": "genuine crypto fault acceptance; synthetic refs/no DB ledger",
+      "status": "RECONCILIATION_REQUIRED",
+      "transaction_ids": []
+    },
+    "solana-protected-coordinator-write_failure-public-evidence.json": {
+      "coordinator_completed_is_signature_only": true,
+      "fault": "write_failure",
+      "first_package_present_before_r2_rpc": true,
+      "recovery_dispatched_no_private_work": true,
+      "round1_reports": 2,
+      "round2_reports": 1,
+      "scope": "genuine crypto fault acceptance; synthetic refs/no DB ledger",
+      "status": "RECONCILIATION_REQUIRED",
+      "transaction_ids": []
+    }
+  },
+  "scope": "unmerged isolated development component only; synthetic reservation refs; no DB ledger/wallet activation",
+  "skipped": 0,
+  "source": "current uncommitted coordinator, upstream individual share/aggregate verification, loopback peer and operation/attempt alias fixes included",
+  "tests": 9,
+  "whole_phase_complete": false,
+  "xml_seconds": 362.447
+}

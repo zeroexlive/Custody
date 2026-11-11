@@ -10,6 +10,10 @@ use wallet_mpc_transport::{serve_roles, Capabilities, PeerIdentity, SignerClient
 
 #[tokio::main]
 async fn main() {
+    assert!(
+        std::env::var_os("MPC_PROTECTED_PROFILE").is_none(),
+        "protected deployment requires wallet-mpc-protected-signer; legacy entrypoint disabled"
+    );
     let local_development = std::env::var("MPC_INSECURE_LOCAL_DEV").as_deref() == Ok("true");
     let required = |name: &str| {
         std::env::var(name)

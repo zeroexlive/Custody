@@ -190,3 +190,47 @@ CUSTODY_INDEXER_MODE = config("CUSTODY_INDEXER_MODE", default="live")
 
 # Independently installed archival signer public certificates; never supplied by RPC.
 MPC_HD_SIGNER_CERTIFICATES = config("MPC_HD_SIGNER_CERTIFICATES", default="{}", cast=json.loads)
+# Optional independently installed archival receipt cohorts keyed by original keyset UUID.
+MPC_SOLANA_ROOT_SIGNER_CERTIFICATES = config(
+    "MPC_SOLANA_ROOT_SIGNER_CERTIFICATES", default="{}", cast=json.loads
+)
+MPC_SOLANA_COORDINATOR_ROUTES = config(
+    "MPC_SOLANA_COORDINATOR_ROUTES", default="{}", cast=json.loads
+)
+# Current independently installed public authority only; the backend never owns
+# its lifecycle signing key. Empty settings disable seeded wallet publication.
+MPC_SOLANA_WITNESS_CERTIFICATE = config("MPC_SOLANA_WITNESS_CERTIFICATE", default="")
+MPC_SOLANA_WITNESS_ANCHOR_ID = config("MPC_SOLANA_WITNESS_ANCHOR_ID", default="")
+MPC_SOLANA_FINANCIAL_POLICY_CERTIFICATE = config(
+    "MPC_SOLANA_FINANCIAL_POLICY_CERTIFICATE", default=""
+)
+MPC_SOLANA_FINANCIAL_POLICY_VERSION = config(
+    "MPC_SOLANA_FINANCIAL_POLICY_VERSION", default=0, cast=int
+)
+MPC_SOLANA_FINANCIAL_SIGNER_CERTIFICATES = config(
+    "MPC_SOLANA_FINANCIAL_SIGNER_CERTIFICATES", default="{}", cast=json.loads
+)
+MPC_SOLANA_FINANCIAL_MAX_LIFETIME_SECONDS = config(
+    "MPC_SOLANA_FINANCIAL_MAX_LIFETIME_SECONDS", default=120, cast=int
+)
+MPC_SOLANA_SEEDED_DEPOSITS_ENABLED = config(
+    "MPC_SOLANA_SEEDED_DEPOSITS_ENABLED", default=False, cast=bool
+)
+MPC_SOLANA_SEEDED_SPL_ENABLED = config("MPC_SOLANA_SEEDED_SPL_ENABLED", default=False, cast=bool)
+MPC_SOLANA_CURRENT_CLAIMS_ENABLED = config(
+    "MPC_SOLANA_CURRENT_CLAIMS_ENABLED", default=False, cast=bool
+)
+MPC_SOLANA_ALLOCATION_PAUSE_ENABLED = config(
+    "MPC_SOLANA_ALLOCATION_PAUSE_ENABLED", default=False, cast=bool
+)
+MPC_SOLANA_ROTATION_INVENTORY_ENABLED = config(
+    "MPC_SOLANA_ROTATION_INVENTORY_ENABLED", default=False, cast=bool
+)
+MPC_SOLANA_LIFECYCLE_CERTIFICATE = config("MPC_SOLANA_LIFECYCLE_CERTIFICATE", default="")
+MPC_SOLANA_WITNESS_URL = config("MPC_SOLANA_WITNESS_URL", default="")
+MPC_SOLANA_WITNESS_CA_CERT = config("MPC_SOLANA_WITNESS_CA_CERT", default="")
+MPC_SOLANA_WITNESS_COURIER_CERT = config("MPC_SOLANA_WITNESS_COURIER_CERT", default="")
+MPC_SOLANA_WITNESS_COURIER_KEY = config("MPC_SOLANA_WITNESS_COURIER_KEY", default="")
+MPC_SOLANA_WITNESS_TIMEOUT_SECONDS = config(
+    "MPC_SOLANA_WITNESS_TIMEOUT_SECONDS", default=5, cast=int
+)

@@ -1,0 +1,1039 @@
+use crate::{
+    state::Snapshot,
+    trust::{AuthorityConfig, Trust},
+};
+use anyhow::{ensure, Context, Result};
+use serde::{Deserialize, Serialize};
+use std::{
+    fs::{self, File, OpenOptions},
+    os::{fd::AsRawFd, unix::fs::OpenOptionsExt},
+    path::PathBuf,
+};
+use tokio::sync::Mutex;
+use uuid::Uuid;
+use wallet_mpc_protocol::{
+    dkg::PARTIES,
+    witness::{
+        hash, hash_text, Acknowledgement, Command, CommandAction, ExecutionView, Permit,
+        PermitRequest, PublicRound, Query, QueryReply, RootView, Signed,
+    },
+};
+use wallet_mpc_storage::{atomic_create_secret, atomic_replace_state, confirm_parent_durability};
+
+#[derive(Clone, Debug, Serialize, Deserialize)]
+#[serde(tag = "kind", deny_unknown_fields)]
+enum Transition {
+    Initialize,
+    Command { command: Box<Signed<Command>> },
+    Permit { request: Box<Signed<PermitRequest>> },
+    PublicResult { report: Box<Signed<PublicRound>> },
+}
+#[derive(Clone, Debug, Serialize, Deserialize)]
+#[serde(deny_unknown_fields)]
+struct Event {
+    anchor_id: Uuid,
+    sequence: u64,
+    previous_hash: String,
+    time: u64,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    rules: Option<u16>,
+    transition: Transition,
+}
+#[derive(Clone, Debug, Serialize, Deserialize)]
+#[serde(deny_unknown_fields)]
+struct Head {
+    anchor_id: Uuid,
+    sequence: u64,
+    event_hash: String,
+}
+struct Journal {
+    state: Snapshot,
+    command_proofs: std::collections::BTreeMap<Uuid, Signed<Command>>,
+    last_hash: String,
+    directory: PathBuf,
+    poisoned: bool,
+    _lock: File,
+}
+
+pub struct Authority {
+    config: AuthorityConfig,
+    trust: Trust,
+    journal: Mutex<Journal>,
+}
+
+fn now() -> Result<u64> {
+    Ok(std::time::SystemTime::now()
+        .duration_since(std::time::UNIX_EPOCH)?
+        .as_secs())
+}
+// Read the admission time only after acquiring the durable authority lock.
+// Queuing behind another root's fsync must never extend an authorization TTL.
+async fn lock_fresh<'a, T>(
+    mutex: &'a Mutex<T>,
+    validate: impl FnOnce(u64) -> Result<()>,
+    clock: impl FnOnce() -> Result<u64>,
+) -> Result<(tokio::sync::MutexGuard<'a, T>, u64)> {
+    let guard = mutex.lock().await;
+    let time = clock()?;
+    validate(time)?;
+    Ok((guard, time))
+}
+fn event_hash(event: &Signed<Event>) -> Result<String> {
+    Ok(hash(&serde_json::to_vec(&serde_json::to_value(event)?)?))
+}
+fn replay(state: &mut Snapshot, event: &Event) -> Result<()> {
+    ensure!(
+        event.rules.is_none() || matches!(event.rules, Some(1..=8)),
+        "unsupported authority event rules"
+    );
+    ensure!(
+        event.rules.unwrap_or(0) >= state.journal_rules,
+        "authority event rules cannot downgrade"
+    );
+    state.journal_rules = event.rules.unwrap_or(0);
+    match &event.transition {
+        Transition::Initialize => ensure!(
+            event.sequence == 0 && state.sequence == 0 && state.roots.is_empty(),
+            "invalid genesis event"
+        ),
+        Transition::Command { command } => {
+            command.value.validate(event.time)?;
+            ensure!(
+                if event.rules.is_none() {
+                    state.command_legacy(&command.value)?
+                } else {
+                    state.command_at(&command.value, event.time)?
+                },
+                "duplicate lifecycle journal event"
+            );
+        }
+        Transition::Permit { request } => {
+            state.permit(&request.value, &request.key_id, event.time)?;
+        }
+        Transition::PublicResult { report } => {
+            ensure!(state.record(report)?, "duplicate result journal event");
+        }
+    }
+    ensure!(
+        state.sequence == event.sequence,
+        "authority journal sequence disagreement"
+    );
+    Ok(())
+}
+impl Authority {
+    pub fn open(config: AuthorityConfig, initialize: bool) -> Result<Self> {
+        let trust = Trust::new(&config)?;
+        fs::create_dir_all(&config.directory)?;
+        ensure!(
+            fs::symlink_metadata(&config.directory)?
+                .file_type()
+                .is_dir(),
+            "authority state directory cannot be a symlink"
+        );
+        let directory = fs::canonicalize(&config.directory)?;
+        for sensitive in [&config.tls_key, &config.lifecycle_certificate] {
+            ensure!(
+                !fs::canonicalize(sensitive)?.starts_with(&directory),
+                "authority credentials must be protected outside journal backups"
+            );
+        }
+        let lock = OpenOptions::new()
+            .read(true)
+            .write(true)
+            .create(true)
+            .truncate(false)
+            .mode(0o600)
+            .open(directory.join("authority.lock"))?;
+        // One writer for this external authority. Never run divergent processes
+        // over the same snapshot, even if their in-memory CAS locks differ.
+        ensure!(
+            unsafe { libc::flock(lock.as_raw_fd(), libc::LOCK_EX | libc::LOCK_NB) } == 0,
+            "authority directory already owned by a process"
+        );
+        let marker = directory.join("initialized.json");
+        let events = directory.join("events");
+        if initialize {
+            ensure!(
+                !marker.exists() && !events.exists(),
+                "authority initialization cannot reset history"
+            );
+            fs::create_dir(&events)?;
+            let genesis = Event {
+                anchor_id: config.anchor_id,
+                sequence: 0,
+                previous_hash: "00".repeat(32),
+                time: now()?,
+                rules: Some(8),
+                transition: Transition::Initialize,
+            };
+            let signed = trust.sign("WITNESS_EVENT_V1", genesis)?;
+            atomic_create_secret(
+                &events.join(format!("{:020}.json", 0)),
+                &serde_json::to_vec(&signed)?,
+            )?;
+            let head = trust.sign(
+                "WITNESS_HEAD_V1",
+                Head {
+                    anchor_id: config.anchor_id,
+                    sequence: 0,
+                    event_hash: event_hash(&signed)?,
+                },
+            )?;
+            atomic_create_secret(&marker, &serde_json::to_vec(&head)?)?;
+        }
+        ensure!(
+            fs::symlink_metadata(&marker).is_ok_and(|m| m.file_type().is_file() && m.len() <= 4096)
+                && fs::symlink_metadata(&events).is_ok_and(|m| m.file_type().is_dir()),
+            "authority history missing; initialization is explicit and cannot recover lost history"
+        );
+        let head: Signed<Head> = serde_json::from_slice(&fs::read(&marker)?)?;
+        trust.check_signed(
+            &head,
+            "WITNESS_HEAD_V1",
+            trust
+                .witness_keys
+                .get(&head.key_id)
+                .context("untrusted authority head key")?,
+        )?;
+        ensure!(
+            head.value.anchor_id == config.anchor_id,
+            "authority anchor mismatch"
+        );
+        confirm_parent_durability(&marker)?;
+        let mut paths = vec![];
+        for entry in fs::read_dir(&events)? {
+            let path = entry?.path();
+            if path
+                .extension()
+                .and_then(|v| v.to_str())
+                .and_then(|v| v.strip_prefix("tmp-"))
+                .and_then(|v| Uuid::parse_str(v).ok())
+                .is_some()
+            {
+                continue;
+            }
+            ensure!(
+                path.is_file() && !fs::symlink_metadata(&path)?.file_type().is_symlink(),
+                "invalid authority journal entry"
+            );
+            paths.push(path);
+        }
+        paths.sort();
+        ensure!(!paths.is_empty(), "authority genesis missing");
+        ensure!(
+            head.value.sequence < paths.len() as u64,
+            "authority history tail is missing"
+        );
+        let mut state = Snapshot::empty(config.anchor_id)?;
+        let mut command_proofs = std::collections::BTreeMap::new();
+        let mut previous = "00".repeat(32);
+        for (index, path) in paths.iter().enumerate() {
+            ensure!(
+                path.file_name().and_then(|s| s.to_str())
+                    == Some(format!("{index:020}.json").as_str())
+                    && fs::metadata(path)?.len() <= 1024 * 1024,
+                "missing/oversized authority journal event"
+            );
+            let signed: Signed<Event> = serde_json::from_slice(&fs::read(path)?)?;
+            let pin = trust
+                .witness_keys
+                .get(&signed.key_id)
+                .context("untrusted witness journal signing key")?;
+            trust.check_signed(&signed, "WITNESS_EVENT_V1", pin)?;
+            let e = &signed.value;
+            ensure!(
+                e.anchor_id == config.anchor_id
+                    && e.sequence == index as u64
+                    && e.previous_hash == previous,
+                "corrupt authority journal chain"
+            );
+            // Rules8 was introduced with exact source control provenance. Never
+            // admit an unreviewed older draft's other-cohort receipt record on
+            // reopen; original signed rules0–7 retain their old semantics.
+            if e.rules.is_some_and(|rules| rules >= 8) {
+                if let Transition::Command { command } = &e.transition {
+                    if let CommandAction::RegisterRotationClaim { evidence, .. } =
+                        &command.value.action
+                    {
+                        if evidence.authority.is_none() {
+                            let source = state.roots.get(&command.value.root_identity).context(
+                                "original source Root missing during registration replay",
+                            )?;
+                            trust.original_rotation_claim_evidence(evidence, &source.node_keys)?;
+                        }
+                    }
+                }
+            }
+            replay(&mut state, e)?;
+            if let Transition::Command { command } = &e.transition {
+                command_proofs.insert(command.value.request_id, command.as_ref().clone());
+            }
+            previous = event_hash(&signed)?;
+            if index as u64 == head.value.sequence {
+                ensure!(
+                    previous == head.value.event_hash,
+                    "authority head/journal disagreement"
+                );
+            }
+            confirm_parent_durability(path)?;
+        }
+        // A crash after the immutable event but before head publication retains
+        // its write-ahead tombstone. Never discard it as an unissued permit.
+        if state.sequence > head.value.sequence {
+            let recovered = trust.sign(
+                "WITNESS_HEAD_V1",
+                Head {
+                    anchor_id: config.anchor_id,
+                    sequence: state.sequence,
+                    event_hash: previous.clone(),
+                },
+            )?;
+            atomic_replace_state(&marker, &serde_json::to_vec(&recovered)?)?;
+        }
+        Ok(Self {
+            config,
+            trust,
+            journal: Mutex::new(Journal {
+                state,
+                command_proofs,
+                last_hash: previous,
+                directory: events,
+                poisoned: false,
+                _lock: lock,
+            }),
+        })
+    }
+    fn commit(
+        &self,
+        j: &mut Journal,
+        mut candidate: Snapshot,
+        time: u64,
+        transition: Transition,
+    ) -> Result<()> {
+        ensure!(
+            !j.poisoned
+                && candidate.sequence
+                    == j.state
+                        .sequence
+                        .checked_add(1)
+                        .context("journal exhausted")?,
+            "authority unavailable/sequence conflict"
+        );
+        let event = Event {
+            anchor_id: self.config.anchor_id,
+            sequence: candidate.sequence,
+            previous_hash: j.last_hash.clone(),
+            time,
+            rules: Some(8),
+            transition,
+        };
+        let signed = self.trust.sign("WITNESS_EVENT_V1", event)?;
+        let bytes = serde_json::to_vec(&signed)?;
+        let next_hash = event_hash(&signed)?;
+        let head = self.trust.sign(
+            "WITNESS_HEAD_V1",
+            Head {
+                anchor_id: self.config.anchor_id,
+                sequence: candidate.sequence,
+                event_hash: next_hash.clone(),
+            },
+        )?;
+        ensure!(
+            bytes.len() <= 1024 * 1024,
+            "authority event exceeds bounded transport/journal size"
+        );
+        if let Err(error) = atomic_create_secret(
+            &j.directory.join(format!("{:020}.json", candidate.sequence)),
+            &bytes,
+        ) {
+            j.poisoned = true;
+            // No permitting response is released after an uncertain write.
+            return Err(error.into());
+        }
+        if let Err(error) = atomic_replace_state(
+            &j.directory
+                .parent()
+                .context("authority directory")?
+                .join("initialized.json"),
+            &serde_json::to_vec(&head)?,
+        ) {
+            // The immutable grant event already exists, including when head
+            // replacement fails before rename. Fail all subsequent operations
+            // until a restart replays and confirms its durable tombstone.
+            j.poisoned = true;
+            return Err(error.into());
+        }
+        if let Transition::Command { command } = &signed.value.transition {
+            j.command_proofs
+                .insert(command.value.request_id, command.as_ref().clone());
+        }
+        candidate.journal_rules = 8;
+        j.last_hash = next_hash;
+        j.state = candidate;
+        Ok(())
+    }
+    pub async fn command(&self, command: Signed<Command>) -> Result<Signed<Acknowledgement>> {
+        self.trust
+            .check_signed(&command, "WITNESS_COMMAND_V1", &self.trust.lifecycle)?;
+        let (mut j, time) =
+            lock_fresh(&self.journal, |time| command.value.validate(time), now).await?;
+        ensure!(!j.poisoned, "authority durability uncertain");
+        match &command.value.action {
+            CommandAction::AcknowledgeFinality { reports } => {
+                for report in reports {
+                    let ready = &report.value;
+                    let class = &ready.plan().root.wallet_class;
+                    self.trust.check_node(
+                        class,
+                        &ready.party_id,
+                        report,
+                        wallet_mpc_protocol::solana_finality::REPORT_DOMAIN,
+                    )?;
+                    self.trust.check_signed(
+                        &ready.observed.lease.request.authorization,
+                        wallet_mpc_protocol::solana_finality::PLAN_DOMAIN,
+                        &self.trust.lifecycle,
+                    )?;
+                    self.trust.check_node(
+                        class,
+                        &ready.party_id,
+                        &ready.observed.lease.query,
+                        "WITNESS_QUERY_V1",
+                    )?;
+                    self.trust.check_node(
+                        class,
+                        &ready.party_id,
+                        &ready.observed.final_query,
+                        "WITNESS_QUERY_V1",
+                    )?;
+                    let current = self
+                        .trust
+                        .witness_keys
+                        .get(&self.trust.identity.key_id())
+                        .context("current W identity required")?;
+                    self.trust.check_signed(
+                        &ready.observed.initial_witness,
+                        "WITNESS_QUERY_REPLY_V1",
+                        current,
+                    )?;
+                    self.trust.check_signed(
+                        &ready.final_witness,
+                        "WITNESS_QUERY_REPLY_V1",
+                        current,
+                    )?;
+                }
+            }
+            CommandAction::InstallNodeProfile { fence, renewal } => {
+                let first = !j
+                    .state
+                    .profile_migrations
+                    .contains_key(&fence.value.approvals.plan().migration_id);
+                self.trust
+                    .profile_migration(fence, renewal.as_deref(), first, time)?;
+            }
+            CommandAction::StageRotationInventory { approvals, .. }
+            | CommandAction::BeginRotation { approvals } => self.trust.rotation(approvals)?,
+            CommandAction::EnableFinancialMode { approvals } => {
+                self.trust.financial_mode(approvals)?
+            }
+            CommandAction::ReserveRefresh { plan } => {
+                self.trust.check_signed(
+                    plan.as_ref(),
+                    "WITNESS_FROST_REFRESH_PLAN_V1",
+                    &self.trust.lifecycle,
+                )?;
+            }
+            CommandAction::RegisterClaim { evidence }
+            | CommandAction::RegisterRotationClaim { evidence, .. } => {
+                self.trust.claim_evidence(evidence)?;
+                if matches!(
+                    command.value.action,
+                    CommandAction::RegisterRotationClaim { .. }
+                ) && evidence.authority.is_none()
+                {
+                    let source = j
+                        .state
+                        .roots
+                        .get(&command.value.root_identity)
+                        .context("original source Root missing")?;
+                    self.trust
+                        .original_rotation_claim_evidence(evidence, &source.node_keys)?;
+                }
+                if !j
+                    .state
+                    .claims
+                    .contains_key(&evidence.statement.reservation_id)
+                {
+                    if let Some(authority) = &evidence.authority {
+                        ensure!(j.command_proofs.get(&authority.prepare.value.request_id)
+                            == Some(authority.prepare.as_ref()),
+                            "exact original archived signed Prepare required for new Claim registration");
+                    }
+                }
+            }
+            CommandAction::Enroll {
+                evidence,
+                node_keys,
+            } => {
+                self.trust.root_evidence(evidence)?;
+                let p = self.trust.profile(&evidence.statement.wallet_class)?;
+                for party in PARTIES {
+                    ensure!(
+                        node_keys
+                            .get(party)
+                            .is_some_and(|id| p.nodes[party].contains_key(id)),
+                        "unenrolled class node identity"
+                    );
+                }
+            }
+            CommandAction::ReserveReplacement { plan } => {
+                let profile = self.trust.profile(&plan.refresh.root.wallet_class)?;
+                for party in PARTIES {
+                    ensure!(
+                        profile.nodes[party].contains_key(&plan.refresh.node_keys[party]),
+                        "replacement roster requires independently installed node pins"
+                    );
+                }
+            }
+            CommandAction::Prepare { ready, .. } => {
+                let root = j
+                    .state
+                    .roots
+                    .get(&command.value.root_identity)
+                    .context("unknown original root")?;
+                for report in ready {
+                    self.trust.check_node(
+                        &root.evidence.statement.wallet_class,
+                        &report.value.party_id,
+                        report,
+                        "WITNESS_GENERATION_READY_V1",
+                    )?;
+                }
+            }
+            CommandAction::CloseUnreleased { attestations, .. } => {
+                let root = j
+                    .state
+                    .roots
+                    .get(&command.value.root_identity)
+                    .context("unknown original root")?;
+                for a in attestations {
+                    self.trust.check_node(
+                        &root.evidence.statement.wallet_class,
+                        &a.value.request.value.party_id,
+                        a,
+                        "WITNESS_NO_RELEASE_V1",
+                    )?;
+                    self.trust.check_node(
+                        &root.evidence.statement.wallet_class,
+                        &a.value.request.value.party_id,
+                        &a.value.request,
+                        "WITNESS_PERMIT_REQUEST_V1",
+                    )?;
+                    self.trust.check_signed(
+                        &a.value.authorization,
+                        "WITNESS_CANCELLATION_V1",
+                        &self.trust.lifecycle,
+                    )?;
+                }
+            }
+            _ => {}
+        }
+        let fingerprint = hash(&command.signing_message("WITNESS_COMMAND_V1")?);
+        if let CommandAction::RegisterRotationClaim { approvals, .. } = &command.value.action {
+            self.trust.rotation(approvals)?;
+        }
+        let mut candidate = j.state.clone();
+        candidate.journal_rules = 8;
+        if candidate.command_at(&command.value, time)? {
+            self.commit(
+                &mut j,
+                candidate,
+                time,
+                Transition::Command {
+                    command: Box::new(command),
+                },
+            )?;
+        }
+        self.trust.sign(
+            "WITNESS_ACK_V1",
+            Acknowledgement {
+                anchor_id: self.config.anchor_id,
+                sequence: j.state.sequence,
+                value_fingerprint: fingerprint,
+            },
+        )
+    }
+    pub async fn permit(&self, request: Signed<PermitRequest>) -> Result<Signed<Permit>> {
+        let (mut j, time) =
+            lock_fresh(&self.journal, |time| request.value.validate(time), now).await?;
+        ensure!(!j.poisoned, "authority durability uncertain");
+        let id = request
+            .value
+            .binding
+            .authorized
+            .intent
+            .claim
+            .root
+            .identity()?;
+        let r = j
+            .state
+            .roots
+            .get(&id)
+            .context("original root not enrolled")?;
+        self.trust.check_node(
+            &r.evidence.statement.wallet_class,
+            &request.value.party_id,
+            &request,
+            "WITNESS_PERMIT_REQUEST_V1",
+        )?;
+        self.trust.authorized(
+            &request.value.binding.authorized,
+            &r.public_key_package,
+            time,
+        )?;
+        let mut candidate = j.state.clone();
+        candidate.journal_rules = 8;
+        let permit = candidate.permit(&request.value, &request.key_id, time)?;
+        let response = self.trust.sign("WITNESS_PERMIT_V1", permit)?;
+        self.commit(
+            &mut j,
+            candidate,
+            time,
+            Transition::Permit {
+                request: Box::new(request),
+            },
+        )?;
+        Ok(response)
+    }
+    pub async fn record(&self, report: Signed<PublicRound>) -> Result<Signed<Acknowledgement>> {
+        let mut j = self.journal.lock().await;
+        ensure!(!j.poisoned, "authority durability uncertain");
+        let execution = j
+            .state
+            .executions
+            .get(&report.value.execution_id)
+            .context("unknown original execution")?;
+        let class = &execution.binding.authorized.intent.claim.root.wallet_class;
+        self.trust.check_node(
+            class,
+            &report.value.party_id,
+            &report,
+            "WITNESS_PUBLIC_ROUND_V1",
+        )?;
+        let fingerprint = hash(&report.signing_message("WITNESS_PUBLIC_ROUND_V1")?);
+        let mut candidate = j.state.clone();
+        if candidate.record(&report)? {
+            self.commit(
+                &mut j,
+                candidate,
+                now()?,
+                Transition::PublicResult {
+                    report: Box::new(report),
+                },
+            )?;
+        }
+        self.trust.sign(
+            "WITNESS_ACK_V1",
+            Acknowledgement {
+                anchor_id: self.config.anchor_id,
+                sequence: j.state.sequence,
+                value_fingerprint: fingerprint,
+            },
+        )
+    }
+    pub async fn query(&self, request: Signed<Query>) -> Result<Signed<QueryReply>> {
+        ensure!(
+            request.value.anchor_id == self.config.anchor_id
+                && hash_text(&request.value.challenge)
+                && request.value.challenge != "00".repeat(32),
+            "fresh original authority query required"
+        );
+        let j = self.journal.lock().await;
+        ensure!(!j.poisoned, "authority durability uncertain");
+        let r = j
+            .state
+            .roots
+            .get(&request.value.root_identity)
+            .context("unknown original root")?;
+        if request.key_id == self.trust.lifecycle.key_id {
+            self.trust
+                .check_signed(&request, "WITNESS_QUERY_V1", &self.trust.lifecycle)?;
+        } else {
+            self.trust
+                .check_query(&r.evidence.statement.wallet_class, &request)?;
+        }
+        let execution = if let Some(id) = request.value.execution_id {
+            if let Some(e) = j.state.executions.get(&id) {
+                ensure!(
+                    e.root_identity == request.value.root_identity,
+                    "query execution belongs to another root"
+                );
+                Some(ExecutionView {
+                    binding_fingerprint: e.binding.identity()?,
+                    status: e.status.clone(),
+                    signature: e.signature.clone(),
+                    reports: e.reports.clone(),
+                    finality: j.state.finalities.get(&id).cloned(),
+                })
+            } else {
+                None
+            }
+        } else {
+            None
+        };
+        let abandoned = request
+            .value
+            .execution_id
+            .is_some_and(|id| j.state.abandoned.contains_key(&id));
+        let claim = if let Some(id) = request.value.claim_reservation_id {
+            if let Some(e) = j.state.claims.get(&id) {
+                ensure!(
+                    e.statement.root == r.evidence.statement,
+                    "query claim belongs to another original root"
+                );
+                Some(e.clone())
+            } else {
+                None
+            }
+        } else {
+            None
+        };
+        let claim_issuance = request
+            .value
+            .claim_reservation_id
+            .and_then(|id| j.state.claim_issuances.get(&id).cloned());
+        let claim_availability = if let Some(candidate) = &request.value.candidate_claim {
+            ensure!(
+                request.value.execution_id.is_none()
+                    && request.value.claim_reservation_id == Some(candidate.reservation_id)
+                    && candidate.root == r.evidence.statement,
+                "exact candidate reservation/Root read-only query required"
+            );
+            Some(j.state.claim_availability(candidate)?)
+        } else {
+            None
+        };
+        let generation_authority =
+            if claim_availability.is_some() && r.generation.epoch > 0 {
+                Some(Box::new(j.command_proofs.values().find(|proof| {
+                proof.value.root_identity == request.value.root_identity &&
+                matches!(&proof.value.action, CommandAction::Prepare{ready,node_keys}
+                    if ready.first().is_some_and(|ready|ready.value.generation==r.generation)
+                       && node_keys==&r.node_keys)
+            }).context("original signed current-generation Prepare missing")?.clone()))
+            } else {
+                None
+            };
+        let rotation_claim_registration = if let Some(rotation_id) = request.value.rotation_id {
+            ensure!(
+                !rotation_id.is_nil()
+                    && request.value.execution_id.is_none()
+                    && request.value.materialization_id.is_none(),
+                "exact public rotation provenance query required"
+            );
+            j.state.rotation_claim_registration_view(
+                &request.value.root_identity,
+                rotation_id,
+                request
+                    .value
+                    .claim_reservation_id
+                    .context("rotation provenance requires exact Claim selector")?,
+            )?
+        } else {
+            None
+        };
+        self.trust.sign(
+            "WITNESS_QUERY_REPLY_V1",
+            QueryReply {
+                rotation_claim_registration,
+                inventory_materialization: request
+                    .value
+                    .materialization_id
+                    .map(|id| {
+                        j.state
+                            .materialization_view(&request.value.root_identity, id)
+                    })
+                    .transpose()?
+                    .flatten(),
+                claim_availability,
+                generation_authority,
+                query: request.value,
+                sequence: j.state.sequence,
+                root: RootView {
+                    original: r.evidence.statement.clone(),
+                    revision: r.revision,
+                    phase: r.phase.clone(),
+                    generation: r.generation.clone(),
+                    public_key_package: r.public_key_package.clone(),
+                    node_keys: r.node_keys.clone(),
+                    prepared: r.prepared.as_ref().map(|p| p.generation.clone()),
+                    next_claim_index: r.next_claim_index,
+                    financial_mode: r.financial_mode.clone(),
+                    rotation: j.state.rotation_view(&r.evidence.statement.identity()?)?,
+                },
+                execution,
+                abandoned,
+                claim,
+                lifecycle_key_id: Some(self.trust.lifecycle.key_id.clone()),
+                claim_issuance,
+                refresh: j
+                    .state
+                    .refreshes
+                    .get(&r.evidence.statement.identity()?)
+                    .cloned(),
+                replacement: j
+                    .state
+                    .replacements
+                    .get(&r.evidence.statement.identity()?)
+                    .cloned(),
+                node_profiles: j
+                    .state
+                    .node_profiles
+                    .get(&r.evidence.statement.identity()?)
+                    .cloned()
+                    .unwrap_or_default(),
+            },
+        )
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use std::sync::{
+        atomic::{AtomicU64, Ordering},
+        Arc,
+    };
+
+    #[test]
+    fn original_signed_journal_messages_survive_new_optional_rules() {
+        use wallet_mpc_transport::{PinnedIdentity, AUTHORITY_ROLES};
+        let original: serde_json::Value = serde_json::from_str(include_str!(
+            "../tests/fixtures/pre-replacement-journal.json"
+        ))
+        .unwrap();
+        let directory =
+            std::env::temp_dir().join(format!("witness-public-archive-{}", Uuid::new_v4()));
+        fs::create_dir(&directory).unwrap();
+        let mut pins = std::collections::BTreeMap::new();
+        for (role, pem) in original["certificates"].as_object().unwrap() {
+            let path = directory.join(format!("{role}.crt"));
+            fs::write(&path, pem.as_str().unwrap()).unwrap();
+            pins.insert(
+                role.clone(),
+                PinnedIdentity::new(path.to_str().unwrap(), role, &AUTHORITY_ROLES).unwrap(),
+            );
+        }
+        let values = original["events"].as_array().unwrap();
+        for (index, value) in values.iter().enumerate() {
+            let raw: serde_json::Value =
+                serde_json::from_str(original["original_event_json"][index].as_str().unwrap())
+                    .unwrap();
+            assert_eq!(raw, *value);
+        }
+        assert_eq!(
+            serde_json::from_str::<serde_json::Value>(
+                original["original_head_json"].as_str().unwrap()
+            )
+            .unwrap(),
+            original["head"]
+        );
+        let first: Signed<Event> = serde_json::from_value(values[0].clone()).unwrap();
+        let mut state = Snapshot::empty(first.value.anchor_id).unwrap();
+        let mut previous = None;
+        for (index, value) in values.iter().enumerate() {
+            let event: Signed<Event> = serde_json::from_value(value.clone()).unwrap();
+            assert!(event.value.rules.is_none());
+            assert_eq!(serde_json::to_value(&event).unwrap(), *value);
+            let message = event.signing_message("WITNESS_EVENT_V1").unwrap();
+            assert_eq!(hash(&message), original["event_message_sha256"][index]);
+            assert_eq!(event.key_id, pins["witness"].key_id);
+            pins["witness"]
+                .verify(&message, &event.signature_bytes().unwrap())
+                .unwrap();
+            let mut tampered = Signed::<Event> {
+                key_id: event.key_id.clone(),
+                value: serde_json::from_value(value["value"].clone()).unwrap(),
+                signature: event.signature.clone(),
+            };
+            tampered.value.rules = Some(1);
+            assert!(pins["witness"]
+                .verify(
+                    &tampered.signing_message("WITNESS_EVENT_V1").unwrap(),
+                    &tampered.signature_bytes().unwrap()
+                )
+                .is_err());
+            if let Some(hash) = previous {
+                assert_eq!(event.value.previous_hash, hash);
+            }
+            if let Transition::Command { command } = &event.value.transition {
+                assert_eq!(command.key_id, pins["lifecycle"].key_id);
+                pins["lifecycle"]
+                    .verify(
+                        &command.signing_message("WITNESS_COMMAND_V1").unwrap(),
+                        &command.signature_bytes().unwrap(),
+                    )
+                    .unwrap();
+                if let CommandAction::Enroll { evidence, .. } = &command.value.action {
+                    for report in &evidence.participant_agreement {
+                        pins[&report.party_id]
+                            .verify(
+                                &wallet_mpc_protocol::solana_provisioning::receipt_message(
+                                    "root",
+                                    &report.statement,
+                                    &report.party_id,
+                                )
+                                .unwrap(),
+                                &wallet_mpc_protocol::sign::decode_hex(&report.signer_signature)
+                                    .unwrap(),
+                            )
+                            .unwrap();
+                    }
+                }
+            }
+            replay(&mut state, &event.value).unwrap();
+            previous = Some(event_hash(&event).unwrap());
+        }
+        let head: Signed<Head> = serde_json::from_value(original["head"].clone()).unwrap();
+        pins["witness"]
+            .verify(
+                &head.signing_message("WITNESS_HEAD_V1").unwrap(),
+                &head.signature_bytes().unwrap(),
+            )
+            .unwrap();
+        assert_eq!(head.value.event_hash, previous.unwrap());
+        assert_eq!(state.sequence, head.value.sequence);
+        assert_eq!(state.anchor_id, head.value.anchor_id);
+        assert_eq!(state.roots.len(), 2);
+        assert_eq!(state.claims.len(), 1);
+        state.journal_rules = 2;
+        let mut version_one = first.value.clone();
+        version_one.rules = Some(1);
+        assert!(replay(&mut state, &version_one)
+            .unwrap_err()
+            .to_string()
+            .contains("downgrade"));
+        assert!(replay(&mut state, &first.value)
+            .unwrap_err()
+            .to_string()
+            .contains("downgrade"));
+        fs::remove_dir_all(directory).unwrap();
+    }
+
+    async fn expired_while_queued(validate: impl FnOnce(u64) -> Result<()> + Send + 'static) {
+        expired_while_queued_at(validate, 1000, 1011).await;
+    }
+    async fn expired_while_queued_at(
+        validate: impl FnOnce(u64) -> Result<()> + Send + 'static,
+        initial: u64,
+        after: u64,
+    ) {
+        let mutex = Arc::new(Mutex::new(()));
+        let clock = Arc::new(AtomicU64::new(initial));
+        let held = mutex.lock().await;
+        let (started, waiting) = tokio::sync::oneshot::channel();
+        let task = {
+            let mutex = mutex.clone();
+            let clock = clock.clone();
+            tokio::spawn(async move {
+                started.send(()).unwrap();
+                lock_fresh(&mutex, validate, || Ok(clock.load(Ordering::SeqCst)))
+                    .await
+                    .is_err()
+            })
+        };
+        waiting.await.unwrap();
+        tokio::task::yield_now().await;
+        assert!(!task.is_finished());
+        clock.store(after, Ordering::SeqCst);
+        drop(held);
+        assert!(
+            task.await.unwrap(),
+            "queued expired authorization must fail"
+        );
+    }
+
+    #[tokio::test]
+    async fn queued_lifecycle_command_cannot_outlive_its_authorization() {
+        let command = Command {
+            anchor_id: Uuid::new_v4(),
+            request_id: Uuid::new_v4(),
+            root_identity: "11".repeat(32),
+            expected_revision: 1,
+            expires_at: 1010,
+            action: CommandAction::Freeze,
+        };
+        command.validate(1000).unwrap();
+        expired_while_queued(move |time| command.validate(time)).await;
+    }
+
+    #[tokio::test]
+    async fn queued_rotation_plan_expires_even_while_lifecycle_command_is_live() {
+        let command = crate::rotation::tests::admission_command();
+        assert_eq!(command.expires_at, 1200);
+        command.validate(1000).unwrap();
+        expired_while_queued(move |time| command.validate(time)).await;
+    }
+
+    #[tokio::test]
+    async fn queued_finality_reports_expire_even_while_life_plan_and_command_are_live() {
+        let command = crate::finality::tests::admission_command();
+        command.validate(1003).unwrap();
+        assert_eq!(command.expires_at, 1200);
+        expired_while_queued_at(move |time| command.validate(time), 1003, 1016).await;
+    }
+
+    #[tokio::test]
+    async fn queued_round_permit_cannot_outlive_its_fresh_challenge() {
+        let request = crate::state::tests::admission_request();
+        request.validate(1000).unwrap();
+        expired_while_queued(move |time| request.validate(time)).await;
+    }
+
+    #[tokio::test]
+    async fn queued_business_intent_expires_even_if_round_challenge_is_still_live() {
+        let mut request = crate::state::tests::admission_request();
+        request.expires_at = 1015;
+        request.binding.authorized.intent.issued_at = 995;
+        request.binding.authorized.intent.expires_at = 1005;
+        let policy = wallet_mpc_protocol::solana_intent::ValidationPolicy {
+            genesis_hash: request
+                .binding
+                .authorized
+                .intent
+                .claim
+                .root
+                .genesis_hash
+                .clone(),
+            version: 7,
+            max_fee_lamports: 20000,
+            max_rent_lamports: 3000000,
+            max_lifetime_seconds: 120,
+        };
+        let package = request
+            .binding
+            .authorized
+            .intent
+            .claim
+            .root
+            .public_key_package
+            .clone();
+        request
+            .binding
+            .authorized
+            .validate_shape(&package, 1000, &policy)
+            .unwrap();
+        request.validate(1011).unwrap();
+        expired_while_queued(move |time| {
+            request.validate(time)?;
+            // Authority::permit passes this same post-lock admission time to
+            // Trust::authorized; this independently tests its intent time gate.
+            request
+                .binding
+                .authorized
+                .validate_shape(&package, time, &policy)?;
+            Ok(())
+        })
+        .await;
+    }
+}

@@ -22,8 +22,32 @@ class Command(BaseCommand):
         parser.add_argument("--threshold", type=int, default=2)
         parser.add_argument("--parties", type=int, default=3)
 
-    @transaction.atomic
     def handle(self, *args, **options):
+        if options["action"] in {"import-dkg", "activate"} and options.get("keyset_id"):
+            keyset = MpcKeyset.objects.get(keyset_id=options["keyset_id"])
+            if keyset.scope == "SOLANA":
+                from custody.identity_registry import _standalone
+                from custody.solana_coordinator import resolve_route, solana_adapter
+
+                if keyset.status == "RETIRED":
+                    raise CommandError("retired keysets cannot import or reactivate")
+                if resolve_route(keyset.keyset_id) is None:
+                    # Preserve original unbound-keyset command compatibility.
+                    return self._handle_atomic(*args, **options)
+                _standalone()
+                adapter = solana_adapter(keyset.keyset_id)
+                metadata = adapter.get_keyset(str(keyset.keyset_id))
+                with transaction.atomic():
+                    locked = MpcKeyset.objects.select_for_update().get(pk=keyset.pk)
+                    if locked.scope != "SOLANA" or resolve_route(locked.keyset_id) != adapter.route:
+                        raise CommandError(
+                            "original coordinator admission changed during metadata read"
+                        )
+                    return self._handle_atomic(*args, _solana_metadata=metadata, **options)
+        return self._handle_atomic(*args, **options)
+
+    @transaction.atomic
+    def _handle_atomic(self, *args, _solana_metadata=None, **options):
         action = options["action"]
         if action == "create":
             if not options["algorithm"] or not options["scope"]:
@@ -59,7 +83,18 @@ class Command(BaseCommand):
                 from custody.mpc_binding import verify_coordinator_keyset
                 from custody.signer_adapter import SelfHostedMpcAdapter
 
-                metadata = SelfHostedMpcAdapter().get_keyset(str(keyset.keyset_id))
+                if keyset.scope == "SOLANA" and _solana_metadata is None:
+                    from custody.solana_coordinator import resolve_route
+
+                    if resolve_route(keyset.keyset_id) is not None:
+                        raise CommandError(
+                            "coordinator was bound before metadata lock; retry original command"
+                        )
+                metadata = (
+                    SelfHostedMpcAdapter().get_keyset(str(keyset.keyset_id))
+                    if _solana_metadata is None
+                    else _solana_metadata
+                )
                 if action == "import-dkg":
                     if keyset.status != "CREATING":
                         raise CommandError("only creating keysets can import DKG evidence")

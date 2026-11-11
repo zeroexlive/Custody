@@ -30,7 +30,7 @@ pub fn address(base: &Key, index: u64, token: bool) -> Result<Key> {
     let owner = if token { key(TOKEN)? } else { SYSTEM };
     Ok(Sha256::digest([base.as_slice(), seed(index, token)?.as_bytes(), &owner].concat()).into())
 }
-fn ata(owner: &Key, mint: &Key) -> Result<Key> {
+pub fn associated_address(owner: &Key, mint: &Key) -> Result<Key> {
     let token = key(TOKEN)?;
     let program = key(ATA)?;
     for bump in (0u8..=255).rev() {
@@ -68,6 +68,13 @@ pub enum Operation {
         amount: u64,
         decimals: u8,
         create_ata: bool,
+    },
+    SeededToken {
+        mint: Key,
+        destination_base: Key,
+        destination_index: u64,
+        amount: u64,
+        decimals: u8,
     },
 }
 #[derive(Debug)]
@@ -131,6 +138,28 @@ fn expected(base: Key, index: u64, op: &Operation) -> Result<Vec<Instruction>> {
                 data: [&[18], base.as_slice()].concat(),
             });
         }
+        Operation::SeededToken {
+            mint,
+            destination_base,
+            destination_index,
+            amount,
+            decimals,
+        } => {
+            ensure!(*amount > 0 && *decimals <= 18, "token amount/precision");
+            let source = address(&base, index, true)?;
+            let target = address(destination_base, *destination_index, true)?;
+            ensure!(source != target, "same token source and destination");
+            out.push(Instruction {
+                program: token,
+                accounts: vec![
+                    (source, false, true),
+                    (*mint, false, false),
+                    (target, false, true),
+                    (base, true, false),
+                ],
+                data: [&[12], amount.to_le_bytes().as_slice(), &[*decimals]].concat(),
+            });
+        }
         Operation::Token {
             mint,
             destination_owner,
@@ -140,7 +169,7 @@ fn expected(base: Key, index: u64, op: &Operation) -> Result<Vec<Instruction>> {
         } => {
             ensure!(*amount > 0 && *decimals <= 18, "token amount/precision");
             let source = address(&base, index, true)?;
-            let target = ata(destination_owner, mint)?;
+            let target = associated_address(destination_owner, mint)?;
             ensure!(source != target, "same token source and destination");
             if *create_ata {
                 out.push(Instruction {

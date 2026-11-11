@@ -3,6 +3,7 @@
 use super::*;
 use axum::extract::DefaultBodyLimit;
 use serde::de::DeserializeOwned;
+use wallet_mpc_protocol::solana_claim_authority::{CurrentClaimApproval, CurrentClaimControl};
 use wallet_mpc_protocol::solana_provisioning::{Approval, Claim, Evidence, Report, Root};
 use wallet_mpc_storage::{atomic_create_secret, confirm_parent_durability};
 use wallet_mpc_transport::SignerClient;
@@ -83,6 +84,7 @@ impl Service {
             reports.push(report);
         }
         let evidence = Evidence {
+            authority: None,
             statement: approval.statement.clone(),
             participant_agreement: reports,
         };
@@ -180,6 +182,71 @@ impl Service {
         self.pin(&name, &evidence)?;
         Ok(evidence)
     }
+    async fn current_claim(
+        &self,
+        keyset: Uuid,
+        approval: CurrentClaimApproval,
+    ) -> Result<Evidence<Claim>> {
+        let claim = &approval.statement;
+        claim.validate()?;
+        approval.authority.validate_shape(&claim.root)?;
+        ensure!(
+            claim.root.dkg.keyset_id == keyset
+                && matches!(claim.root.wallet_class.as_str(), "HOT" | "WARM"),
+            "exact online current Claim namespace required; COLD needs explicit courier"
+        );
+        let original: Evidence<Root> = self
+            .read(&format!("{keyset}.root"))?
+            .context("original seeded enrollment must precede current approval")?;
+        original.validate()?;
+        ensure!(
+            original.statement == claim.root,
+            "original seeded Root cannot change"
+        );
+        let context = approval.authority.identity(&claim.root)?;
+        let name = format!("{}-{context}.current-claim", claim.reservation_id);
+        if let Some(previous) = self.read::<Evidence<Claim>>(&name)? {
+            previous.validate_claim()?;
+            ensure!(
+                previous.statement == *claim
+                    && previous.authority.as_deref() == Some(&approval.authority),
+                "original current Claim/context cannot change"
+            );
+            return Ok(previous);
+        }
+        let mut reports = Vec::new();
+        for party in PARTIES {
+            let control = CurrentClaimControl {
+                approval: approval.clone(),
+                witness: None,
+            };
+            let bytes = self
+                .peers
+                .request(
+                    party,
+                    "POST",
+                    "/internal/v1/solana/current-claim/approve",
+                    serde_json::to_vec(&control)?,
+                )
+                .await?;
+            let report: Report<Claim> = serde_json::from_slice(&bytes)?;
+            ensure!(
+                report.party_id == party && report.statement == *claim && report.durable,
+                "exact authenticated current Claim receipt required"
+            );
+            reports.push(report);
+        }
+        let evidence = Evidence {
+            statement: claim.clone(),
+            participant_agreement: reports,
+            authority: Some(Box::new(approval.authority)),
+        };
+        evidence.validate_claim()?;
+        // No original .claim cache/receipt is replaced. This collects public
+        // node results only; callers independently verify and W-register them.
+        self.pin(&name, &evidence)?;
+        Ok(evidence)
+    }
 }
 async fn root(
     State(service): State<Arc<Service>>,
@@ -205,10 +272,26 @@ async fn claim(
         .map(Json)
         .map_err(|_| StatusCode::CONFLICT)
 }
+async fn current_claim(
+    State(service): State<Arc<Service>>,
+    Path(keyset): Path<Uuid>,
+    Json(approval): Json<CurrentClaimApproval>,
+) -> Result<Json<Evidence<Claim>>, StatusCode> {
+    let _guard = service.lock.lock().await;
+    service
+        .current_claim(keyset, approval)
+        .await
+        .map(Json)
+        .map_err(|_| StatusCode::CONFLICT)
+}
 pub(super) fn router(store: Arc<DurableStore>, peers: SignerClient) -> Router {
     Router::new()
         .route("/v1/keysets/{id}/solana-seeded-root", post(root))
         .route("/v1/keysets/{id}/solana-seeded-claims", post(claim))
+        .route(
+            "/v1/keysets/{id}/solana-current-claims",
+            post(current_claim),
+        )
         .layer(DefaultBodyLimit::max(64 * 1024))
         .with_state(Arc::new(Service {
             store,

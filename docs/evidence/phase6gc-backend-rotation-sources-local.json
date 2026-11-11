@@ -1,0 +1,119 @@
+{
+  "date": "2026-11-11",
+  "status": "UNMERGED_ROOT_CONTRACTS_PASS_RUNTIME_PENDING",
+  "source_parent": "fff0acc209924085849062a8a5dc54c4a66340a7",
+  "migration": "0051_solana_rotation_source_proofs",
+  "scope": "Own-nonce public archives; no financial publication/private movement/retirement",
+  "root_regression": {
+    "passed": 190,
+    "failed": 0,
+    "errors": 0,
+    "skipped": 0,
+    "wall_seconds": 221.04,
+    "modules": {
+      "new_source_contracts": 63,
+      "inventory": 32,
+      "claim_registration": 55,
+      "receipt_pins": 40
+    }
+  },
+  "qualified_prior_root_contracts": {
+    "passed": 53,
+    "wall_seconds": 57.21,
+    "before_final_guard_strengthening": true
+  },
+  "runtime_attempts": [
+    {
+      "name": "rotation-source-runtime",
+      "result": "INTERRUPTED_NO_COMPLETION_REPORT",
+      "accepted": false
+    },
+    {
+      "name": "rotation-source-runtime-resumed",
+      "failed": 1,
+      "wall_seconds": 22.54,
+      "reason": "test callback passed stale snapshot with empty inventory fingerprint"
+    },
+    {
+      "name": "rotation-source-runtime-diagnostic",
+      "failed": 1,
+      "wall_seconds": 14.14,
+      "reason": "same stale-snapshot failure; pure protocol diagnostic confirmed empty fingerprint"
+    },
+    {
+      "name": "rotation-source-runtime-fixed",
+      "failed": 1,
+      "wall_seconds": 17.94,
+      "reason": "test omitted independently installed backend Lifecycle public pin for current receipts"
+    },
+    {
+      "name": "rotation-source-runtime-pinned",
+      "passed": 1,
+      "failed": 1,
+      "wall_seconds": 214.87,
+      "cases": [
+        {
+          "source_generation": 1,
+          "allocations": 33,
+          "result": "PASS",
+          "seconds": 23.291
+        },
+        {
+          "source_generation": 0,
+          "allocations": 1000,
+          "result": "FAIL",
+          "seconds": 191.091,
+          "reason": "post-seal W restart exceeded helper default10s readiness bound"
+        }
+      ]
+    }
+  ],
+  "independent": {
+    "status": "PG_PASS_RUNTIME_IN_PROGRESS",
+    "pg_passed": 190,
+    "pg_failures": 0,
+    "pg_errors": 0,
+    "pg_skipped": 0,
+    "pg_xml_seconds": 360.446,
+    "pg_wall_seconds": 360.46,
+    "frozen_paths": 187,
+    "source_helper_fixture_workflow_manifests": 183,
+    "runtime_binaries": 4
+  },
+  "phase_complete": false,
+  "private_movement": false,
+  "financial_publication": false,
+  "production_enabled": false,
+  "final_helper_delta": {
+    "readiness_seconds": 60,
+    "authorization_lease_seconds_unchanged": 15,
+    "after_restart": "one fresh public query; original unresolved nonce retained",
+    "production_changes_for_runtime_failures": false
+  },
+  "qualified_root_contract_runs": {
+    "rotation-source-contracts-initial": {
+      "tests": 48,
+      "failures": 0,
+      "errors": 48,
+      "skipped": 0
+    },
+    "rotation-source-contracts-retry": {
+      "tests": 1,
+      "failures": 1,
+      "errors": 0,
+      "skipped": 0
+    },
+    "rotation-source-contracts-round3": {
+      "tests": 48,
+      "failures": 1,
+      "errors": 0,
+      "skipped": 0
+    },
+    "rotation-source-contracts-final": {
+      "tests": 53,
+      "failures": 0,
+      "errors": 0,
+      "skipped": 0
+    }
+  }
+}

@@ -9,7 +9,7 @@ from django.db import IntegrityError, transaction
 from django.db.models import Sum
 from django.db.models.functions import Coalesce
 
-from .models import LedgerAccount, LedgerPosting, LedgerTransaction
+from .models import LedgerAccount, LedgerPosting, LedgerTransaction, UserWallet
 
 ZERO = Decimal("0")
 
@@ -195,7 +195,12 @@ def _require_withdrawal_reservation(req, accounts):
 
 @financial_precision()
 def credit_deposit(deposit):
-    accounts = lock_user_accounts(deposit.user_wallet.user_id, deposit.asset_key)
+    wallet = UserWallet.objects.get(pk=deposit.user_wallet_id)
+    if wallet.solana_claim_id:
+        raise ValueError("seeded wallet requires unfinished financial activation and provenance")
+    if wallet.asset_key != deposit.asset_key:
+        raise ValueError("deposit asset differs from its stored wallet")
+    accounts = lock_user_accounts(wallet.user_id, deposit.asset_key)
     return post_transaction(
         event_key=f"deposit:{deposit.pk}:credit",
         event_type="DEPOSIT_CREDIT",
@@ -242,7 +247,13 @@ def reserve_withdrawal(req):
 
 @financial_precision()
 def release_withdrawal(req):
+    from .solana_financial_routing import guard_unallocated_ledger_mutation
+    from .solana_financial_sessions import reject_generic_business
+
+    reject_generic_business("WITHDRAWAL", req.pk)
     accounts = lock_user_accounts(req.user_id, req.asset_key)
+    reject_generic_business("WITHDRAWAL", req.pk)
+    guard_unallocated_ledger_mutation(req, release=True)
     _require_withdrawal_reservation(req, accounts)
     return post_transaction(
         event_key=f"withdrawal:{req.pk}:release",
@@ -256,7 +267,13 @@ def release_withdrawal(req):
 
 @financial_precision()
 def settle_withdrawal(req):
+    from .solana_financial_routing import guard_unallocated_ledger_mutation
+    from .solana_financial_sessions import reject_generic_business
+
+    reject_generic_business("WITHDRAWAL", req.pk)
     accounts = lock_user_accounts(req.user_id, req.asset_key)
+    reject_generic_business("WITHDRAWAL", req.pk)
+    guard_unallocated_ledger_mutation(req, release=False)
     _require_withdrawal_reservation(req, accounts)
     return post_transaction(
         event_key=f"withdrawal:{req.pk}:settle",

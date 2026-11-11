@@ -1,0 +1,46 @@
+{
+  "current_head_ci": "not run for this uncommitted source",
+  "customer_original_multichain_owner_and_balance_preserved": true,
+  "date": "2026-11-01 Asia/Tehran",
+  "explicit_role_before_financial_claim_and_treasury_requires_mode": true,
+  "financial_wallet_or_ledger_activation": false,
+  "independent_runtime": {
+    "binary_hashes_unchanged": true,
+    "genuine_cases": 1,
+    "genuine_xml_seconds": 5.912,
+    "postgresql_cases": 49,
+    "postgresql_xml_seconds": 53.586
+  },
+  "independent_source_review": "bounded source/runtime review found no demonstrated P0/P1; no financial wallet or ledger activation",
+  "local": {
+    "backend": {
+      "errors": 0,
+      "failures": 0,
+      "skipped": 0,
+      "tests": 840,
+      "xml_seconds": 291.158
+    },
+    "genuine": {
+      "errors": 0,
+      "failures": 0,
+      "skipped": 0,
+      "tests": 1,
+      "xml_seconds": 6.017
+    },
+    "targeted": {
+      "errors": 0,
+      "failures": 0,
+      "skipped": 0,
+      "tests": 49,
+      "xml_seconds": 54.374
+    }
+  },
+  "production_authorized": false,
+  "real_db_lock_races_both_orders_wallet_and_user_account": true,
+  "scope": "uncommitted immutable operator principal classification and customer-reference guards; no financial wallet/ledger activation",
+  "source_base_sha": "600fcfe771816abc95759c61602682f636ac160b",
+  "treasury_customer_wallet_liability_withdrawal_hd_references_denied": true,
+  "treasury_rejected_before_customer_publication_issuance_intent": true,
+  "treasury_service_fresh_principal_only": true,
+  "whole_phase_complete": false
+}

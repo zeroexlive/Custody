@@ -47,6 +47,9 @@ jobs:
       PHASE6F_TRON_JAR: /tmp/phase6f-FullNode.jar
       PYTHONPATH: backend-side:mpc-side/integration
       PHASE6FB_SOLANA_BIN: /tmp/phase6fb-solana/solana-release/bin
+      PHASE6GC_PROFILE_COMPAT_BIN: work/profile-compat-target/debug
+      PHASE6GC_CURRENT_CLAIM_COMPAT_BIN: work/current-claim-compat-target/debug
+      PHASE6GC_SOLANA_PLATFORM_TOOLS: work/solana-platform-tools
     steps:
       - uses: actions/checkout@v4
         with:
@@ -109,6 +112,15 @@ jobs:
             tar -xjf /tmp/phase6fb-solana/release.tar.bz2 -C /tmp/phase6fb-solana
           fi
           "$PHASE6FB_SOLANA_BIN/solana-test-validator" --version
+      - name: Cache pinned upstream SBF compiler archive
+        if: inputs.suite == 'solana'
+        uses: actions/cache@v4
+        with:
+          path: work/solana-platform-tools-archive
+          key: solana-platform-v1.43-linux-x86_64-7a497174a0484bf8eee2d0a5a03a48f91ea0b5d1ba2d4055f37ef975a64ca8f6
+      - name: Verify and extract compiler for isolated CPI acceptance fixture
+        if: inputs.suite == 'solana'
+        run: python mpc-side/integration/solana_local/fetch_platform_tools.py --cache work/solana-platform-tools-archive --output "$PHASE6GC_SOLANA_PLATFORM_TOOLS"
       - if: inputs.suite == 'ton' || inputs.suite == 'integrated'
         uses: actions/setup-node@v4
         with:
@@ -124,7 +136,31 @@ jobs:
         env:
           PYTHONPATH: backend-side:mpc-side/integration
         run: python -m ton.localnet work/ton-bootstrap --container phase6fc-localton
-      - run: cargo build --locked --manifest-path mpc-side/Cargo.toml --bin wallet-mpc-coordinator --bin wallet-mpc-signer --example frost_round1_fixture --example frost_signing_package --example cggmp_round1_fixture --example cggmp_aux_message_fixture --example seeded_message_check
+      - run: cargo build --locked --manifest-path mpc-side/Cargo.toml --bin wallet-mpc-coordinator --bin wallet-mpc-signer --bin wallet-mpc-witness --bin wallet-mpc-protected-signer --bin wallet-mpc-profile-migration --example frost_round1_fixture --example frost_signing_package --example cggmp_round1_fixture --example cggmp_aux_message_fixture --example seeded_message_check --example authority_client_probe
+      - name: Check out the fixed original protected profile writer
+        if: inputs.suite == 'solana'
+        uses: actions/checkout@v4
+        with:
+          ref: 4a4e6ffca0d7107d53e742144f52838a3473f32e
+          path: work/profile-compat-baseline
+          persist-credentials: false
+      - name: Build and identify genuine original None-profile services
+        if: inputs.suite == 'solana'
+        run: |
+          CARGO_TARGET_DIR="$PWD/work/profile-compat-target" cargo build --locked --manifest-path work/profile-compat-baseline/mpc-side/Cargo.toml --bin wallet-mpc-coordinator --bin wallet-mpc-witness --bin wallet-mpc-protected-signer --example frost_signing_package
+          python mpc-side/integration/profile_migration_baseline.py --source work/profile-compat-baseline --bin "$PHASE6GC_PROFILE_COMPAT_BIN"
+      - name: Check out the fixed rules2 repaired-store writer
+        if: inputs.suite == 'solana'
+        uses: actions/checkout@v4
+        with:
+          ref: 7ff1e56340a000e9eeefb02ee6f199340062ee85
+          path: work/current-claim-compat-baseline
+          persist-credentials: false
+      - name: Build and identify genuine historical repaired-store services
+        if: inputs.suite == 'solana'
+        run: |
+          CARGO_TARGET_DIR="$PWD/work/current-claim-compat-target" cargo build --locked --manifest-path work/current-claim-compat-baseline/mpc-side/Cargo.toml --bin wallet-mpc-coordinator --bin wallet-mpc-witness --bin wallet-mpc-protected-signer --example frost_signing_package
+          python mpc-side/integration/current_claim_baseline.py --source work/current-claim-compat-baseline --bin "$PHASE6GC_CURRENT_CLAIM_COMPAT_BIN"
       - name: Check out the fixed pre-migration development baseline
         if: inputs.suite == 'network'
         uses: actions/checkout@v4
@@ -163,6 +199,59 @@ jobs:
             work/crypto/fixtures/**/solana-evidence.json
             work/crypto/fixtures/**/solana-seeded-primitive-evidence.json
             work/crypto/fixtures/**/solana-registry-public-evidence.json
+            work/crypto/fixtures/**/solana-native-issuance-public-evidence.json
+            work/crypto/fixtures/**/solana-replacement-witness-public-evidence.json
+            work/crypto/fixtures/**/solana-repair-public-evidence.json
+            work/crypto/fixtures/**/solana-repair-fence-public-evidence.json
+            work/crypto/fixtures/**/solana-profile-migration-public-evidence.json
+            work/crypto/fixtures/**/solana-profile-terminal-fence-public-evidence.json
+            work/crypto/fixtures/**/solana-profile-successor-import-public-evidence.json
+            work/crypto/fixtures/**/solana-profile-migrated-runtime-public-evidence.json
+            work/crypto/fixtures/**/solana-refresh-reservation-public-evidence.json
+            work/crypto/fixtures/**/solana-refresh-historical-ids-public-evidence.json
+            work/crypto/fixtures/**/solana-custody-read-query-public-evidence.json
+            work/crypto/fixtures/**/solana-financial-mode-public-evidence.json
+            work/crypto/fixtures/**/solana-protected-coordinator-public-evidence.json
+            work/crypto/fixtures/**/solana-protected-coordinator-last_r2-public-evidence.json
+            work/crypto/fixtures/**/solana-protected-coordinator-before_record-public-evidence.json
+            work/crypto/fixtures/**/solana-protected-coordinator-first_r2-public-evidence.json
+            work/crypto/fixtures/**/solana-protected-coordinator-round1-public-evidence.json
+            work/crypto/fixtures/**/solana-protected-coordinator-client_disconnect-public-evidence.json
+            work/crypto/fixtures/**/solana-protected-coordinator-coordinator_restart-public-evidence.json
+            work/crypto/fixtures/**/solana-protected-coordinator-write_failure-public-evidence.json
+            work/crypto/fixtures/**/solana-protected-coordinator-invalid_share-public-evidence.json
+            work/crypto/fixtures/**/solana-financial-root-import-public-evidence.json
+            work/crypto/fixtures/**/solana-financial-wallet-public-evidence.json
+            work/crypto/fixtures/**/solana-financial-session-allocation-public-evidence.json
+            work/crypto/fixtures/**/solana-financial-preparation-public-evidence.json
+            work/crypto/fixtures/**/solana-financial-signature-public-evidence.json
+            work/crypto/fixtures/**/solana-financial-signature-before_record-public-evidence.json
+            work/crypto/fixtures/**/solana-financial-signature-audit_and_cache_loss-public-evidence.json
+            work/crypto/fixtures/**/solana-financial-finality-success-public-evidence.json
+            work/crypto/fixtures/**/solana-financial-finality-lost_ack-public-evidence.json
+            work/crypto/fixtures/**/solana-financial-finality-settlement_audit-public-evidence.json
+            work/crypto/fixtures/**/solana-native-financial-legacy-public-evidence.json
+            work/crypto/fixtures/**/solana-native-financial-v0-public-evidence.json
+            work/crypto/fixtures/**/solana-native-financial-pda-public-evidence.json
+            work/crypto/fixtures/**/solana-seeded-token-sweep-public-evidence.json
+            work/crypto/fixtures/**/solana-token-financial-public-evidence.json
+            work/crypto/fixtures/**/solana-current-claim-authority-public-evidence.json
+            work/crypto/fixtures/**/solana-current-claim-public-evidence.json
+            work/crypto/fixtures/**/solana-current-claim-faults-public-evidence.json
+            work/crypto/fixtures/**/solana-current-claim-upgrade-public-evidence.json
+            work/crypto/fixtures/**/solana-current-claim-financial-public-evidence.json
+            work/crypto/fixtures/**/solana-receipt-pin-cohorts-public-evidence.json
+            work/crypto/fixtures/**/solana-backend-inventory-public-evidence.json
+            work/crypto/fixtures/**/solana-backend-source-control-public-evidence.json
+            work/crypto/fixtures/**/solana-repaired-active-inventory-public-evidence.json
+            work/crypto/fixtures/**/solana-public-finality-public-evidence.json
+            work/crypto/fixtures/**/solana-public-finality-failure-public-evidence.json
+            work/crypto/fixtures/**/solana-rotation-inventory-public-evidence.json
+            work/crypto/fixtures/**/solana-rotation-claim-public-evidence.json
+            work/crypto/fixtures/**/solana-coordinator-routing-public-evidence.json
+            work/crypto/fixtures/**/solana-routed-financial-public-evidence.json
+            work/crypto/fixtures/**/solana-financial-signature-route_config_loss-public-evidence.json
+            work/crypto/fixtures/**/solana-repaired-current-claim-public-evidence.json
             work/ton-review/mpc-tvm-evidence.json
             work/ton-review/validator-network-evidence.json
             work/ton-review/django-validator-evidence.json

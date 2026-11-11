@@ -1,0 +1,84 @@
+{
+  "date": "2026-11-03",
+  "status": "BOUNDED_UNMERGED_DEVELOPMENT_ACCEPTANCE",
+  "source_parent": "f9f4445d30eadae5fad2ef1359e13f98e5b1241c",
+  "scope": "Original Solana keyset coordinator URL/SPKI binding, route-aware Root/Claim/financial requests and original W-only recovery; not fund migration/retirement/rescue",
+  "root_validation": {
+    "final_focused_cases": 55,
+    "final_focused_seconds": 39.61,
+    "intermediate_genuine_cases": 2,
+    "intermediate_genuine_seconds": 126.826,
+    "genuine_qualification": "Before additional strict statement-scope checks; final independent cases reran corrected production source."
+  },
+  "independent_validation": {
+    "unique_pg_transport_cases_across_qualified_runs": 338,
+    "initial_run": {
+      "passed": 313,
+      "failures": 1,
+      "seconds": 175.455,
+      "failure": "Historical0031 fixture used current ORM with later keyset column; retained, corrected through historical ORM only."
+    },
+    "final_run": {
+      "tests": 48,
+      "seconds": 62.767,
+      "failures": 0,
+      "errors": 0,
+      "skips": 0,
+      "breakdown": {
+        "whole_gb_issuance": 24,
+        "financial_root": 22,
+        "dispatch_deadline": 2
+      }
+    },
+    "qualification": "290 unchanged non-GB passes carry forward plus final48. Not one338-case run. Original23 GB passes duplicated by full24-case rerun and not double-counted.",
+    "genuine": {
+      "tests": 3,
+      "seconds": 278.711,
+      "failures": 0,
+      "errors": 0,
+      "skips": 0,
+      "cases": {
+        "two_real_cohorts": 8.692,
+        "routed_native_financial_and_w_only_recovery": 119.219,
+        "repaired_current_claim_native_spl_financial": 150.581
+      }
+    }
+  },
+  "manifest": {
+    "final_paths": 131,
+    "source_fixture_workflow_paths": 127,
+    "runtime_binaries": 4,
+    "original130_unchanged_through_all_production_runs": true,
+    "only_added_fixture": "backend-side/custody/tests/test_phase6gb_issuance.py",
+    "final131_stable": true,
+    "sha256": "91519b9c8236d566cf2b23294218a15b578661f18b3a3937a252378b041144f2"
+  },
+  "review": "Independent separate agent; no remaining identified bounded P0/P1 or actionable P2. Not an external audit.",
+  "residuals": [
+    {
+      "severity": "P3",
+      "detail": "Deferred consistency conservatively rejects raw ORM/SQL create-then-delete of an unbound unused keyset within one transaction. No supported delete workflow exists: admin forbids deletion and CLI retires metadata."
+    },
+    "Legacy coordinator binding is an explicit trusted operator identity assertion, not inferred from signer receipts.",
+    "Generic application startup/indexer/legacy entrypoints retain existing global transport configuration requirements.",
+    "Custody body-authority credentials remain independent of route TLS credentials.",
+    "Fresh-key fund migration/retirement/late rescue and final whole-phase gates remain unfinished."
+  ],
+  "exact_source_fast": {
+    "head": "143dfb5e277d37deb09b12610ecbc0a2e02dab71",
+    "run_id": 41702205647,
+    "url": "https://github.com/zeroexlive/Custody/actions/runs/41702205647",
+    "result": "SUCCESS",
+    "executed_jobs": 4,
+    "backend_tests": 1364,
+    "backend_seconds": 815.43,
+    "unselected_crypto_jobs": 10,
+    "scope_limit": "Predates uncommitted rotation data contract; not final phase ALL or compatibility."
+  },
+  "whole_phase_all_original_3d32_compatibility": "PENDING",
+  "algorithm_changes": false,
+  "dependency_changes": false,
+  "scanner_exemptions": false,
+  "activation_flags_relaxed": false,
+  "production_activation": false
+}

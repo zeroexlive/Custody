@@ -1,0 +1,163 @@
+{
+  "date": "2026-11-10",
+  "status": "BOUNDED_UNMERGED_DEVELOPMENT_INDEPENDENTLY_VALIDATED",
+  "source_parent": "473d86a2fd3882a6b4ad0e19238966c77a6cc426",
+  "scope": "Durable local allocation fence; not witness freeze, inventory completeness, migration, retirement or whole-phase acceptance",
+  "root_final_pg": {
+    "tests": 35,
+    "failures": 0,
+    "errors": 0,
+    "skipped": 0,
+    "seconds": 51.894
+  },
+  "root_genuine_before_only_nowait_hardening": {
+    "tests": 1,
+    "failures": 0,
+    "errors": 0,
+    "skipped": 0,
+    "seconds": 14.977
+  },
+  "retained_failure_history": {
+    "initial_fixture_setup": "4 failed/24 passed; attempted immutable original withdrawal mutation; corrected to separately reserved parent, no production rule weakened",
+    "destination_discovery_before_fix": {
+      "tests": 1,
+      "failures": 1,
+      "errors": 0,
+      "skipped": 0,
+      "seconds": 6.171
+    },
+    "destination_discovery_after_fix": {
+      "tests": 1,
+      "failures": 0,
+      "errors": 0,
+      "skipped": 0,
+      "seconds": 5.906
+    },
+    "fix": "Pausebirth NOWAIT SHARE ROW EXCLUSIVE financial-operation table fence excludes invisible writers; only pause fails/retries, existing writers preserved"
+  },
+  "independent": {
+    "scope": "Independent bounded review of durable local allocation pause0049; no W freeze, movement, retirement, phase, merge or production approval",
+    "parent_head": "473d86a2fd3882a6b4ad0e19238966c77a6cc426",
+    "source_paths": 170,
+    "runtime_binaries": 4,
+    "frozen_paths": 174,
+    "hash_changes": [],
+    "backend": {
+      "counts": {
+        "tests": 618,
+        "failures": 0,
+        "errors": 0,
+        "skipped": 0
+      },
+      "seconds": 948.157,
+      "module_counts": {
+        "backend-side.custody.tests.test_mpc_dispatch_deadline": 2,
+        "backend-side.custody.tests.test_phase6gb_issuance": 24,
+        "backend-side.custody.tests.test_solana_allocation_pause": 35,
+        "backend-side.custody.tests.test_solana_claim_authority": 27,
+        "backend-side.custody.tests.test_solana_claim_registration": 55,
+        "backend-side.custody.tests.test_solana_coordinator": 39,
+        "backend-side.custody.tests.test_solana_financial_command": 7,
+        "backend-side.custody.tests.test_solana_financial_deposits": 29,
+        "backend-side.custody.tests.test_solana_financial_finality": 35,
+        "backend-side.custody.tests.test_solana_financial_preparation": 19,
+        "backend-side.custody.tests.test_solana_financial_root": 22,
+        "backend-side.custody.tests.test_solana_financial_routing": 25,
+        "backend-side.custody.tests.test_solana_financial_sessions": 59,
+        "backend-side.custody.tests.test_solana_financial_signing": 16,
+        "backend-side.custody.tests.test_solana_financial_wallet": 39,
+        "backend-side.custody.tests.test_solana_issuance": 33,
+        "backend-side.custody.tests.test_solana_provisioning": 48,
+        "backend-side.custody.tests.test_solana_receipt_pins": 40,
+        "backend-side.custody.tests.test_solana_token_provisioning": 64
+      },
+      "new_pause_cases": 35
+    },
+    "genuine": {
+      "counts": {
+        "tests": 4,
+        "failures": 0,
+        "errors": 0,
+        "skipped": 0
+      },
+      "seconds": 307.541,
+      "cases": [
+        {
+          "name": "test_phase6gc_local_allocation_pause_preserves_actual_cohort_receipts",
+          "seconds": 13.207
+        },
+        {
+          "name": "test_phase6gc_independent_receipt_pin_cohorts_and_archival_claims",
+          "seconds": 6.208
+        },
+        {
+          "name": "test_phase6gc_routed_native_finances_and_witness_only_recovery",
+          "seconds": 125.549
+        },
+        {
+          "name": "test_phase6gc_current_claim_financial_publication_and_native_spl_execution_after_repair",
+          "seconds": 162.233
+        }
+      ]
+    },
+    "lint": {
+      "ruff_check": "PASS",
+      "format_check": "PASS11files",
+      "diff_check": "PASS"
+    },
+    "public_report_sha256": {
+      "genuine/test_phase6gc_independent_rece0/solana-receipt-pin-cohorts-public-evidence.json": "0ce033a48d0dc3847be4f440cdf9a1a72372c7379d3dd220ac1dabc67d29efc7",
+      "genuine/test_phase6gc_local_allocation0/solana-receipt-pin-cohorts-public-evidence.json": "fab5bf1d93953558c7ef14cc7e2c8a150fac7267fc245c0872b269f788369130",
+      "genuine/test_phase6gc_routed_native_fi0/native/solana-routed-financial-public-evidence.json": "8396cbf59d625a5ca394e5c7e7b77515e8a37bb6c6140c6bcd0e97b7989fc3d6",
+      "genuine/test_phase6gc_current_claim_fi0/solana-current-claim-financial-public-evidence.json": "0dc6b45b1dc25c5c80d7764e4a907e238f8ffa79e0081c7b408ed29763f89a72"
+    },
+    "findings": {
+      "P0": [],
+      "P1": [],
+      "P2_blockers": [],
+      "documented_availability": "Brief global FinancialOperation SHARE ROW EXCLUSIVE NOWAIT fence makes the pause transaction fail/retry if any operation writer is active; it preserves that writer."
+    },
+    "reviewed_invariants": [
+      "Fresh READ COMMITTED absence checks after Root lock",
+      "Operation birth checks all known source and destination Roots before HELD commit",
+      "NOWAIT table exclusion closes dynamically discovered destination alias race",
+      "Retained NoSignature and zero-principal initializer holds prevent pause",
+      "Existing exact Claim retries and public recovery/settlement remain available",
+      "Pause and frontier immutable; entry disable cannot erase fence; populated downgrade fails",
+      "No Root/financial-membership or ledger mutation, remote/private grant or Life/Policy key"
+    ],
+    "failure_provenance": "Independent runs had zero failures/retries; parent-reported original fixture failures and reproduced pre-fix destination-discovery race remain qualified historical evidence, not represented as independently executed here.",
+    "status": "PASS",
+    "hashes_unchanged": true
+  },
+  "availability": [
+    "Brief global operation-table writer exclusion can require pause retry during unrelated Root activity",
+    "No local release/reset path; a future authenticated forward lifecycle must preserve history"
+  ],
+  "parent_fast_ci": {
+    "head": "473d86a2fd3882a6b4ad0e19238966c77a6cc426",
+    "run": 42704314910,
+    "url": "https://github.com/zeroexlive/Custody/actions/runs/42704314910",
+    "result": "SUCCESS",
+    "jobs_passed": 4,
+    "backend_passed": 1364,
+    "backend_seconds": 807.77,
+    "predates_this_source": true,
+    "all_crypto": false
+  },
+  "new_source_exact_ci": "PENDING_AFTER_COMMIT",
+  "no_ledger_or_membership_mutation_from_pause": true,
+  "witness_liveness_attested": false,
+  "production_activated": false,
+  "whole_phase_complete": false,
+  "remaining": [
+    "Actual MIGRATION/RESCUE source, fee and operation/effect/ledger integration",
+    "Retirement readiness and late-deposit handling",
+    "Final exact-SHA Fast/ALL, original fixed encrypted-store compatibility and independent phase review"
+  ],
+  "crypto_inventory_collection_only": {
+    "collected": 305,
+    "execution_performed": false,
+    "all_gate_satisfied": false
+  }
+}

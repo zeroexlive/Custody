@@ -176,6 +176,22 @@ impl Local {
 }
 
 impl DkgService {
+    /// Original generation only. Later generations use their own immutable
+    /// encrypted records, never overwrite the DKG package or reinterpret it.
+    pub async fn original_seeded_key(
+        &self,
+        root: &wallet_mpc_protocol::solana_provisioning::Root,
+    ) -> Result<frost::keys::KeyPackage> {
+        self.original_public(&root.dkg, &root.group_public_key, &root.public_key_package)
+            .await?;
+        let local = self.local.lock().await;
+        let (key, package) = local.loaded_key(&root.dkg)?;
+        ensure!(
+            package.as_ref() == Some(&root.public_key_package),
+            "original seeded package mismatch"
+        );
+        Ok(key)
+    }
     /// Reopen this party's encrypted original and compare all public DKG
     /// evidence. No private package leaves the DKG service for provisioning.
     pub async fn original_public(
